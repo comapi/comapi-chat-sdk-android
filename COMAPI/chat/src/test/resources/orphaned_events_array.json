@@ -1,0 +1,32 @@
+[
+  {
+    "id":161,
+    "data":{
+      "name":"delivered",
+      "payload":{
+        "messageId":"60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
+        "conversationId":"id123",
+        "isPublicConversation":false,
+        "profileId":"profile1",
+        "timestamp":"2017-01-10T16:31:27.783Z"
+      },
+      "eventId":"9f0b6286-1afc-4367-b4dd-ad8be8e22d36",
+      "profileId":"profile1"
+    }
+  },
+  {
+    "id":162,
+    "data":{
+      "name":"read",
+      "payload":{
+        "messageId":"60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
+        "conversationId":"id123",
+        "isPublicConversation":false,
+        "profileId":"profile1",
+        "timestamp":"2017-01-10T16:31:27.783Z"
+      },
+      "eventId":"a3ad84fe-1ee3-45fa-bac9-368ca00cbec4",
+      "profileId":"profile1"
+    }
+  }
+]

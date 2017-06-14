@@ -1,0 +1,71 @@
+[
+  {
+    "eventId": "7b1e1b82-d9fa-436f-9a74-1069c2153acc",
+    "name": "conversationMessage.sent",
+    "conversationId": "someId1",
+    "conversationEventId": 0,
+    "payload": {
+      "messageId": "60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
+      "metadata": {
+        "key": "value"
+      },
+      "context": {
+        "from": {
+          "id": "p1",
+          "name": "p1"
+        },
+        "conversationId": "someId1",
+        "sentBy": "p1",
+        "sentOn": "2016-10-21T14:41:29.122Z"
+      },
+      "parts": [
+        {
+          "data": "non",
+          "name": "body",
+          "size": 3,
+          "type": "text/plain"
+        }
+      ],
+      "alert": {
+        "platforms": {
+          "apns": {
+          },
+          "fcm": {
+            "collapse_key": "",
+            "data": {
+              "conversationId": "someId1"
+            },
+            "notification": {
+              "body": "non",
+              "title": "adf"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "eventId": "deee4588-1567-4c46-99a0-c010b491064a",
+    "name": "conversationMessage.delivered",
+    "conversationId": "someId1",
+    "conversationEventId": 1,
+    "payload": {
+      "messageId": "60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
+      "conversationId": "someId1",
+      "profileId": "p1",
+      "timestamp": "2016-10-21T14:51:13.053Z"
+    }
+  },
+  {
+    "eventId": "b3e58e2d-d8f1-4e6f-a668-9f526d9eb0fb",
+    "name": "conversationMessage.read",
+    "conversationId": "someId1",
+    "conversationEventId": 2,
+    "payload": {
+      "messageId": "60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
+      "conversationId": "someId1",
+      "profileId": "p1",
+      "timestamp": "2016-10-21T14:51:13.073Z"
+    }
+  }
+]
