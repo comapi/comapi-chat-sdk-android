@@ -511,6 +511,201 @@ public class ControllerTest {
     }
 
     @Test
+    public void test_synchroniseConversations() throws IOException {
+
+        String newETag = "eTag-A";
+
+        // Conversations setup
+
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 0, ChatTestConst.ETAG);
+
+        ConversationDetails conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1);
+        ConversationDetails conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4);
+
+        List<ConversationDetails> result = new ArrayList<>();
+        result.add(conversationA);
+        result.add(conversationB);
+        mockedComapiClient.addMockedResult(new MockResult<>(result, true, newETag, 200));
+
+        // Participants setup
+
+        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setName("name").setRole(ChatRole.participant).build();
+        ChatParticipant participant2 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID2).setName("name").setRole(ChatRole.participant).build();
+        ChatParticipant participant3 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID3).setName("name").setRole(ChatRole.participant).build();
+
+        store.upsert(ChatTestConst.CONVERSATION_ID1, participant1);
+        store.upsert(ChatTestConst.CONVERSATION_ID1, participant2);
+        store.upsert(ChatTestConst.CONVERSATION_ID1, participant3);
+
+        Participant pA = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID1).setIsParticipant().build();
+        Participant pB = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID4).setIsParticipant().build();
+
+        List<Participant> participants = new ArrayList<>();
+        participants.add(pA);
+        participants.add(pB);
+
+        mockedComapiClient.addMockedResult(new MockResult<>(participants, true, newETag, 200));
+
+        // Events setup
+
+        String json = ResponseTestHelper.readFromFile(this, "rest_events_query.json");
+        Parser parser = new Parser();
+
+        Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
+        List<JsonObject> list = new Gson().fromJson(json, listType);
+
+        ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
+        mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
+
+        // Test
+
+        Boolean synchroniseSuccess = chatController.synchroniseStore().toBlocking().first();
+
+        assertTrue(synchroniseSuccess);
+
+        // Check participants
+
+        List<ChatParticipant> loadedP = store.getParticipants(ChatTestConst.CONVERSATION_ID1);
+        assertTrue(loadedP.size() == 2);
+        ChatParticipant loadedP1 = loadedP.get(0);
+        ChatParticipant loadedP4 = loadedP.get(1);
+        assertNotNull(loadedP1);
+        assertNotNull(loadedP4);
+
+        // Check conversation
+
+        assertTrue(store.getAllConversations().size() == 2);
+        ChatConversationBase loadedConversation = store.getConversations().get(ChatTestConst.CONVERSATION_ID1);
+        assertNotNull(loadedConversation);
+        assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
+        assertEquals(0, loadedConversation.getFirstLocalEventId().longValue());
+        assertEquals(0, loadedConversation.getLastLocalEventId().longValue());
+        assertEquals(0, loadedConversation.getLatestRemoteEventId().longValue());
+        assertTrue(loadedConversation.getUpdatedOn() > 0);
+        assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
+
+        // Check message
+
+        assertTrue(store.getMessages().size() == 1);
+        ChatMessage loadedMessage = store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        assertNotNull(loadedMessage);
+        assertTrue(loadedMessage.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
+        assertEquals("p1", loadedMessage.getFromWhom().getId());
+        assertEquals("p1", loadedMessage.getFromWhom().getName());
+        assertEquals("p1", loadedMessage.getSentBy());
+        assertEquals(0, loadedMessage.getSentEventId().longValue());
+        assertNotNull(loadedMessage.getParts().get(0));
+        assertEquals("body", loadedMessage.getParts().get(0).getName());
+        assertEquals("non", loadedMessage.getParts().get(0).getData());
+        assertEquals(3, loadedMessage.getParts().get(0).getSize());
+        assertEquals("text/plain", loadedMessage.getParts().get(0).getType());
+
+        // Check message status
+
+        ChatMessageStatus status = store.getStatus("60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        assertNotNull(status);
+        assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
+        assertEquals("p1", status.getProfileId());
+        assertEquals(MessageStatus.read, status.getMessageStatus());
+        assertTrue(status.getUpdatedOn() > 0);
+    }
+
+    @Test
+    public void test_synchroniseConversation() throws IOException {
+
+        String newETag = "eTag-A";
+
+        // Conversations setup
+
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
+        ConversationDetails conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1);
+        mockedComapiClient.addMockedResult(new MockResult<>(conversationA, true, newETag, 200));
+
+        // Participants setup
+
+        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setName("name").setRole(ChatRole.participant).build();
+        ChatParticipant participant2 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID2).setName("name").setRole(ChatRole.participant).build();
+        ChatParticipant participant3 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID3).setName("name").setRole(ChatRole.participant).build();
+
+        store.upsert(ChatTestConst.CONVERSATION_ID1, participant1);
+        store.upsert(ChatTestConst.CONVERSATION_ID1, participant2);
+        store.upsert(ChatTestConst.CONVERSATION_ID1, participant3);
+
+        Participant pA = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID1).setIsParticipant().build();
+        Participant pB = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID4).setIsParticipant().build();
+
+        List<Participant> participants = new ArrayList<>();
+        participants.add(pA);
+        participants.add(pB);
+        mockedComapiClient.addMockedResult(new MockResult<>(participants, true, newETag, 200));
+
+        // Events setup
+
+        String json = ResponseTestHelper.readFromFile(this, "rest_events_query.json");
+        Parser parser = new Parser();
+
+        Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
+        List<JsonObject> list = new Gson().fromJson(json, listType);
+
+        ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
+        mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
+
+        // Test
+
+        Boolean synchroniseSuccess = chatController.synchroniseConversation(ChatTestConst.CONVERSATION_ID1).toBlocking().first();
+
+        assertTrue(synchroniseSuccess);
+
+        // Check participants
+
+        List<ChatParticipant> loadedP = store.getParticipants(ChatTestConst.CONVERSATION_ID1);
+        assertTrue(loadedP.size() == 2);
+        ChatParticipant loadedP1 = loadedP.get(0);
+        ChatParticipant loadedP4 = loadedP.get(1);
+        assertNotNull(loadedP1);
+        assertNotNull(loadedP4);
+
+        // Check conversation
+
+        assertTrue(store.getAllConversations().size() == 1);
+        ChatConversationBase loadedConversation = store.getConversations().get(ChatTestConst.CONVERSATION_ID1);
+        assertNotNull(loadedConversation);
+        assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
+        assertEquals(0, loadedConversation.getFirstLocalEventId().longValue());
+        assertEquals(0, loadedConversation.getLastLocalEventId().longValue());
+        assertEquals(0, loadedConversation.getLatestRemoteEventId().longValue());
+        assertTrue(loadedConversation.getUpdatedOn() > 0);
+        assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
+
+        // Check message
+
+        assertTrue(store.getMessages().size() == 1);
+        ChatMessage loadedMessage = store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        assertNotNull(loadedMessage);
+        assertTrue(loadedMessage.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
+        assertEquals("p1", loadedMessage.getFromWhom().getId());
+        assertEquals("p1", loadedMessage.getFromWhom().getName());
+        assertEquals("p1", loadedMessage.getSentBy());
+        assertEquals(0, loadedMessage.getSentEventId().longValue());
+        assertNotNull(loadedMessage.getParts().get(0));
+        assertEquals("body", loadedMessage.getParts().get(0).getName());
+        assertEquals("non", loadedMessage.getParts().get(0).getData());
+        assertEquals(3, loadedMessage.getParts().get(0).getSize());
+        assertEquals("text/plain", loadedMessage.getParts().get(0).getType());
+
+        // Check message status
+
+        ChatMessageStatus status = store.getStatus("60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        assertNotNull(status);
+        assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
+        assertEquals("p1", status.getProfileId());
+        assertEquals(MessageStatus.read, status.getMessageStatus());
+        assertTrue(status.getUpdatedOn() > 0);
+    }
+
+    @Test
     public void test_noLocalConversation_shouldGetOne() {
 
         String conversationId = "id-1";

@@ -24,7 +24,6 @@ import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.comapi.RxComapiClient;
-import com.comapi.chat.internal.MissingEventsTracker;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
@@ -290,24 +289,9 @@ class ChatController {
                         if (newResult.isSuccessful()) {
 
                             return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult()).setETag(newResult.getETag()).build())
-                                    .flatMap(success -> Observable.fromCallable(() -> new ChatResult(success, success ? null : new ChatResult.Error(1600, "Error updating in custom store."))));
+                                    .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(412, "Conversation updated, try delete again.") : new ChatResult.Error(1500, "Error updating in custom store."))));
                         } else {
-
                             return Observable.fromCallable(() -> adapter.adaptResult(newResult));
-                        }
-                    })
-                    .flatMap(new Func1<ChatResult, Observable<ChatResult>>() {
-
-                        @Override
-                        public Observable<ChatResult> call(ChatResult chatResult) {
-                            if (chatResult.isSuccessful()) {
-
-                                return persistenceController.getConversation(request.getId()).flatMap(conversation -> client.service().messaging()
-                                        .updateConversation(request.getId(), request, conversation.getETag()).map(adapter::adaptResult));
-                            } else {
-
-                                return Observable.fromCallable(() -> chatResult);
-                            }
                         }
                     }));
         } else {
@@ -486,9 +470,7 @@ class ChatController {
                 persistenceController.upsertConversations(conversationComparison.conversationsToAdd),
                 (success1, success2) -> success1 && success2)
                 .map(result -> {
-                    if (conversationComparison.isSuccessful && !result) {
-                        conversationComparison.setSuccessful(false);
-                    }
+                    conversationComparison.setSuccessful(result);
                     return conversationComparison;
                 });
     }
