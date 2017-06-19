@@ -46,33 +46,23 @@ import static junit.framework.Assert.assertNull;
 @Config(manifest = "chat/src/main/AndroidManifest.xml", sdk = Build.VERSION_CODES.M, constants = BuildConfig.class, packageName = "com.comapi.chat")
 public class PersistenceInterfacesTest {
 
-    private ComapiChatClient client;
     private StoreFactory<ChatStore> factory;
+
+    private TestChatStore store;
 
     @Before
     public void setUpChat() throws Exception {
 
-        APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
+        if (store == null) {
+            store = new TestChatStore();
+        }
 
         factory = new StoreFactory<ChatStore>() {
             @Override
             public void build(StoreCallback<ChatStore> callback) {
-                callback.created(new TestChatStore());
+                callback.created(store);
             }
         };
-
-        ChatConfig chatConfig = new ChatConfig()
-                .apiSpaceId("ApiSpaceId")
-                .authenticator(new ComapiAuthenticator() {
-                    @Override
-                    public void onAuthenticationChallenge(AuthClient authClient, ChallengeOptions challengeOptions) {
-                        authClient.authenticateWithToken("token123");
-                    }
-                })
-                .apiConfiguration(apiConfig)
-                .store(factory);
-
-        client = ComapiChat.initialise(RuntimeEnvironment.application, chatConfig).toBlocking().first();
     }
 
     @Test
@@ -155,8 +145,6 @@ public class PersistenceInterfacesTest {
 
     @After
     public void tearDown() throws Exception {
-        client.clean(RuntimeEnvironment.application);
-        ComapiChat.reset();
-        ClientHelper.resetChecks();
+        store.clearDatabase();
     }
 }
