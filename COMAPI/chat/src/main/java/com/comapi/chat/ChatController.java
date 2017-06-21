@@ -307,7 +307,7 @@ class ChatController {
      * @param result        Service call response.
      * @return Observable emitting result of operations.
      */
-    Observable<ChatResult> handleMessageStatusUpdated(List<MessageStatusUpdate> msgStatusList, ComapiResult<Void> result) {
+    Observable<ChatResult> handleMessageStatusToUpdate(List<MessageStatusUpdate> msgStatusList, ComapiResult<Void> result) {
         if (result.isSuccessful() && msgStatusList != null && !msgStatusList.isEmpty()) {
             return persistenceController.upsertMessageStatuses(getProfileId(), msgStatusList).map(success -> adapter.adaptResult(result, success));
         } else {

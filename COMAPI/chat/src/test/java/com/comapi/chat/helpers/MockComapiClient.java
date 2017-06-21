@@ -255,12 +255,18 @@ public class MockComapiClient extends RxComapiClient {
 
                     @Override
                     public Observable<ComapiResult<Void>> isTyping(@NonNull String conversationId) {
-                        return null;
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            return (ComapiResult<Void>) result;
+                        });
                     }
 
                     @Override
                     public Observable<ComapiResult<Void>> isTyping(@NonNull String conversationId, boolean isTyping) {
-                        return null;
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            return (ComapiResult<Void>) result;
+                        });
                     }
                 };
             }
@@ -274,17 +280,38 @@ public class MockComapiClient extends RxComapiClient {
                 return new ProfileService() {
                     @Override
                     public Observable<ComapiResult<Map<String, Object>>> getProfile(@NonNull String profileId) {
-                        return null;
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() instanceof Map)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<Map<String, Object>>) result;
+                            }
+                        });
                     }
 
                     @Override
                     public Observable<ComapiResult<List<Map<String, Object>>>> queryProfiles(@NonNull String queryString) {
-                        return null;
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() instanceof List)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<List<Map<String, Object>>>) result;
+                            }
+                        });
                     }
 
                     @Override
                     public Observable<ComapiResult<Map<String, Object>>> updateProfile(@NonNull Map<String, Object> profileDetails, String eTag) {
-                        return null;
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() instanceof Map)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<Map<String, Object>>) result;
+                            }
+                        });
                     }
                 };
             }
@@ -298,12 +325,15 @@ public class MockComapiClient extends RxComapiClient {
                 return new SessionService() {
                     @Override
                     public Observable<Session> startSession() {
-                        return null;
+                        return Observable.fromCallable(() -> new Session(null));
                     }
 
                     @Override
                     public Observable<ComapiResult<Void>> endSession() {
-                        return null;
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            return (ComapiResult<Void>) result;
+                        });
                     }
                 };
             }

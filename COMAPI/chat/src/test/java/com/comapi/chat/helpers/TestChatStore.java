@@ -304,6 +304,10 @@ public class TestChatStore extends ChatStore {
         return conversations;
     }
 
+    public Map<String, ChatMessageStatus> getStatuses() {
+        return messagesStatuses;
+    }
+
     public void addConversationToStore(String conversationId, long first, long last, long updatedOn, String eTag) {
 
         ChatConversationBase conversationInStore1 = ChatConversationBase.baseBuilder()

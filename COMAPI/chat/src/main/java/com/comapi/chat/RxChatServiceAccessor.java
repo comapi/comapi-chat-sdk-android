@@ -27,13 +27,16 @@ import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.helpers.APIHelper;
+import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.ComapiResult;
 import com.comapi.internal.network.model.conversation.ConversationCreate;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
 import com.comapi.internal.network.model.conversation.Participant;
+import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -99,7 +102,7 @@ class RxChatServiceAccessor {
         /**
          * Returns observable to create a conversation.
          *
-         * @param request  Request with conversation details to create.
+         * @param request Request with conversation details to create.
          */
         public Observable<ChatResult> createConversation(@NonNull final ConversationCreate request) {
             return foundation.service().messaging().createConversation(request).flatMap(controller::handleConversationCreated);
@@ -116,7 +119,8 @@ class RxChatServiceAccessor {
 
         /**
          * Returns observable to update a conversation.
-         *  @param conversationId ID of a conversation to update.
+         *
+         * @param conversationId ID of a conversation to update.
          * @param request        Request with conversation details to update.
          */
         public Observable<ChatResult> updateConversation(@NonNull final String conversationId, @NonNull final ConversationUpdate request) {
@@ -125,7 +129,8 @@ class RxChatServiceAccessor {
 
         /**
          * Returns observable to remove list of participants from a conversation.
-         *  @param conversationId ID of a conversation to delete.
+         *
+         * @param conversationId ID of a conversation to delete.
          * @param ids            List of participant ids to be removed.
          */
         public Observable<ChatResult> removeParticipants(@NonNull final String conversationId, @NonNull final List<String> ids) {
@@ -134,9 +139,9 @@ class RxChatServiceAccessor {
 
         /**
          * Returns observable to add a list of participants to a conversation.
-         *  @param conversationId ID of a conversation to update.
+         *
+         * @param conversationId ID of a conversation to update.
          * @param participants   New conversation participants details.
-
          */
         public Observable<ChatResult> addParticipants(@NonNull final String conversationId, @NonNull final List<Participant> participants) {
             return foundation.service().messaging().addParticipants(conversationId, participants).flatMap(result -> controller.handleParticipantsAdded(conversationId, modelAdapter.adapt(participants), result));
@@ -144,9 +149,9 @@ class RxChatServiceAccessor {
 
         /**
          * Send message to the conversation.
-         *  @param conversationId ID of a conversation to send a message to.
+         *
+         * @param conversationId ID of a conversation to send a message to.
          * @param message        Message to be send.
-
          */
         public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message) {
             final String tempId = UUID.randomUUID().toString();
@@ -158,9 +163,9 @@ class RxChatServiceAccessor {
 
         /**
          * Send message to the chanel.
-         *  @param conversationId ID of a conversation to send a message to.
+         *
+         * @param conversationId ID of a conversation to send a message to.
          * @param body           Message body to be send.
-
          */
         public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final String body) {
             final MessageToSend message = APIHelper.createMessage(conversationId, body, controller.getProfileId());
@@ -172,20 +177,28 @@ class RxChatServiceAccessor {
         }
 
         /**
-         * Sets statuses for sets of messages.
-         *  @param conversationId ID of a conversation to modify.
-         * @param msgStatusList  List of status modifications.
-
+         * Sets statuses for sets of messages to 'read'.
+         *
+         * @param conversationId ID of a conversation to modify.
+         * @param messageIds     List of message ids for which the status should be updated.
          */
-        public Observable<ChatResult> updateMessageStatus(@NonNull final String conversationId, @NonNull final List<MessageStatusUpdate> msgStatusList) {
-            return foundation.service().messaging().updateMessageStatus(conversationId, msgStatusList).flatMap(result -> controller.handleMessageStatusUpdated(msgStatusList, result));
+        public Observable<ChatResult> markMessagesAsRead(@NonNull final String conversationId, @NonNull final List<String> messageIds) {
+
+            List<MessageStatusUpdate> statuses = new ArrayList<>();
+            MessageStatusUpdate.Builder updateBuilder = MessageStatusUpdate.builder();
+            for (String id : messageIds) {
+                updateBuilder.addMessageId(id);
+            }
+            updateBuilder.setStatus(MessageStatus.read).setTimestamp(DateHelper.getCurrentUTC());
+            statuses.add(updateBuilder.build());
+
+            return foundation.service().messaging().updateMessageStatus(conversationId, statuses).flatMap(result -> controller.handleMessageStatusToUpdate(statuses, result));
         }
 
         /**
          * Queries the next message page in conversation and delivers messages to store implementation.
          *
          * @param conversationId ID of a conversation to query messages in.
-
          */
         public Observable<ChatResult> getPreviousMessages(final String conversationId) {
             return controller.getPreviousMessages(conversationId);
@@ -200,9 +213,9 @@ class RxChatServiceAccessor {
 
         /**
          * Sends participant is typing in conversation event.
-         *  @param conversationId ID of a conversation in which participant is typing a message.
+         *
+         * @param conversationId ID of a conversation in which participant is typing a message.
          * @param isTyping       True if user started typing, false if he finished typing.
-
          */
         public Observable<ChatResult> isTyping(@NonNull final String conversationId, final boolean isTyping) {
             return foundation.service().messaging().isTyping(conversationId, isTyping).map(modelAdapter::adaptResult);

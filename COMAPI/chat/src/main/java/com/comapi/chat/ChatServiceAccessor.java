@@ -31,10 +31,12 @@ import com.comapi.chat.model.ChatParticipant;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.helpers.APIHelper;
+import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.ComapiResult;
 import com.comapi.internal.network.model.conversation.ConversationCreate;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
 import com.comapi.internal.network.model.conversation.Participant;
+import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
 
@@ -171,8 +173,8 @@ public class ChatServiceAccessor {
             final String tempId = UUID.randomUUID().toString();
             message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
             callbackAdapter.adapt(controller.handleMessageSending(conversationId, message, tempId)
-                    .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, message))
-                    .flatMap(result -> controller.handleMessageSent(conversationId, message, tempId, result))
+                            .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, message))
+                            .flatMap(result -> controller.handleMessageSent(conversationId, message, tempId, result))
                     , callback);
         }
 
@@ -188,20 +190,29 @@ public class ChatServiceAccessor {
             final String tempId = UUID.randomUUID().toString();
             message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
             callbackAdapter.adapt(controller.handleMessageSending(conversationId, message, tempId)
-                    .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, body))
-                    .flatMap((result) -> controller.handleMessageSent(conversationId, message, tempId, result))
+                            .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, body))
+                            .flatMap((result) -> controller.handleMessageSent(conversationId, message, tempId, result))
                     , callback);
         }
 
         /**
-         * Sets statuses for sets of messages.
+         * Sets statuses for sets of messages to 'read'.
          *
          * @param conversationId ID of a conversation to modify.
-         * @param msgStatusList  List of status modifications.
+         * @param messageIds     List of message ids for which the status should be updated.
          * @param callback       Callback with the result.
          */
-        public void updateMessageStatus(@NonNull final String conversationId, @NonNull final List<MessageStatusUpdate> msgStatusList, @Nullable Callback<ChatResult> callback) {
-            callbackAdapter.adapt(foundation.service().messaging().updateMessageStatus(conversationId, msgStatusList).flatMap(result -> controller.handleMessageStatusUpdated(msgStatusList, result)), callback);
+        public void markMessagesAsRead(@NonNull final String conversationId, @NonNull final List<String> messageIds, @Nullable Callback<ChatResult> callback) {
+
+            List<MessageStatusUpdate> statuses = new ArrayList<>();
+            MessageStatusUpdate.Builder updateBuilder = MessageStatusUpdate.builder();
+            for (String id : messageIds) {
+                updateBuilder.addMessageId(id);
+            }
+            updateBuilder.setStatus(MessageStatus.read).setTimestamp(DateHelper.getCurrentUTC());
+            statuses.add(updateBuilder.build());
+
+            callbackAdapter.adapt(foundation.service().messaging().updateMessageStatus(conversationId, statuses).flatMap(result -> controller.handleMessageStatusToUpdate(statuses, result)), callback);
         }
 
         /**
