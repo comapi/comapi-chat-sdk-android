@@ -39,6 +39,8 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
 
     private FoundationFactory foundationFactory;
 
+    private ObservableExecutor observableExecutor;
+
     /**
      * Sets builder for {@link ChatStore} db interface that can handle single db transactions.
      *
@@ -87,6 +89,11 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
         }
     }
 
+    /**
+     * Gets factory class to create Foundation SDK client.
+     *
+     * @return Factory class to create Foundation SDK client.
+     */
     FoundationFactory getFoundationFactory() {
         if (foundationFactory != null) {
             return foundationFactory;
@@ -95,8 +102,38 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
         }
     }
 
+    /**
+     * Sets factory class to create Foundation SDK client. Used in tests to replace with mock class.
+     *
+     * @param foundationFactory Factory class to create Foundation SDK client.
+     * @return Builder instance with new value set.
+     */
     ChatConfig setFoundationFactory(FoundationFactory foundationFactory) {
         this.foundationFactory = foundationFactory;
+        return this;
+    }
+
+    /**
+     * Gets method to subscribe to internal observables. Used to synchronise internal processing in the tests.
+     *
+     * @return Class to provide method to subscribe to internal observables.
+     */
+    ObservableExecutor getObservableExecutor() {
+        if (observableExecutor != null) {
+            return observableExecutor;
+        } else {
+            return ObservableExecutor.getInstance();
+        }
+    }
+
+    /**
+     * Sets method to subscribe to internal observables. Used to synchronise internal processing in the tests.
+     *
+     * @param observableExecutor Class to provide method to subscribe to internal observables
+     * @return Builder instance with new value set.
+     */
+    ChatConfig observableExecutor(ObservableExecutor observableExecutor) {
+        this.observableExecutor = observableExecutor;
         return this;
     }
 

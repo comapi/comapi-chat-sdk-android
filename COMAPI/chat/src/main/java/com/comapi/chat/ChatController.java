@@ -315,6 +315,21 @@ class ChatController {
         }
     }
 
+    Observable<Boolean> handleMessageSending(String conversationId, MessageToSend message, String tempId) {
+
+        String profileId = getProfileId();
+        ChatMessage chatMessage = ChatMessage.builder()
+                .setMessageId(tempId)
+                .setConversationId(conversationId)
+                .setSentBy(profileId)
+                .setFromWhom(new Sender(profileId, profileId))
+                .setSentOn(System.currentTimeMillis())
+                .setParts(message.getParts())
+                .setMetadata(message.getMetadata()).build();
+
+        return persistenceController.updateStoreForNewMessage(chatMessage, null, noConversationListener);
+    }
+
     /**
      * Handles message send service response.
      *
@@ -323,18 +338,18 @@ class ChatController {
      * @param result         Service call response.
      * @return Observable emitting result of operations.
      */
-    Observable<ChatResult> handleMessageSent(String conversationId, MessageToSend message, ComapiResult<MessageSentResponse> result) {
+    Observable<ChatResult> handleMessageSent(String conversationId, MessageToSend message, String tempId, ComapiResult<MessageSentResponse> result) {
         if (result.isSuccessful()) {
 
-            final String tempId = (String) message.getMetadata().get(MESSAGE_METADATA_TEMP_ID);
             String profileId = getProfileId();
             ChatMessage chatMessage = ChatMessage.builder()
-                    .setMessageId(tempId)
+                    .setMessageId(result.getResult().getId())
                     .setConversationId(conversationId)
                     .setSentBy(profileId)
                     .setFromWhom(new Sender(profileId, profileId))
                     .setSentOn(System.currentTimeMillis())
-                    .setParts(message.getParts()).build();
+                    .setParts(message.getParts())
+                    .setMetadata(message.getMetadata()).build();
 
             return persistenceController.updateStoreForNewMessage(chatMessage, tempId, noConversationListener).map(success -> adapter.adaptResult(result, success));
 

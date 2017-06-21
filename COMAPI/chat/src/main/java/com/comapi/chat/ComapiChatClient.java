@@ -70,7 +70,7 @@ public class ComapiChatClient {
         ModelAdapter modelAdapter = new ModelAdapter();
         Database db = Database.getInstance(app, false, log);
         PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory());
-        controller = new ChatController(client, persistenceController, ObservableExecutor.getInstance(), modelAdapter, log);
+        controller = new ChatController(client, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, log);
         serviceAccessor = new ChatServiceAccessor(modelAdapter, callbackAdapter, client, controller);
         rxServiceAccessor = new RxChatServiceAccessor(modelAdapter, client, controller);
         eventsHandler.init(new Handler(Looper.getMainLooper()), persistenceController, controller, chatConfig.getTypingListener());

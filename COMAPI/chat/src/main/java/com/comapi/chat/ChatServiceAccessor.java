@@ -41,6 +41,9 @@ import com.comapi.internal.network.model.messaging.MessageToSend;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
+import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
 
 /**
  * Separates access to subsets of service APIs.
@@ -165,7 +168,12 @@ public class ChatServiceAccessor {
          * @param callback       Callback with the result.
          */
         public void sendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message, @Nullable Callback<ChatResult> callback) {
-            callbackAdapter.adapt(foundation.service().messaging().sendMessage(conversationId, message).flatMap(result -> controller.handleMessageSent(conversationId, message, result)), callback);
+            final String tempId = UUID.randomUUID().toString();
+            message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
+            callbackAdapter.adapt(controller.handleMessageSending(conversationId, message, tempId)
+                    .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, message))
+                    .flatMap(result -> controller.handleMessageSent(conversationId, message, tempId, result))
+                    , callback);
         }
 
         /**
@@ -177,7 +185,12 @@ public class ChatServiceAccessor {
          */
         public void sendMessage(@NonNull final String conversationId, @NonNull final String body, @Nullable Callback<ChatResult> callback) {
             final MessageToSend message = APIHelper.createMessage(conversationId, body, controller.getProfileId());
-            callbackAdapter.adapt(foundation.service().messaging().sendMessage(conversationId, body).flatMap((result) -> controller.handleMessageSent(conversationId, message, result)), callback);
+            final String tempId = UUID.randomUUID().toString();
+            message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
+            callbackAdapter.adapt(controller.handleMessageSending(conversationId, message, tempId)
+                    .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, body))
+                    .flatMap((result) -> controller.handleMessageSent(conversationId, message, tempId, result))
+                    , callback);
         }
 
         /**

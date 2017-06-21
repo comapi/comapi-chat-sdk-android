@@ -44,4 +44,9 @@ public class MockConversationDetails extends ConversationDetails {
         this.description = DESCRIPTION;
         this.roles = ROLES;
     }
+
+    public MockConversationDetails setName(String name) {
+        this.name = name;
+        return this;
+    }
 }

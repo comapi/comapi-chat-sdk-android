@@ -28,6 +28,7 @@ import com.comapi.internal.network.model.messaging.Sender;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Message model for db storage.
@@ -76,6 +77,11 @@ public class ChatMessage {
      * Message statuses 'delivered' or 'read' for particular participants.
      */
     private List<ChatMessageStatus> statusUpdates;
+
+    /**
+     * Message custom metadata.
+     */
+    private Map<String, Object> metadata;
 
     /**
      * Gets Unique monotonically increasing identifier of message in the conversation. We recommend to sort the messages based on its value.
@@ -149,6 +155,15 @@ public class ChatMessage {
         return statusUpdates;
     }
 
+    /**
+     * Metadata associated with the message e.g. custom id.
+     *
+     * @return Metadata map.
+     */
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -175,6 +190,7 @@ public class ChatMessage {
             message.sentBy = update.getSentBy();
             message.sentOn = DateHelper.getUTCMilliseconds(update.getSentOn());
             message.parts = update.getParts();
+            message.metadata = update.getMetadata();
 
             for (String profileId : update.getStatusUpdate().keySet()) {
                 MessageReceived.Status status = update.getStatusUpdate().get(profileId);
@@ -193,6 +209,7 @@ public class ChatMessage {
             message.sentBy = event.getContext().getSentBy();
             message.sentOn = DateHelper.getUTCMilliseconds(event.getContext().getSentOn());
             message.parts = event.getParts();
+            message.metadata = event.getMetadata();
 
             return this;
         }
@@ -224,6 +241,11 @@ public class ChatMessage {
 
         public Builder setParts(List<Part> parts) {
             message.parts = parts;
+            return this;
+        }
+
+        public Builder setMetadata(Map<String, Object> metadata) {
+            message.metadata = metadata;
             return this;
         }
     }

@@ -36,8 +36,11 @@ import com.comapi.internal.network.model.messaging.MessageToSend;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import rx.Observable;
+
+import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
 
 /**
  * @author Marcin Swierczek
@@ -146,7 +149,11 @@ class RxChatServiceAccessor {
 
          */
         public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message) {
-            return foundation.service().messaging().sendMessage(conversationId, message).flatMap(result -> controller.handleMessageSent(conversationId, message, result));
+            final String tempId = UUID.randomUUID().toString();
+            message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
+            return controller.handleMessageSending(conversationId, message, tempId)
+                    .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, message))
+                    .flatMap(result -> controller.handleMessageSent(conversationId, message, tempId, result));
         }
 
         /**
@@ -157,7 +164,11 @@ class RxChatServiceAccessor {
          */
         public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final String body) {
             final MessageToSend message = APIHelper.createMessage(conversationId, body, controller.getProfileId());
-            return foundation.service().messaging().sendMessage(conversationId, body).flatMap((result) -> controller.handleMessageSent(conversationId, message, result));
+            final String tempId = UUID.randomUUID().toString();
+            message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
+            return controller.handleMessageSending(conversationId, message, tempId)
+                    .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, body))
+                    .flatMap((result) -> controller.handleMessageSent(conversationId, message, tempId, result));
         }
 
         /**

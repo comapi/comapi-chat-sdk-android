@@ -60,6 +60,7 @@ dependencies {
     testCompile 'com.squareup.okhttp3:mockwebserver:3.6.0'
 
     // Comapi
+    // to get latest ./gradlew --refresh-dependencies
     compile 'com.github.comapi:comapi-sdk-android:dev-SNAPSHOT'
 }
 

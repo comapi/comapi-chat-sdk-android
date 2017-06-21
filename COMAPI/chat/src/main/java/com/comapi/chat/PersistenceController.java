@@ -412,9 +412,26 @@ class PersistenceController {
                         toSave.setLastLocalEventId(-1L);
                         if (conversation.getLatestRemoteEventId() == null) {
                             toSave.setLatestRemoteEventId(-1L);
+                        } else {
+                            toSave.setLatestRemoteEventId(conversation.getLatestRemoteEventId());
                         }
                         if (conversation.getUpdatedOn() == null) {
                             toSave.setUpdatedOn(System.currentTimeMillis());
+                        } else {
+                            toSave.setUpdatedOn(conversation.getUpdatedOn());
+                        }
+                    } else {
+                        toSave.setFirstLocalEventId(saved.getFirstLocalEventId());
+                        toSave.setLastLocalEventId(saved.getLastLocalEventId());
+                        if (conversation.getLatestRemoteEventId() == null) {
+                            toSave.setLatestRemoteEventId(saved.getLatestRemoteEventId());
+                        } else {
+                            toSave.setLatestRemoteEventId(conversation.getLatestRemoteEventId());
+                        }
+                        if (conversation.getUpdatedOn() == null) {
+                            toSave.setUpdatedOn(System.currentTimeMillis());
+                        } else {
+                            toSave.setUpdatedOn(conversation.getUpdatedOn());
                         }
                     }
 

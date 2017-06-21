@@ -105,7 +105,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<Void>> deleteConversation(@NonNull String conversationId, String eTag) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof Void)) {
+                            if (result == null) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<Void>) result;
@@ -153,7 +153,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<Void>> removeParticipants(@NonNull String conversationId, @NonNull List<String> ids) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof Void)) {
+                            if (result == null) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<Void>) result;
@@ -177,7 +177,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<Void>> addParticipants(@NonNull String conversationId, @NonNull List<Participant> participants) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof Void)) {
+                            if (result == null) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<Void>) result;
