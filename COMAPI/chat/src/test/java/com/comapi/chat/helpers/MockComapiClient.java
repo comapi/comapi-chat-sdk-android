@@ -93,7 +93,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<ConversationDetails>> createConversation(@NonNull ConversationCreate request) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof ConversationDetails)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof ConversationDetails)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<ConversationDetails>) result;
@@ -117,7 +117,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<ConversationDetails>> getConversation(@NonNull String conversationId) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof MockConversationDetails)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof MockConversationDetails)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<ConversationDetails>) result;
@@ -129,7 +129,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<List<ConversationDetails>>> getConversations(@NonNull Scope scope) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof List)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof List)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<List<ConversationDetails>>) result;
@@ -141,7 +141,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<ConversationDetails>> updateConversation(@NonNull String conversationId, @NonNull ConversationUpdate request, @Nullable String eTag) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof MockConversationDetails)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof MockConversationDetails)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<ConversationDetails>) result;
@@ -165,7 +165,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<List<Participant>>> getParticipants(@NonNull String conversationId) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof List)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof List)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<List<Participant>>) result;
@@ -189,7 +189,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<MessageSentResponse>> sendMessage(@NonNull String conversationId, @NonNull MessageToSend message) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof MessageSentResponse)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof MessageSentResponse)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<MessageSentResponse>) result;
@@ -201,7 +201,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<MessageSentResponse>> sendMessage(@NonNull String conversationId, @NonNull String body) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof MessageSentResponse)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof MessageSentResponse)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<MessageSentResponse>) result;
@@ -213,7 +213,13 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<Void>> updateMessageStatus(@NonNull String conversationId, @NonNull List<MessageStatusUpdate> msgStatusList) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            return (ComapiResult<Void>) result;
+                            if (result == null) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else if (result.getCode() == 500) {
+                                throw new Exception("Mocked server error.");
+                            } else {
+                                return (ComapiResult<Void>) result;
+                            }
                         });
                     }
 
@@ -221,7 +227,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<EventsQueryResponse>> queryEvents(@NonNull String conversationId, @NonNull Long from, @NonNull Integer limit) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof EventsQueryResponse)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof EventsQueryResponse)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<EventsQueryResponse>) result;
@@ -233,7 +239,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<ConversationEventsResponse>> queryConversationEvents(@NonNull String conversationId, @NonNull Long from, @NonNull Integer limit) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof ConversationEventsResponse)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof ConversationEventsResponse)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<ConversationEventsResponse>) result;
@@ -245,7 +251,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<MessagesQueryResponse>> queryMessages(@NonNull String conversationId, Long from, @NonNull Integer limit) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof MessagesQueryResponse)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof MessagesQueryResponse)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<MessagesQueryResponse>) result;
@@ -282,7 +288,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<Map<String, Object>>> getProfile(@NonNull String profileId) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof Map)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof Map)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<Map<String, Object>>) result;
@@ -294,7 +300,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<List<Map<String, Object>>>> queryProfiles(@NonNull String queryString) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof List)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof List)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<List<Map<String, Object>>>) result;
@@ -306,7 +312,7 @@ public class MockComapiClient extends RxComapiClient {
                     public Observable<ComapiResult<Map<String, Object>>> updateProfile(@NonNull Map<String, Object> profileDetails, String eTag) {
                         return Observable.fromCallable(() -> {
                             ComapiResult<?> result = results.poll();
-                            if (result == null || !(result.getResult() instanceof Map)) {
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof Map)) {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<Map<String, Object>>) result;

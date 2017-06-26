@@ -21,7 +21,6 @@
 package com.comapi.chat.model;
 
 import com.comapi.internal.network.model.conversation.Participant;
-import com.comapi.internal.network.model.events.conversation.ParticipantAddedEvent;
 import com.comapi.internal.network.model.events.conversation.ParticipantEvent;
 import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedEvent;
 

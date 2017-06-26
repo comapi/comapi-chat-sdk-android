@@ -22,21 +22,15 @@ package com.comapi.chat;
 
 import android.os.Build;
 
-import com.comapi.APIConfig;
-import com.comapi.ClientHelper;
-import com.comapi.ComapiAuthenticator;
 import com.comapi.chat.helpers.DBObjectsHelper;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.model.ChatStore;
-import com.comapi.internal.network.AuthClient;
-import com.comapi.internal.network.ChallengeOptions;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricGradleTestRunner;
-import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import static junit.framework.Assert.assertEquals;

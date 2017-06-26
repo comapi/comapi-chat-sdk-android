@@ -20,8 +20,6 @@
 
 package com.comapi.chat.internal;
 
-import com.comapi.internal.log.Logger;
-
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;

@@ -22,6 +22,7 @@ package com.comapi.chat;
 
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.comapi.chat.database.Database;
 import com.comapi.chat.model.ChatConversation;
@@ -239,6 +240,7 @@ class PersistenceController {
                     isSuccessful = store.deleteMessage(tempId);
                 }
                 isSuccessful = isSuccessful && store.upsert(message);
+                Log.i("TEST", "message "+message.getMessageId());
                 ChatConversationBase conversation = store.getConversation(message.getConversationId());
                 if (conversation != null) {
                     if (message.getSentEventId() != null) {
@@ -252,8 +254,9 @@ class PersistenceController {
                             conversation.setFirstLocalEventId(message.getSentEventId());
                         }
                     }
-                    if (conversation.getUpdatedOn() < message.getSentOn())
+                    if (conversation.getUpdatedOn() < message.getSentOn()) {
                         conversation.setUpdatedOn(message.getSentOn());
+                    }
                     isSuccessful = isSuccessful && store.update(conversation);
                 } else {
                     if (noConversationListener != null) {
