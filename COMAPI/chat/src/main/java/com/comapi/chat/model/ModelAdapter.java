@@ -111,27 +111,6 @@ public class ModelAdapter {
         return map;
     }
 
-    public <T extends ParticipantEvent> Map<String, List<ChatParticipant>> makeMapFromParticipantEvents(List<T> participantAdded) {
-
-        if (!participantAdded.isEmpty()) {
-            Map<String, List<ChatParticipant>> map = new HashMap<>();
-            for (ParticipantEvent event : participantAdded) {
-                if (map.containsKey(event.getConversationId())) {
-                    map.get(event.getConversationId()).add(ChatParticipant.builder().populate(event).build());
-                } else {
-                    List<ChatParticipant> list = new ArrayList<>();
-                    list.add(ChatParticipant.builder().populate(event).build());
-                    map.put(event.getConversationId(), list);
-                }
-            }
-
-            return map;
-        } else {
-
-            return null;
-        }
-    }
-
     public Map<String, ChatConversationBase> makeMapFromSavedConversations(List<ChatConversationBase> list) {
 
         Map<String, ChatConversationBase> map = new HashMap<>();
@@ -156,22 +135,5 @@ public class ModelAdapter {
         }
 
         return map;
-    }
-
-    public List<String> getParticipantIds(List<ChatParticipant> participants) {
-
-        List<String> ids = new ArrayList<>();
-
-        if (!participants.isEmpty()) {
-            for (int i = 0; i< participants.size(); i++) {
-                ids.add(participants.get(i).getParticipantId());
-            }
-        }
-
-        return ids;
-    }
-
-    public ChatResult adaptResult(boolean isSuccess, int code, String message, String errorBody) {
-        return null;
     }
 }
