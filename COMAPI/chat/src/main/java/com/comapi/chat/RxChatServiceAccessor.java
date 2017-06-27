@@ -236,6 +236,16 @@ class RxChatServiceAccessor {
         public Observable<ComapiResult<Map<String, Object>>> updateProfile(@NonNull Map<String, Object> profileDetails, String eTag) {
             return foundation.service().profile().updateProfile(profileDetails, eTag);
         }
+
+        @Override
+        public Observable<ComapiResult<Map<String, Object>>> patchProfile(@NonNull String profileId, @NonNull Map<String, Object> profileDetails, String eTag) {
+            return foundation.service().profile().patchProfile(profileId, profileDetails, eTag);
+        }
+
+        @Override
+        public Observable<ComapiResult<Map<String, Object>>> patchMyProfile(@NonNull Map<String, Object> profileDetails, String eTag) {
+            return foundation.service().profile().patchMyProfile(profileDetails, eTag);
+        }
     }
 
     public class SessionService {

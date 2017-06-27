@@ -32,8 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MissingEventsTracker {
 
-    public interface RefreshListener {
-        void refresh(String conversationId, long from, long limit);
+    public interface MissingEventsListener {
+        void missingEvents(String conversationId, long from, int limit);
     }
 
     private Map<String, TreeSet<Long>> idsPerConversation;
@@ -44,11 +44,12 @@ public class MissingEventsTracker {
 
     /**
      * Check conversation event id for duplicates or missing events.
-     * @param conversationId Unique identifier of an conversation.
+     *
+     * @param conversationId      Unique identifier of an conversation.
      * @param conversationEventId Unique per conversation, monotonically increasing conversation event id.
      * @return True if event with a given id already processed.
      */
-    public boolean checkEventId(String conversationId, long conversationEventId, RefreshListener refreshListener) {
+    public boolean checkEventId(String conversationId, long conversationEventId, MissingEventsListener missingEventsListener) {
 
         if (!idsPerConversation.containsKey(conversationId)) {
             TreeSet<Long> ids = new TreeSet<>();
@@ -63,7 +64,7 @@ public class MissingEventsTracker {
             boolean added = ids.add(conversationEventId);
 
             if (last < conversationEventId - 1) {
-                refreshListener.refresh(conversationId, last+1, conversationEventId - last);
+                missingEventsListener.missingEvents(conversationId, last + 1, (int) (conversationEventId - last));
             }
 
             while (ids.size() > 10) {

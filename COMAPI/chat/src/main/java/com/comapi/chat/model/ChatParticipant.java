@@ -37,8 +37,6 @@ public class ChatParticipant {
      */
     private String participantId;
 
-    private String name;
-
     /**
      * Get participant privileges in associated conversation.
      */
@@ -62,10 +60,6 @@ public class ChatParticipant {
         return role;
     }
 
-    public String getName() {
-        return name;
-    }
-
     public static Builder builder() {
         return new Builder();
     }
@@ -87,11 +81,6 @@ public class ChatParticipant {
             return this;
         }
 
-        public Builder setName(String value) {
-            participant.name = value;
-            return this;
-        }
-
         public Builder setRole(ChatRole value) {
             participant.role = value;
             return this;
@@ -99,14 +88,12 @@ public class ChatParticipant {
 
         public Builder populate(ParticipantEvent event) {
             participant.participantId = event.getProfileId();
-            participant.name = event.getName();
             participant.role = ChatRole.valueOf(event.getRole());
             return this;
         }
 
         public Builder populate(ParticipantUpdatedEvent event) {
             participant.participantId = event.getProfileId();
-            participant.name = event.getName();
             participant.role = ChatRole.valueOf(event.getRole());
             return this;
         }

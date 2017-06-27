@@ -262,6 +262,16 @@ public class ChatServiceAccessor {
         public void updateProfile(@NonNull Map<String, Object> profileDetails, String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
             callbackAdapter.adapt(foundation.service().profile().updateProfile(profileDetails, eTag), callback);
         }
+
+        @Override
+        public void patchProfile(@NonNull String profileId, @NonNull Map<String, Object> profileDetails, String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
+            callbackAdapter.adapt(foundation.service().profile().patchProfile(profileId, profileDetails, eTag), callback);
+        }
+
+        @Override
+        public void patchMyProfile(@NonNull Map<String, Object> profileDetails, String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
+            callbackAdapter.adapt(foundation.service().profile().updateProfile(profileDetails, eTag), callback);
+        }
     }
 
     public class SessionService {

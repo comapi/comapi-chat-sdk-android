@@ -165,6 +165,7 @@ public class ChatConversation extends ChatConversationBase {
             conversation.description = event.getDescription();
             conversation.ownerRoles = event.getRoles().getOwner();
             conversation.participantRoles = event.getRoles().getParticipant();
+            conversation.eTag = event.getETag();
             return this;
         }
 
@@ -174,15 +175,17 @@ public class ChatConversation extends ChatConversationBase {
             conversation.description = event.getConversation().getDescription();
             conversation.ownerRoles = event.getConversation().getRoles().getOwner();
             conversation.participantRoles = event.getConversation().getRoles().getParticipant();
+            conversation.eTag = event.getETag();
             return this;
         }
 
-        public Builder populate(ConversationDetails event) {
+        public Builder populate(ConversationDetails event, String eTag) {
             conversation.conversationId = event.getId();
             conversation.name = event.getName();
             conversation.description = event.getDescription();
             conversation.ownerRoles = event.getRoles().getOwner();
             conversation.participantRoles = event.getRoles().getParticipant();
+            conversation.eTag = eTag;
             return this;
         }
 
@@ -203,6 +206,7 @@ public class ChatConversation extends ChatConversationBase {
             conversation.ownerRoles = base.getOwnerPrivileges();
             conversation.participantRoles = base.getParticipantPrivileges();
             conversation.isPublic = base.isPublic();
+            conversation.eTag = base.getETag();
             return this;
         }
     }

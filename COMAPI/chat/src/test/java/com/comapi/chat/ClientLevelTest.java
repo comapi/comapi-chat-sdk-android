@@ -312,7 +312,7 @@ public class ClientLevelTest {
 
         store.addConversationToStore(conversationId, -1L, -1L, 0, ChatTestConst.ETAG);
 
-        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setName("name").setRole(ChatRole.participant).build();
+        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setRole(ChatRole.participant).build();
         store.upsert(conversationId, participant1);
 
         // Add another participant
@@ -355,7 +355,7 @@ public class ClientLevelTest {
 
         store.addConversationToStore(conversationId, -1L, -1L, 0, ChatTestConst.ETAG);
 
-        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setName("name").setRole(ChatRole.participant).build();
+        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setRole(ChatRole.participant).build();
         store.upsert(conversationId, participant1);
 
         // Add another participant
@@ -503,9 +503,9 @@ public class ClientLevelTest {
 
         // Participants setup
 
-        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setName("name").setRole(ChatRole.participant).build();
-        ChatParticipant participant2 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID2).setName("name").setRole(ChatRole.participant).build();
-        ChatParticipant participant3 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID3).setName("name").setRole(ChatRole.participant).build();
+        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setRole(ChatRole.participant).build();
+        ChatParticipant participant2 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID2).setRole(ChatRole.participant).build();
+        ChatParticipant participant3 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID3).setRole(ChatRole.participant).build();
 
         store.upsert(ChatTestConst.CONVERSATION_ID1, participant1);
         store.upsert(ChatTestConst.CONVERSATION_ID1, participant2);
@@ -605,9 +605,9 @@ public class ClientLevelTest {
 
         // Participants setup
 
-        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setName("name").setRole(ChatRole.participant).build();
-        ChatParticipant participant2 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID2).setName("name").setRole(ChatRole.participant).build();
-        ChatParticipant participant3 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID3).setName("name").setRole(ChatRole.participant).build();
+        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setRole(ChatRole.participant).build();
+        ChatParticipant participant2 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID2).setRole(ChatRole.participant).build();
+        ChatParticipant participant3 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID3).setRole(ChatRole.participant).build();
 
         store.upsert(ChatTestConst.CONVERSATION_ID1, participant1);
         store.upsert(ChatTestConst.CONVERSATION_ID1, participant2);

@@ -29,6 +29,7 @@ import com.comapi.ClientHelper;
 import com.comapi.RxComapiClient;
 import com.comapi.Session;
 import com.comapi.chat.database.Database;
+import com.comapi.chat.internal.MissingEventsTracker;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.lifecycle.LifecycleListener;
@@ -73,7 +74,7 @@ public class ComapiChatClient {
         controller = new ChatController(client, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, log);
         serviceAccessor = new ChatServiceAccessor(modelAdapter, callbackAdapter, client, controller);
         rxServiceAccessor = new RxChatServiceAccessor(modelAdapter, client, controller);
-        eventsHandler.init(new Handler(Looper.getMainLooper()), persistenceController, controller, chatConfig.getTypingListener());
+        eventsHandler.init(new Handler(Looper.getMainLooper()), persistenceController, controller, new MissingEventsTracker(), chatConfig.getObservableExecutor(), chatConfig.getTypingListener());
     }
 
     /**

@@ -150,7 +150,7 @@ class ChatController {
                     @Override
                     public Observable<ChatResult> call(ComapiResult<ConversationDetails> result) {
                         if (result.isSuccessful() && result.getResult() != null) {
-                            return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult()).setETag(result.getETag()).build())
+                            return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult(), result.getETag()).build())
                                     .map(success -> new ChatResult(success, success ? null : new ChatResult.Error(1500, "External store reported failure.")));
                         } else {
                             return Observable.fromCallable(() -> adapter.adaptResult(result));
@@ -235,7 +235,7 @@ class ChatController {
      */
     Observable<ChatResult> handleConversationCreated(ComapiResult<ConversationDetails> result) {
         if (result.isSuccessful()) {
-            return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult()).setETag(result.getETag()).build()).map(success -> adapter.adaptResult(result, success));
+            return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult(), result.getETag()).build()).map(success -> adapter.adaptResult(result, success));
         } else {
             return Observable.fromCallable(() -> adapter.adaptResult(result));
         }
@@ -257,7 +257,7 @@ class ChatController {
                 return checkState().flatMap(client -> client.service().messaging().getConversation(conversationId)
                         .flatMap(newResult -> {
                             if (newResult.isSuccessful()) {
-                                return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult()).setETag(newResult.getETag()).build())
+                                return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult(), newResult.getETag()).build())
                                         .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(412, "Conversation updated, try delete again.") : new ChatResult.Error(1500, "Error updating in custom store."))));
                             } else {
                                 return Observable.fromCallable(() -> adapter.adaptResult(newResult));
@@ -280,7 +280,7 @@ class ChatController {
 
         if (result.isSuccessful()) {
 
-            return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult()).setETag(result.getETag()).build()).map(success -> adapter.adaptResult(result, success));
+            return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult(), result.getETag()).build()).map(success -> adapter.adaptResult(result, success));
         }
         if (result.getCode() == 412) {
 
@@ -288,7 +288,7 @@ class ChatController {
                     .flatMap(newResult -> {
                         if (newResult.isSuccessful()) {
 
-                            return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult()).setETag(newResult.getETag()).build())
+                            return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult(), newResult.getETag()).build())
                                     .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(412, "Conversation updated, try delete again.") : new ChatResult.Error(1500, "Error updating in custom store."))));
                         } else {
                             return Observable.fromCallable(() -> adapter.adaptResult(newResult));
@@ -606,6 +606,18 @@ class ChatController {
         }
     }
 
+    /**
+     * Query missing events as {@link com.comapi.chat.internal.MissingEventsTracker} reported.
+     *
+     * @param conversationId Unique id of a conversation.
+     * @param from           Conversation event id to start from.
+     * @param limit          Limit of events in a query.
+     */
+    void queryMissingEvents(String conversationId, long from, int limit) {
+        obsExec.execute(checkState().flatMap(client -> client.service().messaging().queryConversationEvents(conversationId, from, limit))
+                .flatMap(this::processEventsQueryResponse));
+    }
+
     NoConversationListener getNoConversationListener() {
         return noConversationListener;
     }
@@ -630,13 +642,12 @@ class ChatController {
                 if (savedListProcessed.containsKey(key)) {
                     ChatConversationBase saved = savedListProcessed.get(key);
                     conversationsToUpdate.add(ChatConversation.builder()
-                            .populate(downloadedList.get(key))
-                            .setETag(eTag)
+                            .populate(downloadedList.get(key), eTag)
                             .setFirstLocalEventId(saved.getFirstLocalEventId())
                             .setLastLocalEventId(saved.getLastLocalEventId())
                             .build());
                 } else {
-                    conversationsToAdd.add(ChatConversation.builder().populate(downloadedList.get(key)).setETag(eTag).build());
+                    conversationsToAdd.add(ChatConversation.builder().populate(downloadedList.get(key), eTag).build());
                 }
 
                 savedListProcessed.remove(key);
@@ -655,9 +666,9 @@ class ChatController {
 
             if (result != null) {
                 if (loaded == null) {
-                    conversationsToAdd.add(ChatConversation.builder().populate(result).setETag(eTag).build());
+                    conversationsToAdd.add(ChatConversation.builder().populate(result, eTag).build());
                 } else {
-                    conversationsToUpdate.add(ChatConversation.builder().populate(result).populate(loaded).setETag(eTag).build());
+                    conversationsToUpdate.add(ChatConversation.builder().populate(loaded).populate(result, eTag).build());
                 }
             } else {
                 conversationsToDelete.add(loaded);

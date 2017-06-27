@@ -1,0 +1,45 @@
+{
+  "eventId": "34acb6d5-0e59-46f3-aedd-01e29c9df31d",
+  "name": "conversationMessage.sent",
+  "conversationId": "id",
+  "conversationEventId": 1,
+  "payload": {
+    "messageId": "2e65e429-5c88-42f1-9fd1-36e86ca3d1ff",
+    "metadata": {
+      "key": "value"
+    },
+    "context": {
+      "from": {
+        "id": "user",
+        "name": "user"
+      },
+      "conversationId": "id",
+      "sentBy": "user",
+      "sentOn": "2016-10-12T10:10:53.542Z"
+    },
+    "parts": [
+      {
+        "data": "message",
+        "name": "body",
+        "size": 3,
+        "type": "text/plain"
+      }
+    ],
+    "alert": {
+      "platforms": {
+        "apns": {
+        },
+        "fcm": {
+          "collapse_key": "",
+          "data": {
+            "conversationId": "id"
+          },
+          "notification": {
+            "body": "message",
+            "title": "title"
+          }
+        }
+      }
+    }
+  }
+}

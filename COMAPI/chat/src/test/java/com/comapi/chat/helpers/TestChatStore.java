@@ -203,7 +203,18 @@ public class TestChatStore extends ChatStore {
                 if (!participants.containsKey(conversationId)) {
                     participants.put(conversationId, new ArrayList<>());
                 }
+
+                ChatParticipant toRemove = null;
+                for (ChatParticipant p : participants.get(conversationId)) {
+                    if (p.getParticipantId().equals(participant.getParticipantId())) {
+                        toRemove = p;
+                    }
+                }
+                if (toRemove != null) {
+                    participants.get(conversationId).remove(toRemove);
+                }
                 participants.get(conversationId).add(participant);
+
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {

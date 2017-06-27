@@ -23,6 +23,7 @@ import android.os.Handler;
 
 import com.comapi.MessagingListener;
 import com.comapi.ProfileListener;
+import com.comapi.chat.internal.MissingEventsTracker;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
@@ -40,8 +41,6 @@ import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedE
 import com.comapi.internal.network.model.events.conversation.message.MessageDeliveredEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageReadEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageSentEvent;
-
-import rx.Subscriber;
 
 /**
  * @author Marcin Swierczek
@@ -63,13 +62,22 @@ public class EventsHandler {
 
     private Handler mainThreadHandler;
 
-    void init(Handler mainThreadHandler, PersistenceController store, ChatController controller, TypingListener typingListener) {
+    private MissingEventsTracker tracker;
+
+    private MissingEventsTracker.MissingEventsListener missingEventsListener;
+
+    private ObservableExecutor observableExecutor;
+
+    void init(Handler mainThreadHandler, PersistenceController store, ChatController controller, MissingEventsTracker tracker, ObservableExecutor observableExecutor, TypingListener typingListener) {
         this.mainThreadHandler = mainThreadHandler;
         this.persistenceController = store;
         this.controller = controller;
         this.typingListener = typingListener;
-        profileListenerAdapter = new ProfileListenerAdapter();
-        messagingListenerAdapter = new MessagingListenerAdapter();
+        this.profileListenerAdapter = new ProfileListenerAdapter();
+        this.messagingListenerAdapter = new MessagingListenerAdapter();
+        this.tracker = tracker;
+        this.observableExecutor = observableExecutor;
+        this.missingEventsListener = controller::queryMissingEvents;
     }
 
     ProfileListenerAdapter getProfileListenerAdapter() {
@@ -88,7 +96,7 @@ public class EventsHandler {
          * @param event Profile update.
          */
         public void onProfileUpdate(ProfileUpdateEvent event) {
-            persistenceController.upsertUserProfile(new ChatProfile(event));
+            observableExecutor.execute(persistenceController.upsertUserProfile(new ChatProfile(event)));
         }
     }
 
@@ -96,7 +104,8 @@ public class EventsHandler {
 
         @Override
         public void onMessage(MessageSentEvent event) {
-            controller.handleMessage(ChatMessage.builder().populate(event).build(), (String) event.getMetadata().get(MESSAGE_METADATA_TEMP_ID));
+            tracker.checkEventId(event.getContext().getConversationId(), event.getConversationEventId(), missingEventsListener);
+            observableExecutor.execute(controller.handleMessage(ChatMessage.builder().populate(event).build(), (String) event.getMetadata().get(MESSAGE_METADATA_TEMP_ID)));
         }
 
         /**
@@ -106,22 +115,8 @@ public class EventsHandler {
          */
         @Override
         public void onMessageDelivered(MessageDeliveredEvent event) {
-            persistenceController.upsertMessageStatus(new ChatMessageStatus(event)).subscribe(new Subscriber<Boolean>() {
-                @Override
-                public void onCompleted() {
-
-                }
-
-                @Override
-                public void onError(Throwable e) {
-
-                }
-
-                @Override
-                public void onNext(Boolean aBoolean) {
-
-                }
-            });
+            tracker.checkEventId(event.getConversationId(), event.getConversationEventId(), missingEventsListener);
+            observableExecutor.execute(persistenceController.upsertMessageStatus(new ChatMessageStatus(event)));
         }
 
         /**
@@ -131,7 +126,8 @@ public class EventsHandler {
          */
         @Override
         public void onMessageRead(MessageReadEvent event) {
-            persistenceController.upsertMessageStatus(new ChatMessageStatus(event));
+            tracker.checkEventId(event.getConversationId(), event.getConversationEventId(), missingEventsListener);
+            observableExecutor.execute(persistenceController.upsertMessageStatus(new ChatMessageStatus(event)));
         }
 
         /**
@@ -141,7 +137,7 @@ public class EventsHandler {
          */
         @Override
         public void onParticipantAdded(ParticipantAddedEvent event) {
-            persistenceController.upsertParticipant(event.getConversationId(), ChatParticipant.builder().populate(event).build(), controller.getNoConversationListener());
+            observableExecutor.execute(persistenceController.upsertParticipant(event.getConversationId(), ChatParticipant.builder().populate(event).build(), controller.getNoConversationListener()));
         }
 
         /**
@@ -151,7 +147,7 @@ public class EventsHandler {
          */
         @Override
         public void onParticipantUpdated(ParticipantUpdatedEvent event) {
-            persistenceController.upsertParticipant(event.getConversationId(), ChatParticipant.builder().populate(event).build(), controller.getNoConversationListener());
+            observableExecutor.execute(persistenceController.upsertParticipant(event.getConversationId(), ChatParticipant.builder().populate(event).build(), controller.getNoConversationListener()));
         }
 
         /**
@@ -161,7 +157,7 @@ public class EventsHandler {
          */
         @Override
         public void onParticipantRemoved(ParticipantRemovedEvent event) {
-            persistenceController.removeParticipant(event.getConversationId(), event.getProfileId());
+            observableExecutor.execute(persistenceController.removeParticipant(event.getConversationId(), event.getProfileId()));
         }
 
         /**
@@ -171,7 +167,7 @@ public class EventsHandler {
          */
         @Override
         public void onConversationCreated(ConversationCreateEvent event) {
-            persistenceController.upsertConversation(ChatConversation.builder().populate(event).build());
+            observableExecutor.execute(persistenceController.upsertConversation(ChatConversation.builder().populate(event).build()));
         }
 
         /**
@@ -181,7 +177,7 @@ public class EventsHandler {
          */
         @Override
         public void onConversationUpdated(ConversationUpdateEvent event) {
-            persistenceController.upsertConversation(ChatConversation.builder().populate(event).build());
+            observableExecutor.execute(persistenceController.upsertConversation(ChatConversation.builder().populate(event).build()));
         }
 
         /**
@@ -191,7 +187,7 @@ public class EventsHandler {
          */
         @Override
         public void onConversationDeleted(ConversationDeleteEvent event) {
-            persistenceController.deleteConversation(event.getConversationId());
+            observableExecutor.execute(persistenceController.deleteConversation(event.getConversationId()));
         }
 
         /**
@@ -201,7 +197,7 @@ public class EventsHandler {
          */
         @Override
         public void onConversationUndeleted(ConversationUndeleteEvent event) {
-            persistenceController.upsertConversation(ChatConversation.builder().populate(event).build());
+            observableExecutor.execute(persistenceController.upsertConversation(ChatConversation.builder().populate(event).build()));
         }
 
         /**

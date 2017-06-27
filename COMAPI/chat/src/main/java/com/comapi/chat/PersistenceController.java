@@ -339,6 +339,9 @@ class PersistenceController {
         return asObservable(new Executor<Boolean>() {
             @Override
             void execute(ChatStore store, Emitter<Boolean> emitter) {
+                if (store.getConversation(conversationId) == null) {
+                    noConversationListener.getConversation(conversationId);
+                }
                 emitter.onNext(store.upsert(conversationId, participant));
             }
         });

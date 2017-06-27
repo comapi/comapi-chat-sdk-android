@@ -319,6 +319,30 @@ public class MockComapiClient extends RxComapiClient {
                             }
                         });
                     }
+
+                    @Override
+                    public Observable<ComapiResult<Map<String, Object>>> patchProfile(@NonNull String s, @NonNull Map<String, Object> map, String s1) {
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof Map)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<Map<String, Object>>) result;
+                            }
+                        });
+                    }
+
+                    @Override
+                    public Observable<ComapiResult<Map<String, Object>>> patchMyProfile(@NonNull Map<String, Object> map, String s) {
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof Map)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<Map<String, Object>>) result;
+                            }
+                        });
+                    }
                 };
             }
 

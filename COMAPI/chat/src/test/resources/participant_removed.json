@@ -1,0 +1,15 @@
+{
+  "eventId": "eventId",
+  "apiSpaceId": "apiSpaceId",
+  "name": "conversation.participantRemoved",
+  "payload": {
+    "profileId": "profileId",
+    "conversationId": "conversationId",
+    "apiSpaceId": "apiSpaceId"
+  },
+  "context": {
+    "createdBy": "profileId"
+  },
+  "conversationId": "conversationId",
+  "publishedOn": "2016-10-17T12:05:34.795Z"
+}
