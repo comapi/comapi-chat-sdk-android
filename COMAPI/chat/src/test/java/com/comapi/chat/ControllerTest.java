@@ -948,9 +948,9 @@ public class ControllerTest {
         ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), null, new HashMap<>());
         comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
 
-        Method method = chatController.getClass().getDeclaredMethod("queryEventsRecursively", RxComapiClient.class, String.class, Long.TYPE, Integer.TYPE);
+        Method method = chatController.getClass().getDeclaredMethod("queryEventsRecursively", RxComapiClient.class, String.class, Long.TYPE, Integer.TYPE, List.class);
         method.setAccessible(true);
-        ((Observable) method.invoke(chatController, mockedComapiClient, ChatTestConst.CONVERSATION_ID1, -1 ,0)).toBlocking().first();
+        ((Observable) method.invoke(chatController, mockedComapiClient, ChatTestConst.CONVERSATION_ID1, -1 ,0, new ArrayList<Boolean>())).toBlocking().first();
 
         assertFalse(comparison.isSuccessful);
         assertEquals(999, store.getMessages().size());

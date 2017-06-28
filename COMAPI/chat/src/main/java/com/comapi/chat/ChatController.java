@@ -437,7 +437,7 @@ class ChatController {
      * @return Observable returning unchanged argument to further processing.
      */
     private Observable<ConversationComparison> lookForMissingEvents(final RxComapiClient client, ConversationComparison conversationComparison) {
-        return synchroniseEvents(client, conversationComparison.conversationsToUpdate)
+        return synchroniseEvents(client, conversationComparison.conversationsToUpdate, new ArrayList<>())
                 .map(result -> {
                     if (conversationComparison.isSuccessful && !result) {
                         conversationComparison.setSuccessful(false);
@@ -493,13 +493,14 @@ class ChatController {
      *
      * @param client                Foundation client.
      * @param conversationsToUpdate List of conversations to query last events.
+     * @param successes             List of partial successes.
      * @return Observable with the merged result of operations.
      */
-    private Observable<Boolean> synchroniseEvents(final RxComapiClient client, List<ChatConversation> conversationsToUpdate) {
+    private Observable<Boolean> synchroniseEvents(final RxComapiClient client, final List<ChatConversation> conversationsToUpdate, final List<Boolean> successes) {
         return Observable.from(limitNumberOfConversations(conversationsToUpdate))
                 .onBackpressureBuffer()
-                .flatMap(conversation -> queryEventsRecursively(client, conversation.getConversationId(), conversation.getLastLocalEventId(), 0))
-                .all(ComapiResult::isSuccessful);
+                .flatMap(conversation -> queryEventsRecursively(client, conversation.getConversationId(), conversation.getLastLocalEventId(), 0, successes))
+                .flatMap(res -> Observable.from(successes).all(Boolean::booleanValue));
     }
 
     /**
@@ -509,17 +510,23 @@ class ChatController {
      * @param conversationId Unique ID of a conversation.
      * @param lastEventId    Last known event id - query should start form it.
      * @param count          Number of queries already made.
+     * @param successes
      * @return Observable with the merged result of operations.
      */
-    private Observable<ComapiResult<ConversationEventsResponse>> queryEventsRecursively(final RxComapiClient client, final String conversationId, final long lastEventId, final int count) {
+    private Observable<ComapiResult<ConversationEventsResponse>> queryEventsRecursively(final RxComapiClient client, final String conversationId, final long lastEventId, final int count, final List<Boolean> successes) {
 
         return client.service().messaging().queryConversationEvents(conversationId, lastEventId, UPDATE_FROM_EVENTS_LIMIT)
-                .flatMap(this::processEventsQueryResponse)
+                .flatMap(new Func1<ComapiResult<ConversationEventsResponse>, Observable<ComapiResult<ConversationEventsResponse>>>() {
+                    @Override
+                    public Observable<ComapiResult<ConversationEventsResponse>> call(ComapiResult<ConversationEventsResponse> result) {
+                        return processEventsQueryResponse(result, successes);
+                    }
+                })
                 .flatMap(new Func1<ComapiResult<ConversationEventsResponse>, Observable<ComapiResult<ConversationEventsResponse>>>() {
                     @Override
                     public Observable<ComapiResult<ConversationEventsResponse>> call(ComapiResult<ConversationEventsResponse> result) {
                         if (result.getResult() != null && result.getResult().getEventsInOrder().size() >= UPDATE_FROM_EVENTS_LIMIT && count < QUERY_EVENTS_NUMBER_OF_CALLS_LIMIT) {
-                            return queryEventsRecursively(client, conversationId, lastEventId + result.getResult().getEventsInOrder().size(), count + 1);
+                            return queryEventsRecursively(client, conversationId, lastEventId + result.getResult().getEventsInOrder().size(), count + 1, successes);
                         } else {
                             return Observable.just(result);
                         }
@@ -527,9 +534,10 @@ class ChatController {
                 });
     }
 
-    private Observable<ComapiResult<ConversationEventsResponse>> processEventsQueryResponse(ComapiResult<ConversationEventsResponse> result) {
+    private Observable<ComapiResult<ConversationEventsResponse>> processEventsQueryResponse(ComapiResult<ConversationEventsResponse> result, final List<Boolean> successes) {
 
         ConversationEventsResponse response = result.getResult();
+        successes.add(result.isSuccessful());
         if (response != null && response.getEventsInOrder().size() > 0) {
 
             Collection<Event> events = response.getEventsInOrder();
@@ -551,6 +559,7 @@ class ChatController {
 
             return Observable.from(list)
                     .flatMap(task -> task.observeOn(AndroidSchedulers.mainThread()))
+                    .doOnNext(successes::add)
                     .toList()
                     .map(results -> result);
         }
@@ -607,7 +616,7 @@ class ChatController {
      */
     void queryMissingEvents(String conversationId, long from, int limit) {
         obsExec.execute(checkState().flatMap(client -> client.service().messaging().queryConversationEvents(conversationId, from, limit))
-                .flatMap(this::processEventsQueryResponse));
+                .flatMap((result) -> processEventsQueryResponse(result, new ArrayList<>())));
     }
 
     NoConversationListener getNoConversationListener() {
