@@ -37,7 +37,7 @@ public abstract class StoreFactory<T extends ChatStore> {
      *
      * @param transaction Store transaction based on provided {@link ChatStore} implementation.
      */
-    public final void execute(@NonNull StoreTransaction<T> transaction) {
+    synchronized public final void execute(@NonNull StoreTransaction<T> transaction) {
         build(transaction::execute);
     }
 

@@ -64,6 +64,7 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
 import rx.functions.Func2;
 
@@ -531,12 +532,12 @@ class ChatController {
 
     private Observable<ComapiResult<ConversationEventsResponse>> processEventsQueryResponse(ComapiResult<ConversationEventsResponse> result) {
 
-        List<Observable<Boolean>> list = new ArrayList<>();
-
         ConversationEventsResponse response = result.getResult();
         if (response != null && response.getEventsInOrder().size() > 0) {
 
             Collection<Event> events = response.getEventsInOrder();
+
+            List<Observable<Boolean>> list = new ArrayList<>();
 
             for (Event event : events) {
 
@@ -550,17 +551,11 @@ class ChatController {
                     list.add(persistenceController.upsertMessageStatus(new ChatMessageStatus((MessageReadEvent) event)));
                 }
             }
-        }
 
-        if (!list.isEmpty()) {
-            Observable<Boolean> task = list.get(0);
-            if (list.size() > 1) {
-                for (int i = 1; i < list.size(); i++) {
-                    int finalI = i;
-                    task = task.flatMap(success -> list.get(finalI));
-                }
-            }
-            return task.map(success -> result);
+            return Observable.from(list)
+                    .flatMap(task -> task.observeOn(AndroidSchedulers.mainThread()))
+                    .toList()
+                    .map(results -> result);
         }
 
         return Observable.fromCallable(() -> result);

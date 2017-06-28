@@ -41,10 +41,6 @@ import java.util.Map;
  */
 public class TestChatStore extends ChatStore {
 
-    private final static long WAIT_TIME = 500;
-
-    private final static Object lock = new Object();
-
     private final Map<String, ChatConversationBase> conversations = new HashMap<>();
     private final Map<String, ChatMessage> messages = new HashMap<>();
     private final Map<String, ChatMessageStatus> messagesStatuses = new HashMap<>();
@@ -52,21 +48,7 @@ public class TestChatStore extends ChatStore {
 
     @Override
     public ChatConversationBase getConversation(String conversationId) {
-
-        ChatConversationBase conversation = null;
-
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                conversation = conversations.get(conversationId);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
-        }
-
-        return conversation;
+        return conversations.get(conversationId);
     }
 
     @Override
@@ -76,152 +58,62 @@ public class TestChatStore extends ChatStore {
 
     @Override
     public boolean upsert(ChatConversation conversation) {
-
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                conversations.put(conversation.getConversationId(), conversation);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
-        }
+        conversations.put(conversation.getConversationId(), conversation);
         return true;
     }
 
     @Override
     public boolean update(ChatConversationBase conversation) {
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                conversations.put(conversation.getConversationId(), conversation);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
-        }
+        conversations.put(conversation.getConversationId(), conversation);
         return true;
     }
 
     @Override
     public boolean deleteConversation(String conversationId) {
-
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                deleteAllMessages(conversationId);
-                conversations.remove(conversationId);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
-        }
-
+        deleteAllMessages(conversationId);
+        conversations.remove(conversationId);
         return true;
     }
 
     @Override
     public boolean upsert(ChatMessage message) {
-
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                messages.put(message.getMessageId(), message);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
-        }
-
+        messages.put(message.getMessageId(), message);
         return true;
     }
 
     @Override
     public boolean upsert(ChatMessageStatus status) {
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                messagesStatuses.put(status.getMessageId(), status);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
-        }
-
+        messagesStatuses.put(status.getMessageId(), status);
         return true;
     }
 
     @Override
     public ChatMessageStatus getStatus(String messageId) {
-
-        ChatMessageStatus result = null;
-
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                result = messagesStatuses.get(messageId);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
-        }
-
-        return result;
+        return messagesStatuses.get(messageId);
     }
 
     @Override
     public List<ChatParticipant> getParticipants(String conversationId) {
-
-        List<ChatParticipant> result = null;
-
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                result = participants.get(conversationId);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
-        }
-
-        return result;
+        return participants.get(conversationId);
     }
 
     @Override
     public boolean upsert(String conversationId, ChatParticipant participant) {
 
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                if (!participants.containsKey(conversationId)) {
-                    participants.put(conversationId, new ArrayList<>());
-                }
-
-                ChatParticipant toRemove = null;
-                for (ChatParticipant p : participants.get(conversationId)) {
-                    if (p.getParticipantId().equals(participant.getParticipantId())) {
-                        toRemove = p;
-                    }
-                }
-                if (toRemove != null) {
-                    participants.get(conversationId).remove(toRemove);
-                }
-                participants.get(conversationId).add(participant);
-
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
+        if (!participants.containsKey(conversationId)) {
+            participants.put(conversationId, new ArrayList<>());
         }
 
+        ChatParticipant toRemove = null;
+        for (ChatParticipant p : participants.get(conversationId)) {
+            if (p.getParticipantId().equals(participant.getParticipantId())) {
+                toRemove = p;
+            }
+        }
+        if (toRemove != null) {
+            participants.get(conversationId).remove(toRemove);
+        }
+        participants.get(conversationId).add(participant);
         return true;
     }
 
@@ -253,51 +145,28 @@ public class TestChatStore extends ChatStore {
 
     @Override
     public boolean clearDatabase() {
-
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
-                conversations.clear();
-                messages.clear();
-                participants.clear();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
-            }
-        }
-
+        conversations.clear();
+        messages.clear();
+        participants.clear();
         return true;
     }
 
     @Override
     public boolean deleteAllMessages(String conversationId) {
 
-        synchronized (lock) {
-            try {
-                lock.wait(WAIT_TIME);
+        List<String> idsToRemove = new ArrayList<>();
 
-                List<String> idsToRemove = new ArrayList<>();
-
-                for (ChatMessage msg : messages.values()) {
-                    if (conversationId.equals(msg.getConversationId())) {
-                        idsToRemove.add(msg.getMessageId());
-                    }
-                }
-
-                for (String id : idsToRemove) {
-                    messages.remove(id);
-                }
-
-                participants.remove(conversationId);
-
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                lock.notifyAll();
+        for (ChatMessage msg : messages.values()) {
+            if (conversationId.equals(msg.getConversationId())) {
+                idsToRemove.add(msg.getMessageId());
             }
         }
 
+        for (String id : idsToRemove) {
+            messages.remove(id);
+        }
+
+        participants.remove(conversationId);
         return true;
     }
 

@@ -90,6 +90,7 @@ import java.util.Map;
 import java.util.Set;
 
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -141,7 +142,13 @@ public class ControllerTest {
                     }
                 })
                 .apiConfiguration(apiConfig)
-                .store(factory);
+                .store(factory)
+                .observableExecutor(new ObservableExecutor() {
+                    @Override
+                    <T> void execute(Observable<T> obs) {
+                        obs.observeOn(Schedulers.test()).subscribeOn(Schedulers.immediate()).subscribe();
+                    }
+                });
 
         client = ComapiChat.initialise(RuntimeEnvironment.application, chatConfig).toBlocking().first();
         mockedComapiClient = foundationFactory.getMockedClient();
@@ -154,12 +161,7 @@ public class ControllerTest {
         db = Database.getInstance(RuntimeEnvironment.application, true, new Logger(logMgr, ""));
         persistenceController = new PersistenceController(db, modelAdapter, factory);
         logger = new Logger(logMgr, "");
-        chatController = new ChatController(mockedComapiClient, persistenceController, new ObservableExecutor() {
-            @Override
-            <T> void execute(Observable<T> obs) {
-                obs.toBlocking().first();
-            }
-        }, modelAdapter, logger);
+        chatController = new ChatController(mockedComapiClient, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, logger);
     }
 
     @Test
@@ -928,14 +930,12 @@ public class ControllerTest {
 
         JsonObject obj = list.get(0);
         String str = obj.toString();
-        for (int i = 0; i <200; i++) {
+        for (int i = 0; i <999; i++) {
             JsonObject newObj = parser.parse(str, JsonObject.class);
             newObj.getAsJsonObject("payload").remove("messageId");
             newObj.getAsJsonObject("payload").addProperty("messageId", String.valueOf(i));
             list.add(newObj);
         }
-
-        // 1003 events in total, 1001 messages
 
         int index = 0;
         while (index < list.size()){
@@ -953,6 +953,8 @@ public class ControllerTest {
         ((Observable) method.invoke(chatController, mockedComapiClient, ChatTestConst.CONVERSATION_ID1, -1 ,0)).toBlocking().first();
 
         assertFalse(comparison.isSuccessful);
+        assertEquals(999, store.getMessages().size());
+        assertEquals(1, store.getStatuses().size());
     }
 
     @After

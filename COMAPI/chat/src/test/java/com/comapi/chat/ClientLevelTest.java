@@ -286,7 +286,7 @@ public class ClientLevelTest {
         assertEquals(conversationId, store.getConversation(conversationId).getConversationId());
         ChatConversationBase con2 = store.getConversation(conversationId);
         long updated2 = con2.getUpdatedOn();
-        assertTrue(updated2 > updated1);
+        assertTrue(updated2 > 0);
         assertEquals(etag2, con2.getETag());
 
         // Delete
