@@ -217,7 +217,7 @@ public class ClientLevelTest {
 
         mockedComapiClient.addMockedResult(new MockResult<>(details2, true, etag2, 200));
 
-        ChatResult result2 = client.rxService().messaging().updateConversation(conversationId, conversationUpdate).toBlocking().first();
+        ChatResult result2 = client.rxService().messaging().updateConversation(conversationId, etag1, conversationUpdate).toBlocking().first();
         assertNotNull(result2);
         assertTrue(result2.isSuccessful());
         assertNull(result2.getError());
@@ -232,7 +232,7 @@ public class ClientLevelTest {
 
         mockedComapiClient.addMockedResult(new MockResult<>(null, true, etag2, 200));
 
-        ChatResult result3 = client.rxService().messaging().deleteConversation(conversationId).toBlocking().first();
+        ChatResult result3 = client.rxService().messaging().deleteConversation(conversationId, etag2).toBlocking().first();
         assertNotNull(result3);
         assertTrue(result3.isSuccessful());
         assertNull(result3.getError());
@@ -278,7 +278,7 @@ public class ClientLevelTest {
         mockedComapiClient.addMockedResult(new MockResult<>(details2, true, etag2, 200));
 
         callback.reset();
-        client.service().messaging().updateConversation(conversationId, conversationUpdate, callback);
+        client.service().messaging().updateConversation(conversationId, etag1, conversationUpdate, callback);
         assertNotNull(callback.getResult());
         assertTrue(callback.getResult().isSuccessful());
         assertNull(callback.getResult().getError());
@@ -294,7 +294,7 @@ public class ClientLevelTest {
         mockedComapiClient.addMockedResult(new MockResult<>(null, true, etag2, 200));
 
         callback.reset();
-        client.service().messaging().deleteConversation(conversationId, callback);
+        client.service().messaging().deleteConversation(conversationId, etag1, callback);
         assertNotNull(callback.getResult());
         assertTrue(callback.getResult().isSuccessful());
         assertNull(callback.getResult().getError());

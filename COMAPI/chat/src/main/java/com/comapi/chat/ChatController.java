@@ -78,6 +78,8 @@ import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
  */
 class ChatController {
 
+    private static final int ETAG_NOT_VALID = 412;
+
     private static final Integer PAGE_SIZE = 100;
 
     private static final Integer UPDATE_FROM_EVENTS_LIMIT = 100;
@@ -250,24 +252,19 @@ class ChatController {
      * @return Observable emitting result of operations.
      */
     Observable<ChatResult> handleConversationDeleted(String conversationId, ComapiResult<Void> result) {
-
-        if (!TextUtils.isEmpty(conversationId)) {
-            if (result.getCode() != 412) {
-                return persistenceController.deleteConversation(conversationId).map(success -> adapter.adaptResult(result, success));
-            } else {
-                return checkState().flatMap(client -> client.service().messaging().getConversation(conversationId)
-                        .flatMap(newResult -> {
-                            if (newResult.isSuccessful()) {
-                                return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult(), newResult.getETag()).build())
-                                        .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(412, "Conversation updated, try delete again.") : new ChatResult.Error(1500, "Error updating in custom store."))));
-                            } else {
-                                return Observable.fromCallable(() -> adapter.adaptResult(newResult));
-                            }
-                        }));
-            }
+        if (result.getCode() != ETAG_NOT_VALID) {
+            return persistenceController.deleteConversation(conversationId).map(success -> adapter.adaptResult(result, success));
+        } else {
+            return checkState().flatMap(client -> client.service().messaging().getConversation(conversationId)
+                    .flatMap(newResult -> {
+                        if (newResult.isSuccessful()) {
+                            return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult(), newResult.getETag()).build())
+                                    .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(ETAG_NOT_VALID, "Conversation updated, try delete again.") : new ChatResult.Error(1500, "Error updating in custom store."))));
+                        } else {
+                            return Observable.fromCallable(() -> adapter.adaptResult(newResult));
+                        }
+                    }));
         }
-
-        return Observable.fromCallable(() -> adapter.adaptResult(result));
     }
 
     /**
@@ -283,14 +280,14 @@ class ChatController {
 
             return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult(), result.getETag()).build()).map(success -> adapter.adaptResult(result, success));
         }
-        if (result.getCode() == 412) {
+        if (result.getCode() == ETAG_NOT_VALID) {
 
             return checkState().flatMap(client -> client.service().messaging().getConversation(request.getId())
                     .flatMap(newResult -> {
                         if (newResult.isSuccessful()) {
 
                             return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult(), newResult.getETag()).build())
-                                    .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(412, "Conversation updated, try delete again.") : new ChatResult.Error(1500, "Error updating in custom store."))));
+                                    .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(ETAG_NOT_VALID, "Conversation updated, try delete again.") : new ChatResult.Error(1500, "Error updating in custom store."))));
                         } else {
                             return Observable.fromCallable(() -> adapter.adaptResult(newResult));
                         }

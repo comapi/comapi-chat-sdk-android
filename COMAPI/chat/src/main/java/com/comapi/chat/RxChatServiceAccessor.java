@@ -21,6 +21,7 @@
 package com.comapi.chat;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
@@ -113,8 +114,8 @@ class RxChatServiceAccessor {
          *
          * @param conversationId ID of a conversation to delete.
          */
-        public Observable<ChatResult> deleteConversation(@NonNull final String conversationId) {
-            return foundation.service().messaging().deleteConversation(conversationId, null /* TODO eTag*/).flatMap(result -> controller.handleConversationDeleted(conversationId, result));
+        public Observable<ChatResult> deleteConversation(@NonNull final String conversationId, @Nullable  String eTag) {
+            return foundation.service().messaging().deleteConversation(conversationId, eTag).flatMap(result -> controller.handleConversationDeleted(conversationId, result));
         }
 
         /**
@@ -123,8 +124,8 @@ class RxChatServiceAccessor {
          * @param conversationId ID of a conversation to update.
          * @param request        Request with conversation details to update.
          */
-        public Observable<ChatResult> updateConversation(@NonNull final String conversationId, @NonNull final ConversationUpdate request) {
-            return foundation.service().messaging().updateConversation(conversationId, request, null /* TODO eTag*/).flatMap(result -> controller.handleConversationUpdated(request, result));
+        public Observable<ChatResult> updateConversation(@NonNull final String conversationId, @Nullable String eTag, @NonNull final ConversationUpdate request) {
+            return foundation.service().messaging().updateConversation(conversationId, request, eTag).flatMap(result -> controller.handleConversationUpdated(request, result));
         }
 
         /**
@@ -233,17 +234,17 @@ class RxChatServiceAccessor {
         }
 
         @Override
-        public Observable<ComapiResult<Map<String, Object>>> updateProfile(@NonNull Map<String, Object> profileDetails, String eTag) {
+        public Observable<ComapiResult<Map<String, Object>>> updateProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag) {
             return foundation.service().profile().updateProfile(profileDetails, eTag);
         }
 
         @Override
-        public Observable<ComapiResult<Map<String, Object>>> patchProfile(@NonNull String profileId, @NonNull Map<String, Object> profileDetails, String eTag) {
+        public Observable<ComapiResult<Map<String, Object>>> patchProfile(@NonNull String profileId, @NonNull Map<String, Object> profileDetails, @Nullable String eTag) {
             return foundation.service().profile().patchProfile(profileId, profileDetails, eTag);
         }
 
         @Override
-        public Observable<ComapiResult<Map<String, Object>>> patchMyProfile(@NonNull Map<String, Object> profileDetails, String eTag) {
+        public Observable<ComapiResult<Map<String, Object>>> patchMyProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag) {
             return foundation.service().profile().patchMyProfile(profileDetails, eTag);
         }
     }

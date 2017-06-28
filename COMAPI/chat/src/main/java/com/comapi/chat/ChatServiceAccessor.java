@@ -121,8 +121,8 @@ public class ChatServiceAccessor {
          * @param conversationId ID of a conversation to delete.
          * @param callback       Callback with the result.
          */
-        public void deleteConversation(@NonNull final String conversationId, @Nullable Callback<ChatResult> callback) {
-            callbackAdapter.adapt(foundation.service().messaging().deleteConversation(conversationId, null /* TODO eTag*/).flatMap(result -> controller.handleConversationDeleted(conversationId, result)), callback);
+        public void deleteConversation(@NonNull final String conversationId, @Nullable String eTag, @Nullable Callback<ChatResult> callback) {
+            callbackAdapter.adapt(foundation.service().messaging().deleteConversation(conversationId, eTag).flatMap(result -> controller.handleConversationDeleted(conversationId, result)), callback);
         }
 
         /**
@@ -132,8 +132,8 @@ public class ChatServiceAccessor {
          * @param request        Request with conversation details to update.
          * @param callback       Callback with the result.
          */
-        public void updateConversation(@NonNull final String conversationId, @NonNull final ConversationUpdate request, @Nullable Callback<ChatResult> callback) {
-            callbackAdapter.adapt(foundation.service().messaging().updateConversation(conversationId, request, null /* TODO eTag*/).flatMap(result -> controller.handleConversationUpdated(request, result)), callback);
+        public void updateConversation(@NonNull final String conversationId, @Nullable String eTag, @NonNull final ConversationUpdate request, @Nullable Callback<ChatResult> callback) {
+            callbackAdapter.adapt(foundation.service().messaging().updateConversation(conversationId, request, eTag).flatMap(result -> controller.handleConversationUpdated(request, result)), callback);
         }
 
         /**
@@ -259,17 +259,17 @@ public class ChatServiceAccessor {
         }
 
         @Override
-        public void updateProfile(@NonNull Map<String, Object> profileDetails, String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
+        public void updateProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
             callbackAdapter.adapt(foundation.service().profile().updateProfile(profileDetails, eTag), callback);
         }
 
         @Override
-        public void patchProfile(@NonNull String profileId, @NonNull Map<String, Object> profileDetails, String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
+        public void patchProfile(@NonNull String profileId, @NonNull Map<String, Object> profileDetails, @Nullable  String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
             callbackAdapter.adapt(foundation.service().profile().patchProfile(profileId, profileDetails, eTag), callback);
         }
 
         @Override
-        public void patchMyProfile(@NonNull Map<String, Object> profileDetails, String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
+        public void patchMyProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
             callbackAdapter.adapt(foundation.service().profile().updateProfile(profileDetails, eTag), callback);
         }
     }
