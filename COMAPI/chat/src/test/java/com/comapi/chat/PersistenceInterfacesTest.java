@@ -60,7 +60,7 @@ public class PersistenceInterfacesTest {
     }
 
     @Test
-    public void test_StoreApisForConversations() throws InterruptedException {
+    public void test_StoreApisForConversations() {
 
         factory.execute(new StoreTransaction<ChatStore>() {
             @Override

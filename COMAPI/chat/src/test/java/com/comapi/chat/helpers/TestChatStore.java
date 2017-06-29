@@ -45,6 +45,7 @@ public class TestChatStore extends ChatStore {
     private final Map<String, ChatMessage> messages = new HashMap<>();
     private final Map<String, ChatMessageStatus> messagesStatuses = new HashMap<>();
     private final Map<String, List<ChatParticipant>> participants = new HashMap<>();
+    private ChatProfile profile;
 
     @Override
     public ChatConversationBase getConversation(String conversationId) {
@@ -139,7 +140,8 @@ public class TestChatStore extends ChatStore {
     }
 
     @Override
-    public boolean upsert(ChatProfile message) {
+    public boolean upsert(ChatProfile profile) {
+        this.profile = profile;
         return true;
     }
 
@@ -148,6 +150,7 @@ public class TestChatStore extends ChatStore {
         conversations.clear();
         messages.clear();
         participants.clear();
+        profile = null;
         return true;
     }
 
@@ -200,5 +203,9 @@ public class TestChatStore extends ChatStore {
                 .build();
         conversations.put(conversationId, conversationInStore1);
 
+    }
+
+    public ChatProfile getProfile() {
+        return profile;
     }
 }

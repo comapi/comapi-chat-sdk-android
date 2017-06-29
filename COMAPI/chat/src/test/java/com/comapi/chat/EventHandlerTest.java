@@ -216,6 +216,16 @@ public class EventHandlerTest {
         assertTrue(status.getUpdatedOn() > 0);
         assertEquals("profileId", status.getProfileId());
         assertEquals(MessageStatus.delivered, status.getMessageStatus());
+
+        // Repeat same status and check again
+
+        eventsHandler.getMessagingListenerAdapter().onMessageDelivered(event);
+        assertTrue(wasChecked);
+        status = store.getStatus(messageId);
+        assertEquals(messageId, status.getMessageId());
+        assertTrue(status.getUpdatedOn() > 0);
+        assertEquals("profileId", status.getProfileId());
+        assertEquals(MessageStatus.delivered, status.getMessageStatus());
     }
 
     @Test

@@ -9,12 +9,12 @@ apply plugin: "com.github.kt3k.coveralls"
 
 ext {
     limits = [
-            'instruction': 80,
-            'branch'     : 60,
-            'line'       : 80,
-            'complexity' : 60,
+            'instruction': 75,
+            'branch'     : 75,
+            'line'       : 85,
+            'complexity' : 75,
             'method'     : 80,
-            'class'      : 90
+            'class'      : 85
     ]
 }
 
@@ -37,12 +37,9 @@ task jacocoTestReport(type: JacocoReport, dependsOn: "testDebugUnitTest") {
             excludes: ['**/R.class',
                        '**/R$*.class',
                        '**/*$ViewInjector*.*',
+                       '**/*AutoValue_*',
                        '**/BuildConfig.*',
-                       '**/Manifest*.*',
-                       '**/LogLevel.class',
-                       '**/IDService.class',
-                       '**/PushService.class',
-                       '**/PushBroadcastReceiver.class'
+                       '**/Manifest*.*'
             ]
     )
 

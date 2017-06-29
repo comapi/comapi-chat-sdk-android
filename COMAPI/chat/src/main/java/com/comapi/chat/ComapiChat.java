@@ -41,6 +41,8 @@ public class ComapiChat {
 
     private static volatile ComapiChatClient instance;
 
+    private ComapiChat() {}
+
     /**
      * Initialise and build SDK client.
      */

@@ -96,7 +96,7 @@ public class EventsHandler {
          * @param event Profile update.
          */
         public void onProfileUpdate(ProfileUpdateEvent event) {
-            observableExecutor.execute(persistenceController.upsertUserProfile(new ChatProfile(event)));
+            observableExecutor.execute(persistenceController.upsertUserProfile(ChatProfile.builder().populate(event).build()));
         }
     }
 

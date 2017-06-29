@@ -20,14 +20,63 @@
 
 package com.comapi.chat.model;
 
+import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.model.events.ProfileUpdateEvent;
+
+import java.util.Map;
 
 /**
  * @author Marcin Swierczek
  * @since 1.0.0
  */
 public class ChatProfile {
-    public ChatProfile(ProfileUpdateEvent event) {
 
+    protected String profileId;
+
+    protected Long publishedOn;
+
+    protected Map<String, Object> payload;
+
+    protected String eTag;
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+
+        ChatProfile profile;
+
+        Builder() {
+            profile = new ChatProfile();
+        }
+
+        public ChatProfile build() {
+            return profile;
+        }
+
+        public Builder populate(ProfileUpdateEvent event) {
+            profile.profileId = event.getProfileId();
+            profile.publishedOn = DateHelper.getUTCMilliseconds(event.getPublishedOn());
+            profile.eTag = event.getETag();
+            profile.payload = event.getPayload();
+            return this;
+        }
+    }
+
+    public String getProfileId() {
+        return profileId;
+    }
+
+    public Long getPublishedOn() {
+        return publishedOn;
+    }
+
+    public Map<String, Object> getPayload() {
+        return payload;
+    }
+
+    public String geteTag() {
+        return eTag;
     }
 }

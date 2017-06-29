@@ -1,7 +1,7 @@
 {
-  "eventId":"9f32f13c-ab84-4fa9-8f03-6b7399bce7be",
-  "accountId":"123",
-  "apiSpaceId":"e280a1ce-3fa8-4797-bf2c-79d85dfe8ff0",
+  "eventId":"eventId",
+  "accountId":"accountId",
+  "apiSpaceId":"apiSpaceId",
   "name":"profile.update",
   "payload":{
     "forename":"John",
@@ -17,6 +17,6 @@
   },
   "revision":2,
   "etag":"\"c-cSYaByHVYhzDLvTlV/6DReHISIA\"",
-  "profileId":"userABC",
+  "profileId":"profileId",
   "publishedOn":"2017-01-25T13:54:32.888Z"
 }

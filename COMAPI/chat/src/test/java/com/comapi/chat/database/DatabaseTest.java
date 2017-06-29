@@ -145,6 +145,11 @@ public class DatabaseTest {
         database.resetDatabase();
         loaded = database.queryOrphanedEvents(ids).toBlocking().first();
         assertTrue(loaded.isEmpty());
+
+        /*
+         * Test delete none
+         */
+        assertTrue(database.deleteOrphanedEvents(new String[0]).toBlocking().first() == 0);
     }
 
     @After

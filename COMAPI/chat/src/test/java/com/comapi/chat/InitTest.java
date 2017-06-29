@@ -28,6 +28,8 @@ import com.comapi.APIConfig;
 import com.comapi.Callback;
 import com.comapi.ClientHelper;
 import com.comapi.ComapiAuthenticator;
+import com.comapi.RxComapiClient;
+import com.comapi.chat.helpers.ChatTestConst;
 import com.comapi.chat.helpers.DataTestHelper;
 import com.comapi.chat.helpers.MockCallback;
 import com.comapi.chat.helpers.MockComapiClient;
@@ -45,11 +47,18 @@ import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+
 import rx.Observable;
 import rx.Subscriber;
 
 import static com.comapi.chat.helpers.ChatTestConst.TOKEN;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 
 @RunWith(RobolectricGradleTestRunner.class)
@@ -63,7 +72,7 @@ public class InitTest {
     private final MockCallback<ComapiChatClient> callback = new MockCallback<>();
 
     @Test
-    public void initialise() {
+    public void test_initialise() {
 
         APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
 
@@ -130,7 +139,7 @@ public class InitTest {
     }
 
     @Test
-    public void initialiseCallback() {
+    public void test_initialiseCallback() {
 
         APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
 
@@ -198,7 +207,7 @@ public class InitTest {
     }
 
     @Test
-    public void initialiseShared() {
+    public void test_initialiseShared() {
 
         APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
 
@@ -265,7 +274,7 @@ public class InitTest {
     }
 
     @Test
-    public void initialiseSharedCallback() {
+    public void test_initialiseSharedCallback() {
 
         APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
 
@@ -330,11 +339,90 @@ public class InitTest {
 
         assertNotNull(client);
         assertNotNull(mockedComapiClient);
+        assertNotNull(ComapiChat.getShared());
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void test_getShared() {
+
+        APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
+        store = new TestChatStore();
+        factory = new StoreFactory<ChatStore>() {
+            @Override
+            public void build(StoreCallback<ChatStore> callback) {
+                callback.created(store);
+            }
+        };
+        MockFoundationFactory foundationFactory = new MockFoundationFactory(ChatConfig::buildComapiConfig);
+
+        ChatConfig chatConfig = new ChatConfig()
+                .setFoundationFactory(foundationFactory)
+                .apiSpaceId("ApiSpaceId")
+                .authenticator(new ComapiAuthenticator() {
+                    @Override
+                    public void onAuthenticationChallenge(AuthClient authClient, ChallengeOptions challengeOptions) {
+                        authClient.authenticateWithToken(TOKEN);
+                    }
+                })
+                .apiConfiguration(apiConfig)
+                .store(factory)
+                .observableExecutor(new ObservableExecutor() {
+                    @Override
+                    <T> void execute(Observable<T> obs) {
+                        obs.toBlocking().first();
+                    }
+                })
+                .overrideCallbackAdapter(new CallbackAdapter() {
+                    @Override
+                    public <T> void adapt(@NonNull Observable<T> subscriber, @Nullable Callback<T> callback) {
+                        subscriber.subscribe(new Subscriber<T>() {
+
+                            @Override
+                            public void onCompleted() {
+
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                if (callback != null) {
+                                    callback.error(e);
+                                }
+                            }
+
+                            @Override
+                            public void onNext(T result) {
+                                if (callback != null) {
+                                    callback.success(result);
+                                }
+                            }
+                        });
+                    }
+                });
+        ComapiChat.initialiseShared(RuntimeEnvironment.application, chatConfig, callback);
+        client = callback.getResult();
+        mockedComapiClient = foundationFactory.getMockedClient();
+
+        assertNotNull(ComapiChat.getShared());
+
+        ComapiChat.reset();
+        assertNull(ComapiChat.getShared());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_coverPrivateConstructor() throws IllegalAccessException, InvocationTargetException, InstantiationException {
+
+        Constructor<ComapiChat> constructor= (Constructor<ComapiChat>) ComapiChat.class.getDeclaredConstructors()[0];
+        constructor.setAccessible(true);
+        ComapiChat obj = constructor.newInstance();
+        assertNotNull(obj);
     }
 
     @After
     public void tearDown() throws Exception {
-        client.clean(RuntimeEnvironment.application);
+        if (client != null) {
+            client.clean(RuntimeEnvironment.application);
+        }
         ClientHelper.resetShared();
         ClientHelper.resetChecks();
         DataTestHelper.clearDeviceData();

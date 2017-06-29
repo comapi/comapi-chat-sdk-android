@@ -46,6 +46,7 @@ import com.comapi.chat.model.ChatStore;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.ComapiException;
 import com.comapi.internal.Parser;
+import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.log.LogLevel;
 import com.comapi.internal.log.LogManager;
 import com.comapi.internal.log.Logger;
@@ -57,6 +58,7 @@ import com.comapi.internal.network.model.conversation.ConversationUpdate;
 import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.messaging.ConversationEventsResponse;
 import com.comapi.internal.network.model.messaging.MessageStatus;
+import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
 import com.comapi.internal.network.model.messaging.MessagesQueryResponse;
 import com.comapi.internal.network.model.messaging.OrphanedEvent;
@@ -461,6 +463,17 @@ public class ControllerTest {
         assertEquals(ChatTestConst.CONVERSATION_ID3, comparison.conversationsToDelete.get(0).getConversationId());
         assertEquals(1, comparison.conversationsToUpdate.size());
         assertEquals(ChatTestConst.CONVERSATION_ID1, comparison.conversationsToUpdate.get(0).getConversationId());
+
+        comparison = chatController.compare(null, store.getAllConversations(), ChatTestConst.ETAG);
+        assertEquals(3, comparison.conversationsToDelete.size());
+        assertEquals(0, comparison.conversationsToUpdate.size());
+        assertEquals(0, comparison.conversationsToAdd.size());
+
+
+        comparison = chatController.compare(result, null, ChatTestConst.ETAG);
+        assertEquals(0, comparison.conversationsToDelete.size());
+        assertEquals(0, comparison.conversationsToUpdate.size());
+        assertEquals(2, comparison.conversationsToAdd.size());
     }
 
     @Test
@@ -862,6 +875,25 @@ public class ControllerTest {
         assertEquals(500, result.getError().getCode());
     }
 
+    @Test
+    public void test_handleMessageStatusToUpdate() {
+
+        MessageStatusUpdate update1 = MessageStatusUpdate.builder().addMessageId("1").addMessageId("2").setStatus(MessageStatus.delivered).setTimestamp(DateHelper.getCurrentUTC()).build();
+        MessageStatusUpdate update2 = MessageStatusUpdate.builder().addMessageId("3").addMessageId("4").setStatus(MessageStatus.read).setTimestamp(DateHelper.getCurrentUTC()).build();
+        List<MessageStatusUpdate> list = new ArrayList<>();
+        list.add(update1);
+        list.add(update2);
+
+        ChatResult result = chatController.handleMessageStatusToUpdate(list, new MockResult<>(null, true, null, 200)).toBlocking().first();
+        assertNotNull(result);
+        assertTrue(result.isSuccessful());
+        assertNull(result.getError());
+
+        assertEquals(MessageStatus.delivered, store.getStatus("1").getMessageStatus());
+        assertEquals(MessageStatus.delivered, store.getStatus("2").getMessageStatus());
+        assertEquals(MessageStatus.read, store.getStatus("3").getMessageStatus());
+        assertEquals(MessageStatus.read, store.getStatus("4").getMessageStatus());
+    }
 
     @Test
     public void test_handleMessageStatusToUpdate_failed() {
@@ -954,6 +986,39 @@ public class ControllerTest {
 
         assertFalse(comparison.isSuccessful);
         assertEquals(999, store.getMessages().size());
+        assertEquals(1, store.getStatuses().size());
+    }
+
+    @Test
+    public void test_queryMissingEvents() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
+
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
+
+        String json = ResponseTestHelper.readFromFile(this, "rest_events_query.json");
+        Parser parser = new Parser();
+
+        Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
+        List<JsonObject> list = new Gson().fromJson(json, listType);
+
+        JsonObject obj = list.get(0);
+        String str = obj.toString();
+        for (int i = 0; i <999; i++) {
+            JsonObject newObj = parser.parse(str, JsonObject.class);
+            newObj.getAsJsonObject("payload").remove("messageId");
+            newObj.getAsJsonObject("payload").addProperty("messageId", String.valueOf(i));
+            list.add(newObj);
+        }
+
+        ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
+        mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
+
+        ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), null, new HashMap<>());
+        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
+
+        chatController.queryMissingEvents(ChatTestConst.CONVERSATION_ID1, 0, 1002);
+
+        assertFalse(comparison.isSuccessful);
+        assertEquals(1000, store.getMessages().size());
         assertEquals(1, store.getStatuses().size());
     }
 
