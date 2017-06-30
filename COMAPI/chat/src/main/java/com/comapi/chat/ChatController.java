@@ -437,6 +437,11 @@ class ChatController {
      * @return Observable returning unchanged argument to further processing.
      */
     private Observable<ConversationComparison> lookForMissingEvents(final RxComapiClient client, ConversationComparison conversationComparison) {
+
+        if (!conversationComparison.isSuccessful || conversationComparison.conversationsToUpdate.isEmpty()) {
+            return Observable.fromCallable(() -> conversationComparison);
+        }
+
         return synchroniseEvents(client, conversationComparison.conversationsToUpdate, new ArrayList<>())
                 .map(result -> {
                     if (conversationComparison.isSuccessful && !result) {
@@ -454,6 +459,10 @@ class ChatController {
      * @return Observable returning unchanged argument to further processing.
      */
     private Observable<ConversationComparison> lookForDiffInParticipantList(final RxComapiClient client, ConversationComparison conversationComparison) {
+
+        if (!conversationComparison.isSuccessful || conversationComparison.conversationsToUpdate.isEmpty()) {
+            return Observable.fromCallable(() -> conversationComparison);
+        }
 
         return Observable.from(limitNumberOfConversations(conversationComparison.conversationsToUpdate))
                 .onBackpressureBuffer()

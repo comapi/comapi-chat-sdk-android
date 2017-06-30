@@ -529,6 +529,7 @@ public class ControllerTest {
     public void test_updateLocalParticipantList() throws NoSuchFieldException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), null, new HashMap<>());
+        comparison.setSuccessful(true);
         comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).build());
 
 
@@ -557,7 +558,7 @@ public class ControllerTest {
         ChatController.ConversationComparison conversationComparison = (ChatController.ConversationComparison) ((Observable) method.invoke(chatController, mockedComapiClient, comparison)).toBlocking().first();
 
         List<ChatParticipant> loaded = store.getParticipants(ChatTestConst.CONVERSATION_ID1);
-        assertTrue(loaded.size() == 2);
+        assertEquals(2, loaded.size());
         ChatParticipant loaded1 = store.getParticipants(ChatTestConst.CONVERSATION_ID1).get(0);
         ChatParticipant loaded4 = store.getParticipants(ChatTestConst.CONVERSATION_ID1).get(1);
         assertNotNull(loaded1);
@@ -579,6 +580,7 @@ public class ControllerTest {
         mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
 
         ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), null, new HashMap<>());
+        comparison.setSuccessful(true);
         comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
 
         Method method = chatController.getClass().getDeclaredMethod("lookForMissingEvents", RxComapiClient.class, ChatController.ConversationComparison.class);

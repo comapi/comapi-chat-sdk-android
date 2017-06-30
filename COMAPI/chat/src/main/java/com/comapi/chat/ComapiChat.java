@@ -25,7 +25,6 @@ import android.support.annotation.NonNull;
 
 import com.comapi.Callback;
 import com.comapi.ClientHelper;
-import com.comapi.GlobalState;
 import com.comapi.RxComapiClient;
 import com.comapi.internal.CallbackAdapter;
 
@@ -56,10 +55,12 @@ public class ComapiChat {
                 .map(client -> {
                     ComapiChatClient chatClient = new ComapiChatClient(app, client, chatConfig, eventsHandler, adapter);
                     ClientHelper.addLifecycleListener(client, chatClient.createLifecycleListener());
-                    if (client.getState() == GlobalState.SESSION_ACTIVE) {
-                        //TODO check state
-                    }
                     return chatClient;
+                })
+                .doOnNext(chatClient -> {
+                    if (chatClient.getSession().isSuccessfullyCreated()) {
+                        chatConfig.getObservableExecutor().execute(chatClient.rxService().messaging().synchroniseStore());
+                    }
                 });
     }
 
@@ -74,12 +75,14 @@ public class ComapiChat {
 
         return factory.getClientInstance(app, chatConfig, eventsHandler)
                 .map(client -> {
-                    createShared(app, client, chatConfig, eventsHandler, adapter);
-                    ClientHelper.addLifecycleListener(client, (getShared().createLifecycleListener()));
-                    if (client.getState() == GlobalState.SESSION_ACTIVE) {
-                        //TODO check state
+                    ComapiChatClient chatClient = createShared(app, client, chatConfig, eventsHandler, adapter);
+                    ClientHelper.addLifecycleListener(client, (chatClient.createLifecycleListener()));
+                    return chatClient;
+                })
+                .doOnNext(chatClient -> {
+                    if (chatClient.getSession().isSuccessfullyCreated()) {
+                        chatConfig.getObservableExecutor().execute(chatClient.rxService().messaging().synchroniseStore());
                     }
-                    return getShared();
                 });
     }
 
@@ -88,19 +91,8 @@ public class ComapiChat {
      */
     public static void initialise(@NonNull final Application app, @NonNull final ChatConfig chatConfig, final Callback<ComapiChatClient> callback) {
 
-        final FoundationFactory factory = chatConfig.getFoundationFactory();
-        final EventsHandler eventsHandler = new EventsHandler();
         final CallbackAdapter adapter = chatConfig.getComapiCallbackAdapter();
-
-        adapter.adapt(factory.getClientInstance(app, chatConfig, eventsHandler)
-                .map(client -> {
-                    ComapiChatClient chatClient = new ComapiChatClient(app, client, chatConfig, eventsHandler, adapter);
-                    ClientHelper.addLifecycleListener(client, chatClient.createLifecycleListener());
-                    if (client.getState() == GlobalState.SESSION_ACTIVE) {
-                        //TODO check state
-                    }
-                    return chatClient;
-                }), callback);
+        adapter.adapt(initialise(app, chatConfig), callback);
     }
 
     /**
@@ -108,19 +100,8 @@ public class ComapiChat {
      */
     public static void initialiseShared(@NonNull final Application app, @NonNull final ChatConfig chatConfig, final Callback<ComapiChatClient> callback) {
 
-        final FoundationFactory factory = chatConfig.getFoundationFactory();
-        final EventsHandler eventsHandler = new EventsHandler();
         final CallbackAdapter adapter = chatConfig.getComapiCallbackAdapter();
-
-        adapter.adapt(factory.getClientInstance(app, chatConfig, eventsHandler)
-                .map(client -> {
-                    createShared(app, client, chatConfig, eventsHandler, adapter);
-                    ClientHelper.addLifecycleListener(client, (getShared().createLifecycleListener()));
-                    if (client.getState() == GlobalState.SESSION_ACTIVE) {
-                        //TODO check state
-                    }
-                    return getShared();
-                }), callback);
+        adapter.adapt(initialiseShared(app, chatConfig), callback);
     }
 
     /**

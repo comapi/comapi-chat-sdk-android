@@ -131,7 +131,7 @@ public class ClientLevelTest {
                 .observableExecutor(new ObservableExecutor() {
                     @Override
                     <T> void execute(Observable<T> obs) {
-                        obs.toBlocking().first();
+                        obs.toBlocking().firstOrDefault(null);
                     }
                 })
                 .overrideCallbackAdapter(new CallbackAdapter() {

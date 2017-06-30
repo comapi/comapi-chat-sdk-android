@@ -29,6 +29,8 @@ import com.comapi.chat.ChatConfig;
 import com.comapi.chat.EventsHandler;
 import com.comapi.chat.FoundationFactory;
 
+import java.util.ArrayList;
+
 import rx.Observable;
 
 /**
@@ -43,22 +45,18 @@ public class MockFoundationFactory extends FoundationFactory {
 
     public MockFoundationFactory(ConfigAdapter configAdapter) {
         this.configAdapter = configAdapter;
-
     }
 
     @Override
     protected Observable<RxComapiClient> getClientInstance(@NonNull Application app, @NonNull ChatConfig chatConfig, @NonNull EventsHandler eventsHandler) {
-        if (client == null) {
-            client = new MockComapiClient(configAdapter.adapt(chatConfig, eventsHandler));
-        }
+        client = new MockComapiClient(configAdapter.adapt(chatConfig, eventsHandler));
+        client.addMockedResult(new MockResult<>(new ArrayList<>(), true, null, 200));
         return Observable.fromCallable(() -> client);
     }
 
     @Override
     protected EventsHandler getAdaptingEventsHandler() {
-        if (eventsHandler == null) {
-            eventsHandler = new EventsHandler();
-        }
+        eventsHandler = new EventsHandler();
         return eventsHandler;
     }
 

@@ -26,10 +26,7 @@ import android.support.annotation.Nullable;
 
 import com.comapi.APIConfig;
 import com.comapi.Callback;
-import com.comapi.ClientHelper;
 import com.comapi.ComapiAuthenticator;
-import com.comapi.RxComapiClient;
-import com.comapi.chat.helpers.ChatTestConst;
 import com.comapi.chat.helpers.DataTestHelper;
 import com.comapi.chat.helpers.MockCallback;
 import com.comapi.chat.helpers.MockComapiClient;
@@ -49,36 +46,30 @@ import org.robolectric.annotation.Config;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 
 import rx.Observable;
 import rx.Subscriber;
 
 import static com.comapi.chat.helpers.ChatTestConst.TOKEN;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(manifest = "chat/src/main/AndroidManifest.xml", sdk = Build.VERSION_CODES.M, constants = BuildConfig.class, packageName = "com.comapi.chat")
 public class InitTest {
 
-    private StoreFactory<ChatStore> factory;
     private ComapiChatClient client;
-    private MockComapiClient mockedComapiClient;
-    private TestChatStore store;
     private final MockCallback<ComapiChatClient> callback = new MockCallback<>();
+    private MockComapiClient mockedComapiClient;
 
     @Test
     public void test_initialise() {
 
         APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
 
-        store = new TestChatStore();
+        TestChatStore store = new TestChatStore();
 
-        factory = new StoreFactory<ChatStore>() {
+        StoreFactory<ChatStore> factory = new StoreFactory<ChatStore>() {
             @Override
             public void build(StoreCallback<ChatStore> callback) {
                 callback.created(store);
@@ -101,7 +92,7 @@ public class InitTest {
                 .observableExecutor(new ObservableExecutor() {
                     @Override
                     <T> void execute(Observable<T> obs) {
-                        obs.toBlocking().first();
+                        obs.toBlocking().firstOrDefault(null);
                     }
                 })
                 .overrideCallbackAdapter(new CallbackAdapter() {
@@ -143,9 +134,9 @@ public class InitTest {
 
         APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
 
-        store = new TestChatStore();
+        TestChatStore store = new TestChatStore();
 
-        factory = new StoreFactory<ChatStore>() {
+        StoreFactory<ChatStore> factory = new StoreFactory<ChatStore>() {
             @Override
             public void build(StoreCallback<ChatStore> callback) {
                 callback.created(store);
@@ -211,9 +202,9 @@ public class InitTest {
 
         APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
 
-        store = new TestChatStore();
+        TestChatStore store = new TestChatStore();
 
-        factory = new StoreFactory<ChatStore>() {
+        StoreFactory<ChatStore> factory = new StoreFactory<ChatStore>() {
             @Override
             public void build(StoreCallback<ChatStore> callback) {
                 callback.created(store);
@@ -236,7 +227,7 @@ public class InitTest {
                 .observableExecutor(new ObservableExecutor() {
                     @Override
                     <T> void execute(Observable<T> obs) {
-                        obs.toBlocking().first();
+                        obs.toBlocking().firstOrDefault(null);
                     }
                 })
                 .overrideCallbackAdapter(new CallbackAdapter() {
@@ -271,6 +262,7 @@ public class InitTest {
 
         assertNotNull(client);
         assertNotNull(mockedComapiClient);
+        assertNotNull(ComapiChat.getShared());
     }
 
     @Test
@@ -278,9 +270,9 @@ public class InitTest {
 
         APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
 
-        store = new TestChatStore();
+        TestChatStore store = new TestChatStore();
 
-        factory = new StoreFactory<ChatStore>() {
+        StoreFactory<ChatStore> factory = new StoreFactory<ChatStore>() {
             @Override
             public void build(StoreCallback<ChatStore> callback) {
                 callback.created(store);
@@ -303,7 +295,7 @@ public class InitTest {
                 .observableExecutor(new ObservableExecutor() {
                     @Override
                     <T> void execute(Observable<T> obs) {
-                        obs.toBlocking().first();
+                        obs.toBlocking().firstOrDefault(null);
                     }
                 })
                 .overrideCallbackAdapter(new CallbackAdapter() {
@@ -342,12 +334,12 @@ public class InitTest {
         assertNotNull(ComapiChat.getShared());
     }
 
-    @Test(expected = RuntimeException.class)
+    @Test
     public void test_getShared() {
 
         APIConfig apiConfig = new APIConfig().service("http://localhost:59273/").socket("ws://10.0.0.0");
-        store = new TestChatStore();
-        factory = new StoreFactory<ChatStore>() {
+        TestChatStore store = new TestChatStore();
+        StoreFactory<ChatStore> factory = new StoreFactory<ChatStore>() {
             @Override
             public void build(StoreCallback<ChatStore> callback) {
                 callback.created(store);
@@ -369,7 +361,7 @@ public class InitTest {
                 .observableExecutor(new ObservableExecutor() {
                     @Override
                     <T> void execute(Observable<T> obs) {
-                        obs.toBlocking().first();
+                        obs.toBlocking().firstOrDefault(null);
                     }
                 })
                 .overrideCallbackAdapter(new CallbackAdapter() {
@@ -398,14 +390,12 @@ public class InitTest {
                         });
                     }
                 });
+
         ComapiChat.initialiseShared(RuntimeEnvironment.application, chatConfig, callback);
         client = callback.getResult();
         mockedComapiClient = foundationFactory.getMockedClient();
 
         assertNotNull(ComapiChat.getShared());
-
-        ComapiChat.reset();
-        assertNull(ComapiChat.getShared());
     }
 
     @SuppressWarnings("unchecked")
@@ -423,10 +413,9 @@ public class InitTest {
         if (client != null) {
             client.clean(RuntimeEnvironment.application);
         }
-        ClientHelper.resetShared();
-        ClientHelper.resetChecks();
         DataTestHelper.clearDeviceData();
         DataTestHelper.clearSessionData();
         callback.reset();
+        ComapiChat.reset();
     }
 }
