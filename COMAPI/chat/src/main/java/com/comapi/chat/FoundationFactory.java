@@ -34,8 +34,8 @@ import rx.Observable;
  */
 public class FoundationFactory {
 
-    protected Observable<RxComapiClient> getClientInstance(@NonNull Application app, @NonNull final ChatConfig chatConfig, @NonNull final EventsHandler eventsHandler) {
-        return RxComapi.initialise(app, chatConfig.buildComapiConfig(eventsHandler));
+    protected Observable<RxComapiClient> getClientInstance(@NonNull Application app, @NonNull final ChatConfig chatConfig) {
+        return RxComapi.initialise(app, chatConfig.buildComapiConfig());
     }
 
     protected EventsHandler getAdaptingEventsHandler() {

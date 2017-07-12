@@ -53,6 +53,7 @@ import com.comapi.internal.log.Logger;
 import com.comapi.internal.network.AuthClient;
 import com.comapi.internal.network.ChallengeOptions;
 import com.comapi.internal.network.ComapiResult;
+import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
 import com.comapi.internal.network.model.conversation.Participant;
@@ -94,6 +95,7 @@ import java.util.Set;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 
+import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -158,11 +160,12 @@ public class ControllerTest {
 
         LogManager logMgr = new LogManager();
         logMgr.init(RuntimeEnvironment.application, LogLevel.OFF.getValue(), LogLevel.OFF.getValue(), 0);
+        logger = new Logger(logMgr, "");
 
         ModelAdapter modelAdapter = new ModelAdapter();
         db = Database.getInstance(RuntimeEnvironment.application, true, new Logger(logMgr, ""));
-        persistenceController = new PersistenceController(db, modelAdapter, factory);
-        logger = new Logger(logMgr, "");
+        persistenceController = new PersistenceController(db, modelAdapter, factory, logger);
+
         chatController = new ChatController(mockedComapiClient, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, logger);
     }
 
@@ -215,7 +218,7 @@ public class ControllerTest {
         parts.add(Part.builder().setData("hello").build());
         ChatMessage chatMessage = ChatMessage.builder().setMessageId(tempId).setConversationId(conversationId).setSentBy(sender).setFromWhom(new Sender(sender, sender)).setParts(parts).build();
 
-        Boolean result = chatController.handleMessage(chatMessage, tempId).toBlocking().first();
+        Boolean result = chatController.handleMessage(chatMessage).toBlocking().first();
         assertTrue(result);
 
         // Check if message in the store
@@ -257,7 +260,7 @@ public class ControllerTest {
         parts.add(Part.builder().setData("hello").build());
         ChatMessage chatMessage = ChatMessage.builder().setMessageId(tempId).setConversationId(conversationId).setSentBy(sender).setFromWhom(new Sender(sender, sender)).setParts(parts).setSentOn(0L).build();
 
-        Boolean result = chatController.handleMessage(chatMessage, tempId).toBlocking().first();
+        Boolean result = chatController.handleMessage(chatMessage).toBlocking().first();
         assertTrue(result);
 
         // Check if message in the store
@@ -326,7 +329,10 @@ public class ControllerTest {
                 .setSentOn(System.currentTimeMillis()).build();
         store.getMessages().put(tempId, tempChatMessage);
 
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put(MESSAGE_METADATA_TEMP_ID, tempId);
         ChatMessage chatMessage = ChatMessage.builder()
+                .setMetadata(metadata)
                 .setMessageId(messageId)
                 .setConversationId(conversationId)
                 .setSentBy(sender)
@@ -334,7 +340,7 @@ public class ControllerTest {
                 .setParts(parts)
                 .setSentOn(System.currentTimeMillis()).build();
 
-        Boolean result = chatController.handleMessage(chatMessage, tempId).toBlocking().first();
+        Boolean result = chatController.handleMessage(chatMessage).toBlocking().first();
         assertTrue(result);
 
         // Check if only the right message is in the store
@@ -447,9 +453,9 @@ public class ControllerTest {
         store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 0, ChatTestConst.ETAG);
         store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 0, ChatTestConst.ETAG);
 
-        ConversationDetails conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1);
-        ConversationDetails conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4);
-        List<ConversationDetails> result = new ArrayList<>();
+        Conversation conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1);
+        Conversation conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4);
+        List<Conversation> result = new ArrayList<>();
         result.add(conversationA);
         result.add(conversationB);
         mockedComapiClient.addMockedResult(new MockResult<>(result, true, ChatTestConst.ETAG, 200));
@@ -485,9 +491,9 @@ public class ControllerTest {
         store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 0, ChatTestConst.ETAG);
         store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 0, ChatTestConst.ETAG);
 
-        ConversationDetails conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1);
-        ConversationDetails conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4);
-        List<ConversationDetails> result = new ArrayList<>();
+        Conversation conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1).setETag(newETag);
+        Conversation conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4).setETag(newETag);
+        List<Conversation> result = new ArrayList<>();
         result.add(conversationA);
         result.add(conversationB);
         mockedComapiClient.addMockedResult(new MockResult<>(result, true, newETag, 200));
@@ -505,6 +511,7 @@ public class ControllerTest {
         ChatConversationBase loaded4 = store.getConversations().get(ChatTestConst.CONVERSATION_ID4);
         assertNotNull(loaded1);
         assertNotNull(loaded4);
+        assertEquals(newETag, loaded1.getETag());
         assertEquals(newETag, loaded4.getETag());
     }
 
@@ -514,7 +521,7 @@ public class ControllerTest {
         List<ChatConversation> list = new ArrayList<>();
 
         for (int i = 0; i <100; i++) {
-            list.add(ChatConversation.builder().setConversationId(Integer.toString(i)).setUpdatedOn((long) i).build());
+            list.add(ChatConversation.builder().setConversationId(Integer.toString(i)).setLatestRemoteEventId(1L).setUpdatedOn((long) i).build());
         }
 
         Method method = chatController.getClass().getDeclaredMethod("limitNumberOfConversations", List.class);
@@ -581,7 +588,7 @@ public class ControllerTest {
 
         ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), null, new HashMap<>());
         comparison.setSuccessful(true);
-        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
+        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(3L).build());
 
         Method method = chatController.getClass().getDeclaredMethod("lookForMissingEvents", RxComapiClient.class, ChatController.ConversationComparison.class);
         method.setAccessible(true);
@@ -593,9 +600,9 @@ public class ControllerTest {
         ChatConversationBase loadedConversation = store.getConversations().get(ChatTestConst.CONVERSATION_ID1);
         assertNotNull(loadedConversation);
         assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
-        assertEquals(0, loadedConversation.getFirstLocalEventId().longValue());
-        assertEquals(0, loadedConversation.getLastLocalEventId().longValue());
-        assertEquals(0, loadedConversation.getLatestRemoteEventId().longValue());
+        assertEquals(1, loadedConversation.getFirstLocalEventId().longValue());
+        assertEquals(3, loadedConversation.getLastLocalEventId().longValue());
+        assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
 
@@ -608,7 +615,7 @@ public class ControllerTest {
         assertEquals("p1", loadedMessage.getFromWhom().getId());
         assertEquals("p1", loadedMessage.getFromWhom().getName());
         assertEquals("p1", loadedMessage.getSentBy());
-        assertEquals(0, loadedMessage.getSentEventId().longValue());
+        assertEquals(1, loadedMessage.getSentEventId().longValue());
         assertNotNull(loadedMessage.getParts().get(0));
         assertEquals("body", loadedMessage.getParts().get(0).getName());
         assertEquals("non", loadedMessage.getParts().get(0).getData());
@@ -617,7 +624,7 @@ public class ControllerTest {
 
         // Check message status
 
-        ChatMessageStatus status = store.getStatus("60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        ChatMessageStatus status = store.getStatus(null, "60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
         assertNotNull(status);
         assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
         assertEquals("p1", status.getProfileId());
@@ -711,7 +718,7 @@ public class ControllerTest {
 
         // Check message status
 
-        ChatMessageStatus status = store.getStatus("60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        ChatMessageStatus status = store.getStatus(null, "60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
         assertNotNull(status);
         assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
         assertEquals("p1", status.getProfileId());
@@ -886,21 +893,23 @@ public class ControllerTest {
         list.add(update1);
         list.add(update2);
 
-        ChatResult result = chatController.handleMessageStatusToUpdate(list, new MockResult<>(null, true, null, 200)).toBlocking().first();
+        String conversationId = "id";
+
+        ChatResult result = chatController.handleMessageStatusToUpdate(conversationId, list, new MockResult<>(null, true, null, 200)).toBlocking().first();
         assertNotNull(result);
         assertTrue(result.isSuccessful());
         assertNull(result.getError());
 
-        assertEquals(MessageStatus.delivered, store.getStatus("1").getMessageStatus());
-        assertEquals(MessageStatus.delivered, store.getStatus("2").getMessageStatus());
-        assertEquals(MessageStatus.read, store.getStatus("3").getMessageStatus());
-        assertEquals(MessageStatus.read, store.getStatus("4").getMessageStatus());
+        assertEquals(MessageStatus.delivered, store.getStatus(conversationId, "1").getMessageStatus());
+        assertEquals(MessageStatus.delivered, store.getStatus(conversationId, "2").getMessageStatus());
+        assertEquals(MessageStatus.read, store.getStatus(conversationId, "3").getMessageStatus());
+        assertEquals(MessageStatus.read, store.getStatus(conversationId, "4").getMessageStatus());
     }
 
     @Test
     public void test_handleMessageStatusToUpdate_failed() {
 
-        ChatResult result = chatController.handleMessageStatusToUpdate(null, new MockResult<>(null, false, null, 500)).toBlocking().first();
+        ChatResult result = chatController.handleMessageStatusToUpdate("id", null, new MockResult<>(null, false, null, 500)).toBlocking().first();
         assertNotNull(result);
         assertFalse(result.isSuccessful());
         assertEquals(500, result.getError().getCode());
@@ -909,7 +918,7 @@ public class ControllerTest {
     @Test
     public void test_handleMessageSent_failed() {
 
-        ChatResult result = chatController.handleMessageSent(null, null, null, new MockResult<>(null, false, null, 500)).toBlocking().first();
+        ChatResult result = chatController.handleMessageSent(null, null, new MockResult<>(null, false, null, 500)).toBlocking().first();
         assertNotNull(result);
         assertFalse(result.isSuccessful());
         assertEquals(500, result.getError().getCode());

@@ -35,10 +35,10 @@ import com.comapi.internal.ComapiException;
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.log.Logger;
 import com.comapi.internal.network.ComapiResult;
+import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
 import com.comapi.internal.network.model.conversation.Participant;
-import com.comapi.internal.network.model.conversation.Scope;
 import com.comapi.internal.network.model.events.Event;
 import com.comapi.internal.network.model.events.conversation.message.MessageDeliveredEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageReadEvent;
@@ -48,7 +48,6 @@ import com.comapi.internal.network.model.messaging.MessageSentResponse;
 import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
-import com.comapi.internal.network.model.messaging.MessagesQueryResponse;
 import com.comapi.internal.network.model.messaging.Sender;
 
 import java.lang.ref.WeakReference;
@@ -61,10 +60,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
 import rx.functions.Func2;
 
@@ -80,9 +79,9 @@ class ChatController {
 
     private static final int ETAG_NOT_VALID = 412;
 
-    private static final Integer PAGE_SIZE = 100;
+    private static final Integer PAGE_SIZE = 5;
 
-    private static final Integer UPDATE_FROM_EVENTS_LIMIT = 100;
+    private static final Integer UPDATE_FROM_EVENTS_LIMIT = 5;
 
     private int QUERY_EVENTS_NUMBER_OF_CALLS_LIMIT = 1000;
 
@@ -180,7 +179,7 @@ class ChatController {
                                    return observable.zipWith(Observable.range(1, 3), (Func2<Throwable, Integer, Integer>) (throwable, integer) -> integer).flatMap(new Func1<Integer, Observable<Long>>() {
                                        @Override
                                        public Observable<Long> call(Integer retryCount) {
-                                           return Observable.timer((long) Math.pow(5, retryCount), TimeUnit.SECONDS);
+                                           return Observable.timer((long) Math.pow(1, retryCount), TimeUnit.SECONDS);
                                        }
                                    });
                                }
@@ -198,16 +197,31 @@ class ChatController {
 
         return persistenceController.loadConversation(conversationId)
                 .map(conversation -> conversation != null ? conversation.getFirstLocalEventId() : null)
-                .flatMap(new Func1<Long, Observable<ComapiResult<MessagesQueryResponse>>>() {
+                .flatMap(new Func1<Long, Observable<ChatResult>>() {
                     @Override
-                    public Observable<ComapiResult<MessagesQueryResponse>> call(Long from) {
+                    public Observable<ChatResult> call(Long from) {
 
-                        return checkState().flatMap(client -> client.service().messaging().queryMessages(conversationId, (from != null && from >= 0) ? from : null, PAGE_SIZE));
+                        final Long queryFrom;
+
+                        if (from != null) {
+
+                            if (from == 0) {
+                                return Observable.fromCallable(() -> new ChatResult(true, null));
+                            } else if (from != -1) {
+                                queryFrom = from;
+                            } else {
+                                queryFrom = null;
+                            }
+                        } else {
+                            queryFrom = null;
+                        }
+
+                        return checkState().flatMap(client -> client.service().messaging().queryMessages(conversationId, queryFrom, PAGE_SIZE))
+                                .flatMap(result -> persistenceController.processMessageQueryResponse(conversationId, result))
+                                .flatMap(result -> persistenceController.processOrphanedEvents(result, orphanedEventsToRemoveListener))
+                                .map(result -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage())));
                     }
-                })
-                .flatMap(result -> persistenceController.processMessageQueryResponse(conversationId, result))
-                .flatMap(result -> persistenceController.processOrphanedEvents(result, orphanedEventsToRemoveListener))
-                .map(result -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage())));
+                });
     }
 
 
@@ -305,9 +319,9 @@ class ChatController {
      * @param result        Service call response.
      * @return Observable emitting result of operations.
      */
-    Observable<ChatResult> handleMessageStatusToUpdate(List<MessageStatusUpdate> msgStatusList, ComapiResult<Void> result) {
+    Observable<ChatResult> handleMessageStatusToUpdate(String conversationId, List<MessageStatusUpdate> msgStatusList, ComapiResult<Void> result) {
         if (result.isSuccessful() && msgStatusList != null && !msgStatusList.isEmpty()) {
-            return persistenceController.upsertMessageStatuses(getProfileId(), msgStatusList).map(success -> adapter.adaptResult(result, success));
+            return persistenceController.upsertMessageStatuses(conversationId, getProfileId(), msgStatusList).map(success -> adapter.adaptResult(result, success));
         } else {
             return Observable.fromCallable(() -> adapter.adaptResult(result));
         }
@@ -318,6 +332,7 @@ class ChatController {
         String profileId = getProfileId();
         ChatMessage chatMessage = ChatMessage.builder()
                 .setMessageId(tempId)
+                .setSentEventId(-1L) // temporary value, will be replaced by persistence controller
                 .setConversationId(conversationId)
                 .setSentBy(profileId)
                 .setFromWhom(new Sender(profileId, profileId))
@@ -325,7 +340,7 @@ class ChatController {
                 .setParts(message.getParts())
                 .setMetadata(message.getMetadata()).build();
 
-        return persistenceController.updateStoreForNewMessage(chatMessage, null, noConversationListener);
+        return persistenceController.updateStoreForNewMessage(chatMessage, noConversationListener);
     }
 
     /**
@@ -336,12 +351,13 @@ class ChatController {
      * @param result         Service call response.
      * @return Observable emitting result of operations.
      */
-    Observable<ChatResult> handleMessageSent(String conversationId, MessageToSend message, String tempId, ComapiResult<MessageSentResponse> result) {
+    Observable<ChatResult> handleMessageSent(String conversationId, MessageToSend message, ComapiResult<MessageSentResponse> result) {
         if (result.isSuccessful()) {
 
             String profileId = getProfileId();
             ChatMessage chatMessage = ChatMessage.builder()
                     .setMessageId(result.getResult().getId())
+                    .setSentEventId(-1L) // temporary value, will be replaced by persistence controller
                     .setConversationId(conversationId)
                     .setSentBy(profileId)
                     .setFromWhom(new Sender(profileId, profileId))
@@ -349,7 +365,7 @@ class ChatController {
                     .setParts(message.getParts())
                     .setMetadata(message.getMetadata()).build();
 
-            return persistenceController.updateStoreForNewMessage(chatMessage, tempId, noConversationListener).map(success -> adapter.adaptResult(result, success));
+            return persistenceController.updateStoreForNewMessage(chatMessage, noConversationListener).map(success -> adapter.adaptResult(result, success));
 
         } else {
             return Observable.fromCallable(() -> adapter.adaptResult(result));
@@ -364,7 +380,7 @@ class ChatController {
      * @param result         Service call response.
      * @return Observable emitting result of operations.
      */
-    Observable<ChatResult> handleParticipantsAdded(String conversationId, List<ChatParticipant> participants, ComapiResult<Void> result) {
+    Observable<ChatResult> handleParticipantsAdded(String conversationId, List<ChatParticipant> participants, ComapiResult<?> result) {
         if (result.isSuccessful()) {
             return persistenceController.upsertParticipant(conversationId, participants).map(success -> adapter.adaptResult(result, success));
         } else {
@@ -396,7 +412,7 @@ class ChatController {
     private Observable<Boolean> synchroniseConversations() {
 
         return checkState().flatMap(client -> client.service().messaging()
-                .getConversations(Scope.PARTICIPANT)
+                .getConversations(false)
                 .flatMap(result -> persistenceController.loadAllConversations()
                         .map(chatConversationBases -> compare(result.getResult(), chatConversationBases, result.getETag())))
                 .flatMap(this::updateLocalConversationList)
@@ -405,7 +421,7 @@ class ChatController {
                 .map(result -> result.isSuccessful));
     }
 
-    ConversationComparison compare(List<ConversationDetails> remote, List<ChatConversationBase> local, String remoteETag) {
+    ConversationComparison compare(List<Conversation> remote, List<ChatConversationBase> local, String remoteETag) {
         return new ConversationComparison(adapter.makeMapFromDownloadedConversations(remote), remoteETag, adapter.makeMapFromSavedConversations(local));
     }
 
@@ -466,9 +482,14 @@ class ChatController {
 
         return Observable.from(limitNumberOfConversations(conversationComparison.conversationsToUpdate))
                 .onBackpressureBuffer()
-                .flatMap(conversation -> Observable.zip(client.service().messaging().getParticipants(conversation.getConversationId()),
+                .flatMap(conversation -> Observable.zip(
+                        client.service().messaging().getParticipants(conversation.getConversationId()),
                         persistenceController.getParticipants(conversation.getConversationId()),
-                        (listComapiResult, chatParticipants) -> new ParticipantsComparison(conversation.getConversationId(), adapter.makeMapFromDownloadedParticipants(listComapiResult.getResult()), adapter.makeMapFromSavedParticipants(chatParticipants))))
+                        (listComapiResult, chatParticipants) -> new ParticipantsComparison(
+                                conversation.getConversationId(),
+                                adapter.makeMapFromDownloadedParticipants(listComapiResult.getResult()),
+                                adapter.makeMapFromSavedParticipants(chatParticipants))
+                ))
                 .flatMap(new Func1<ParticipantsComparison, Observable<Boolean>>() {
                     @Override
                     public Observable<Boolean> call(ParticipantsComparison participantsComparison) {
@@ -490,7 +511,8 @@ class ChatController {
 
         return Observable.zip(persistenceController.deleteConversations(conversationComparison.conversationsToDelete),
                 persistenceController.upsertConversations(conversationComparison.conversationsToAdd),
-                (success1, success2) -> success1 && success2)
+                persistenceController.updateConversations(conversationComparison.conversationsToUpdate),
+                (success1, success2, success3) -> success1 && success2 && success3)
                 .map(result -> {
                     conversationComparison.setSuccessful(result);
                     return conversationComparison;
@@ -506,9 +528,23 @@ class ChatController {
      * @return Observable with the merged result of operations.
      */
     private Observable<Boolean> synchroniseEvents(final RxComapiClient client, final List<ChatConversation> conversationsToUpdate, final List<Boolean> successes) {
-        return Observable.from(limitNumberOfConversations(conversationsToUpdate))
+
+        final List<ChatConversation> limited = limitNumberOfConversations(conversationsToUpdate);
+
+        if (limited.isEmpty()) {
+            return Observable.fromCallable(() -> true);
+        }
+
+        return Observable.from(limited)
                 .onBackpressureBuffer()
-                .flatMap(conversation -> queryEventsRecursively(client, conversation.getConversationId(), conversation.getLastLocalEventId(), 0, successes))
+                .flatMap(conversation -> {
+                    if (conversation.getLatestRemoteEventId() > conversation.getLastLocalEventId()) {
+                        final long from = conversation.getLastLocalEventId() >= 0 ? conversation.getLastLocalEventId() : 0;
+                        return queryEventsRecursively(client, conversation.getConversationId(), from, 0, successes).map(ComapiResult::isSuccessful);
+                    } else {
+                        return Observable.fromCallable((Callable<Object>) () -> true);
+                    }
+                })
                 .flatMap(res -> Observable.from(successes).all(Boolean::booleanValue));
     }
 
@@ -557,8 +593,7 @@ class ChatController {
 
                 if (event instanceof MessageSentEvent) {
                     MessageSentEvent messageEvent = (MessageSentEvent) event;
-                    final String tempId = messageEvent.getMetadata() != null ? (String) messageEvent.getMetadata().get(MESSAGE_METADATA_TEMP_ID) : null;
-                    list.add(persistenceController.updateStoreForNewMessage(ChatMessage.builder().populate(messageEvent).build(), tempId, noConversationListener));
+                    list.add(persistenceController.updateStoreForNewMessage(ChatMessage.builder().populate(messageEvent).build(), noConversationListener));
                 } else if (event instanceof MessageDeliveredEvent) {
                     list.add(persistenceController.upsertMessageStatus(new ChatMessageStatus((MessageDeliveredEvent) event)));
                 } else if (event instanceof MessageReadEvent) {
@@ -567,7 +602,7 @@ class ChatController {
             }
 
             return Observable.from(list)
-                    .flatMap(task -> task.observeOn(AndroidSchedulers.mainThread()))
+                    .flatMap(task -> task)
                     .doOnNext(successes::add)
                     .toList()
                     .map(results -> result);
@@ -578,13 +613,20 @@ class ChatController {
 
     private List<ChatConversation> limitNumberOfConversations(List<ChatConversation> conversations) {
 
+        List<ChatConversation> noEmptyConversations = new ArrayList<>();
+        for (ChatConversation c : conversations) {
+            if (c.getLatestRemoteEventId() != null && c.getLatestRemoteEventId() >= 0) {
+                noEmptyConversations.add(c);
+            }
+        }
+
         List<ChatConversation> limitedList;
 
-        if (conversations.size() < 21) {
-            limitedList = conversations;
+        if (noEmptyConversations.size() < 21) {
+            limitedList = noEmptyConversations;
         } else {
             SortedMap<Long, ChatConversation> sorted = new TreeMap<>();
-            for (ChatConversation conversation : conversations) {
+            for (ChatConversation conversation : noEmptyConversations) {
                 sorted.put(conversation.getUpdatedOn(), conversation);
             }
             limitedList = new ArrayList<>();
@@ -597,11 +639,11 @@ class ChatController {
         return limitedList;
     }
 
-    public Observable<Boolean> handleMessage(final ChatMessage message, String tempId) {
+    public Observable<Boolean> handleMessage(final ChatMessage message) {
 
         String sender = message.getSentBy();
 
-        Observable<Boolean> replaceMessages = persistenceController.updateStoreForNewMessage(message, tempId, noConversationListener);
+        Observable<Boolean> replaceMessages = persistenceController.updateStoreForNewMessage(message, noConversationListener);
 
         if (!TextUtils.isEmpty(sender) && !sender.equals(getProfileId())) {
 
@@ -640,7 +682,7 @@ class ChatController {
         List<ChatConversationBase> conversationsToDelete;
         List<ChatConversation> conversationsToUpdate;
 
-        ConversationComparison(Map<String, ConversationDetails> downloadedList, String eTag, Map<String, ChatConversationBase> savedList) {
+        ConversationComparison(Map<String, Conversation> downloadedList, String eTag, Map<String, ChatConversationBase> savedList) {
 
             conversationsToDelete = new ArrayList<>();
             conversationsToUpdate = new ArrayList<>();
@@ -650,14 +692,15 @@ class ChatController {
 
             for (String key : downloadedList.keySet()) {
                 if (savedListProcessed.containsKey(key)) {
+
                     ChatConversationBase saved = savedListProcessed.get(key);
                     conversationsToUpdate.add(ChatConversation.builder()
-                            .populate(downloadedList.get(key), eTag)
+                            .populate(downloadedList.get(key))
                             .setFirstLocalEventId(saved.getFirstLocalEventId())
                             .setLastLocalEventId(saved.getLastLocalEventId())
                             .build());
                 } else {
-                    conversationsToAdd.add(ChatConversation.builder().populate(downloadedList.get(key), eTag).build());
+                    conversationsToAdd.add(ChatConversation.builder().populate(downloadedList.get(key)).build());
                 }
 
                 savedListProcessed.remove(key);

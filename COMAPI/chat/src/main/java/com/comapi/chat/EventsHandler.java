@@ -105,7 +105,7 @@ public class EventsHandler {
         @Override
         public void onMessage(MessageSentEvent event) {
             tracker.checkEventId(event.getContext().getConversationId(), event.getConversationEventId(), missingEventsListener);
-            observableExecutor.execute(controller.handleMessage(ChatMessage.builder().populate(event).build(), (String) event.getMetadata().get(MESSAGE_METADATA_TEMP_ID)));
+            observableExecutor.execute(controller.handleMessage(ChatMessage.builder().populate(event).build()));
         }
 
         /**

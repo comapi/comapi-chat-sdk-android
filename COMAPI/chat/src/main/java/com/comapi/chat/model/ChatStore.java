@@ -49,6 +49,7 @@ public abstract class ChatStore {
      * Insert or update conversation in persistence store.
      *
      * @param conversation Conversation to insert or update.
+     * @return True if operation was successful.
      */
     public abstract boolean upsert(ChatConversation conversation);
 
@@ -56,6 +57,7 @@ public abstract class ChatStore {
      * Update conversation in persistence store.
      *
      * @param conversation Conversation to update.
+     * @return True if operation was successful.
      */
     public abstract boolean update(ChatConversationBase conversation);
 
@@ -63,6 +65,7 @@ public abstract class ChatStore {
      * Delete conversation from persistence store.
      *
      * @param conversationId Unique global conversation identifier of an conversation to delete.
+     * @return True if operation was successful.
      */
     public abstract boolean deleteConversation(String conversationId);
 
@@ -70,26 +73,43 @@ public abstract class ChatStore {
      * Insert or update message in persistence store.
      *
      * @param message Message to insert or update.
+     * @return True if operation was successful.
      */
     public abstract boolean upsert(ChatMessage message);
 
     /**
-     * Delete all messages in persistence store that are related to given conversation.
+     * Delete all messages from persistence store that are related to given conversation.
      *
      * @param conversationId Unique global conversation identifier.
+     * @return True if operation was successful.
      */
     public abstract boolean deleteAllMessages(String conversationId);
 
-    public abstract boolean deleteMessage(String messageId);
+    /**
+     * Delete message from persistence store.
+     *
+     * @param conversationId Unique global conversation identifier.
+     * @param messageId      Unique global message identifier.
+     * @return True if operation was successful.
+     */
+    public abstract boolean deleteMessage(String conversationId, String messageId);
 
     /**
      * Insert or update message status in persistence store.
      *
      * @param status Message status to insert or update.
+     * @return True if operation was successful.
      */
     public abstract boolean upsert(ChatMessageStatus status);
 
-    public abstract ChatMessageStatus getStatus(String messageId);
+    /**
+     * Get message status.
+     *
+     * @param conversationId Unique global conversation identifier.
+     * @param messageId      Unique global message identifier.
+     * @return Message status.
+     */
+    public abstract ChatMessageStatus getStatus(String conversationId, String messageId);
 
     /**
      * Get participants of the conversation.
@@ -103,6 +123,7 @@ public abstract class ChatStore {
      * Insert or update participants of an conversation in persistence store.
      *
      * @param conversationId Unique global conversation identifier.
+     * @return True if operation was successful.
      */
     public abstract boolean upsert(String conversationId, ChatParticipant participant);
 
@@ -110,13 +131,22 @@ public abstract class ChatStore {
      * Remove participant from conversation in persistence store.
      *
      * @param conversationId Unique global conversation identifier.
+     * @return True if operation was successful.
      */
     public abstract boolean removeParticipant(String conversationId, String profileId);
 
-    public abstract boolean upsert(ChatProfile message);
+    /**
+     * Insert or update user profile details.
+     *
+     * @param profile user profile details
+     * @return True if operation was successful.
+     */
+    public abstract boolean upsert(ChatProfile profile);
 
     /**
      * Delete all content of persistence store that is related to current user.
+     *
+     * @return True if operation was successful.
      */
     public abstract boolean clearDatabase();
 }

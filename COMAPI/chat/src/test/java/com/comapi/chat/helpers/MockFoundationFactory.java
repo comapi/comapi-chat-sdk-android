@@ -48,8 +48,8 @@ public class MockFoundationFactory extends FoundationFactory {
     }
 
     @Override
-    protected Observable<RxComapiClient> getClientInstance(@NonNull Application app, @NonNull ChatConfig chatConfig, @NonNull EventsHandler eventsHandler) {
-        client = new MockComapiClient(configAdapter.adapt(chatConfig, eventsHandler));
+    protected Observable<RxComapiClient> getClientInstance(@NonNull Application app, @NonNull ChatConfig chatConfig) {
+        client = new MockComapiClient(configAdapter.adapt(chatConfig));
         client.addMockedResult(new MockResult<>(new ArrayList<>(), true, null, 200));
         return Observable.fromCallable(() -> client);
     }
@@ -61,7 +61,7 @@ public class MockFoundationFactory extends FoundationFactory {
     }
 
     public interface ConfigAdapter {
-        ComapiConfig adapt(ChatConfig config, EventsHandler eventsHandler);
+        ComapiConfig adapt(ChatConfig config);
     }
 
     public MockComapiClient getMockedClient() {

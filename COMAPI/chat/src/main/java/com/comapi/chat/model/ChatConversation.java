@@ -20,6 +20,7 @@
 
 package com.comapi.chat.model;
 
+import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.Role;
 import com.comapi.internal.network.model.events.conversation.ConversationCreateEvent;
@@ -179,12 +180,23 @@ public class ChatConversation extends ChatConversationBase {
             return this;
         }
 
-        public Builder populate(ConversationDetails event, String eTag) {
-            conversation.conversationId = event.getId();
-            conversation.name = event.getName();
-            conversation.description = event.getDescription();
-            conversation.ownerRoles = event.getRoles().getOwner();
-            conversation.participantRoles = event.getRoles().getParticipant();
+        public Builder populate(Conversation details) {
+            conversation.conversationId = details.getId();
+            conversation.name = details.getName();
+            conversation.description = details.getDescription();
+            conversation.ownerRoles = details.getRoles().getOwner();
+            conversation.participantRoles = details.getRoles().getParticipant();
+            conversation.latestRemoteEventId = details.getLatestSentEventId();
+            conversation.eTag = details.getETag();
+            return this;
+        }
+
+        public Builder populate(ConversationDetails details, String eTag) {
+            conversation.conversationId = details.getId();
+            conversation.name = details.getName();
+            conversation.description = details.getDescription();
+            conversation.ownerRoles = details.getRoles().getOwner();
+            conversation.participantRoles = details.getRoles().getParticipant();
             conversation.eTag = eTag;
             return this;
         }

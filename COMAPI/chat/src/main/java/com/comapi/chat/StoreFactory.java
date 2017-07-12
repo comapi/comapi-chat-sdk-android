@@ -23,6 +23,7 @@ package com.comapi.chat;
 import android.support.annotation.NonNull;
 
 import com.comapi.chat.model.ChatStore;
+import com.comapi.internal.log.Logger;
 
 /**
  * Factory class for {@link ChatStore} implementations that preferably can support transactions.
@@ -32,13 +33,21 @@ import com.comapi.chat.model.ChatStore;
  */
 public abstract class StoreFactory<T extends ChatStore> {
 
+    private Logger log;
+
     /**
      * Execute store transaction based on provided {@link ChatStore} implementation.
      *
      * @param transaction Store transaction based on provided {@link ChatStore} implementation.
      */
     synchronized public final void execute(@NonNull StoreTransaction<T> transaction) {
-        build(transaction::execute);
+        try {
+            build(transaction::execute);
+        } catch (Exception e) {
+            if (log != null) {
+                log.w("Error executing external store transaction : " + e.getLocalizedMessage());
+            }
+        }
     }
 
     /**
@@ -47,4 +56,13 @@ public abstract class StoreFactory<T extends ChatStore> {
      * @param callback Callback to provide store implementation asynchronously.
      */
     protected abstract void build(StoreCallback<T> callback);
+
+    /**
+     * Injects logger to save information about failing store transactions.
+     *
+     * @param log Logger instance.
+     */
+    void injectLogger(final Logger log) {
+        this.log = log;
+    }
 }

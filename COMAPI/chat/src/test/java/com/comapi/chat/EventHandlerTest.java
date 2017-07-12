@@ -129,11 +129,12 @@ public class EventHandlerTest {
 
         LogManager logMgr = new LogManager();
         logMgr.init(RuntimeEnvironment.application, LogLevel.OFF.getValue(), LogLevel.OFF.getValue(), 0);
+        logger = new Logger(logMgr, "");
 
         ModelAdapter modelAdapter = new ModelAdapter();
         db = Database.getInstance(RuntimeEnvironment.application, true, new Logger(logMgr, ""));
-        persistenceController = new PersistenceController(db, modelAdapter, factory);
-        logger = new Logger(logMgr, "");
+        persistenceController = new PersistenceController(db, modelAdapter, factory, logger);
+
         chatController = new ChatController(mockedComapiClient, persistenceController, new ObservableExecutor() {
             @Override
             <T> void execute(Observable<T> obs) {
@@ -211,7 +212,7 @@ public class EventHandlerTest {
 
         eventsHandler.getMessagingListenerAdapter().onMessageDelivered(event);
         assertTrue(wasChecked);
-        ChatMessageStatus status = store.getStatus(messageId);
+        ChatMessageStatus status = store.getStatus(null, messageId);
         assertEquals(messageId, status.getMessageId());
         assertTrue(status.getUpdatedOn() > 0);
         assertEquals("profileId", status.getProfileId());
@@ -221,7 +222,7 @@ public class EventHandlerTest {
 
         eventsHandler.getMessagingListenerAdapter().onMessageDelivered(event);
         assertTrue(wasChecked);
-        status = store.getStatus(messageId);
+        status = store.getStatus(null, messageId);
         assertEquals(messageId, status.getMessageId());
         assertTrue(status.getUpdatedOn() > 0);
         assertEquals("profileId", status.getProfileId());
@@ -249,7 +250,7 @@ public class EventHandlerTest {
 
         eventsHandler.getMessagingListenerAdapter().onMessageDelivered(event);
         assertTrue(wasChecked);
-        ChatMessageStatus status = store.getStatus(messageId);
+        ChatMessageStatus status = store.getStatus(null, messageId);
         assertEquals(messageId, status.getMessageId());
         assertTrue(status.getUpdatedOn() > 0);
         assertEquals("profileId", status.getProfileId());

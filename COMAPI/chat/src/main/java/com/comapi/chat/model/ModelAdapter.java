@@ -25,9 +25,8 @@ import com.comapi.chat.database.model.DbOrphanedEvent;
 import com.comapi.internal.Parser;
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.ComapiResult;
-import com.comapi.internal.network.model.conversation.ConversationDetails;
+import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.Participant;
-import com.comapi.internal.network.model.events.conversation.ParticipantEvent;
 import com.comapi.internal.network.model.messaging.MessageReceived;
 import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.OrphanedEvent;
@@ -50,9 +49,9 @@ public class ModelAdapter {
         Parser parser = new Parser();
         for (DbOrphanedEvent event : dbOrphanedEvents) {
             OrphanedEvent orphanedEvent = parser.parse(event.event(), OrphanedEvent.class);
-            statuses.add(new ChatMessageStatus(orphanedEvent.getMessageId(), orphanedEvent.getProfileId(),
-                    orphanedEvent.isEventTypeRead() ? MessageStatus.read : (orphanedEvent.isEventTypeDelivered() ? MessageStatus.delivered : null),
-                    DateHelper.getUTCMilliseconds(orphanedEvent.getTimestamp())));
+            statuses.add(new ChatMessageStatus(orphanedEvent.getConversationId(), orphanedEvent.getMessageId(), orphanedEvent.getProfileId(),
+                    orphanedEvent.isEventTypeRead() ? MessageStatus.read : MessageStatus.delivered,
+                    DateHelper.getUTCMilliseconds(orphanedEvent.getTimestamp()), null));
         }
 
         return statuses;
@@ -61,10 +60,11 @@ public class ModelAdapter {
     public List<ChatMessage> adaptMessages(List<MessageReceived> messagesReceived) {
 
         List<ChatMessage> chatMessages = new ArrayList<>();
-        for (MessageReceived msg : messagesReceived) {
-            chatMessages.add(ChatMessage.builder().populate(msg).build());
+        if (messagesReceived != null) {
+            for (MessageReceived msg : messagesReceived) {
+                chatMessages.add(ChatMessage.builder().populate(msg).build());
+            }
         }
-
         return chatMessages;
     }
 
@@ -124,12 +124,12 @@ public class ModelAdapter {
         return map;
     }
 
-    public Map<String, ConversationDetails> makeMapFromDownloadedConversations(List<ConversationDetails> list) {
+    public Map<String, Conversation> makeMapFromDownloadedConversations(List<Conversation> list) {
 
-        Map<String, ConversationDetails> map = new HashMap<>();
+        Map<String, Conversation> map = new HashMap<>();
 
         if (list != null && !list.isEmpty()) {
-            for (ConversationDetails details : list) {
+            for (Conversation details : list) {
                 map.put(details.getId(), details);
             }
         }

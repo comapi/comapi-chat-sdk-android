@@ -70,11 +70,13 @@ public class ComapiChatClient {
         Logger log = ClientHelper.getLogger(client);
         ModelAdapter modelAdapter = new ModelAdapter();
         Database db = Database.getInstance(app, false, log);
-        PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory());
+        PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory(), log);
         controller = new ChatController(client, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, log);
-        serviceAccessor = new ChatServiceAccessor(modelAdapter, callbackAdapter, client, controller);
         rxServiceAccessor = new RxChatServiceAccessor(modelAdapter, client, controller);
+        serviceAccessor = new ChatServiceAccessor(callbackAdapter, rxServiceAccessor);
         eventsHandler.init(new Handler(Looper.getMainLooper()), persistenceController, controller, new MissingEventsTracker(), chatConfig.getObservableExecutor(), chatConfig.getTypingListener());
+        client.addListener(eventsHandler.getMessagingListenerAdapter());
+        client.addListener(eventsHandler.getProfileListenerAdapter());
     }
 
     /**
@@ -108,7 +110,7 @@ public class ComapiChatClient {
         return new LifecycleListener() {
 
             public void onForegrounded(Context context) {
-                //TODO check state
+                service().messaging().synchroniseStore(null);
             }
 
 

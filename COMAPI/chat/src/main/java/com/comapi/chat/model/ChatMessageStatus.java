@@ -33,9 +33,13 @@ import com.comapi.internal.network.model.messaging.MessageStatus;
  */
 public class ChatMessageStatus {
 
+    private String conversationId;
+
     private String messageId;
 
     private String profileId;
+
+    private Long conversationEventId;
 
     /**
      * Message status as defined in {@link MessageStatus}
@@ -47,11 +51,15 @@ public class ChatMessageStatus {
      */
     private Long updatedOn;
 
-    public ChatMessageStatus(String messageId, String profileId, MessageStatus messageStatus, Long updatedOn) {
+    public ChatMessageStatus(String conversationId, String messageId, String profileId, MessageStatus messageStatus, Long updatedOn, Long conversationEventId) {
         this.messageId = messageId;
         this.profileId = profileId;
         this.messageStatus = messageStatus;
         this.updatedOn = updatedOn;
+        this.conversationId = conversationId;
+        if (conversationEventId != null) {
+            this.conversationEventId = conversationEventId;
+        }
     }
 
     public ChatMessageStatus(MessageDeliveredEvent event) {
@@ -59,6 +67,8 @@ public class ChatMessageStatus {
         this.profileId = event.getProfileId();
         this.messageStatus = MessageStatus.delivered;
         this.updatedOn = DateHelper.getUTCMilliseconds(event.getTimestamp());
+        this.conversationId = event.getConversationId();
+        this.conversationEventId = event.getConversationEventId();
     }
 
     public ChatMessageStatus(MessageReadEvent event) {
@@ -66,6 +76,8 @@ public class ChatMessageStatus {
         this.profileId = event.getProfileId();
         this.messageStatus = MessageStatus.read;
         this.updatedOn = DateHelper.getUTCMilliseconds(event.getTimestamp());
+        this.conversationId = event.getConversationId();
+        this.conversationEventId = event.getConversationEventId();
     }
 
     public String getMessageId() {
@@ -92,5 +104,13 @@ public class ChatMessageStatus {
      */
     public Long getUpdatedOn() {
         return updatedOn;
+    }
+
+    public String getConversationId() {
+        return conversationId;
+    }
+
+    public Long getConversationEventId() {
+        return conversationEventId;
     }
 }

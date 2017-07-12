@@ -27,6 +27,7 @@ import android.support.annotation.Nullable;
 import com.comapi.APIConfig;
 import com.comapi.Callback;
 import com.comapi.ComapiAuthenticator;
+import com.comapi.ComapiConfig;
 import com.comapi.Session;
 import com.comapi.chat.helpers.ChatTestConst;
 import com.comapi.chat.helpers.MockCallback;
@@ -552,9 +553,9 @@ public class ClientLevelTest {
         ChatConversationBase loadedConversation = store.getConversations().get(ChatTestConst.CONVERSATION_ID1);
         assertNotNull(loadedConversation);
         assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
-        assertEquals(0, loadedConversation.getFirstLocalEventId().longValue());
-        assertEquals(0, loadedConversation.getLastLocalEventId().longValue());
-        assertEquals(0, loadedConversation.getLatestRemoteEventId().longValue());
+        assertEquals(1, loadedConversation.getFirstLocalEventId().longValue());
+        assertEquals(3, loadedConversation.getLastLocalEventId().longValue());
+        assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
 
@@ -567,7 +568,7 @@ public class ClientLevelTest {
         assertEquals("p1", loadedMessage.getFromWhom().getId());
         assertEquals("p1", loadedMessage.getFromWhom().getName());
         assertEquals("p1", loadedMessage.getSentBy());
-        assertEquals(0, loadedMessage.getSentEventId().longValue());
+        assertEquals(1, loadedMessage.getSentEventId().longValue());
         assertNotNull(loadedMessage.getParts().get(0));
         assertEquals("body", loadedMessage.getParts().get(0).getName());
         assertEquals("non", loadedMessage.getParts().get(0).getData());
@@ -576,7 +577,7 @@ public class ClientLevelTest {
 
         // Check message status
 
-        ChatMessageStatus status = store.getStatus("60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        ChatMessageStatus status = store.getStatus(null, "60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
         assertNotNull(status);
         assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
         assertEquals("p1", status.getProfileId());
@@ -654,9 +655,9 @@ public class ClientLevelTest {
         ChatConversationBase loadedConversation = store.getConversations().get(ChatTestConst.CONVERSATION_ID1);
         assertNotNull(loadedConversation);
         assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
-        assertEquals(0, loadedConversation.getFirstLocalEventId().longValue());
-        assertEquals(0, loadedConversation.getLastLocalEventId().longValue());
-        assertEquals(0, loadedConversation.getLatestRemoteEventId().longValue());
+        assertEquals(1, loadedConversation.getFirstLocalEventId().longValue());
+        assertEquals(3, loadedConversation.getLastLocalEventId().longValue());
+        assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
 
@@ -669,7 +670,7 @@ public class ClientLevelTest {
         assertEquals("p1", loadedMessage.getFromWhom().getId());
         assertEquals("p1", loadedMessage.getFromWhom().getName());
         assertEquals("p1", loadedMessage.getSentBy());
-        assertEquals(0, loadedMessage.getSentEventId().longValue());
+        assertEquals(1, loadedMessage.getSentEventId().longValue());
         assertNotNull(loadedMessage.getParts().get(0));
         assertEquals("body", loadedMessage.getParts().get(0).getName());
         assertEquals("non", loadedMessage.getParts().get(0).getData());
@@ -678,7 +679,7 @@ public class ClientLevelTest {
 
         // Check message status
 
-        ChatMessageStatus status = store.getStatus("60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        ChatMessageStatus status = store.getStatus(null, "60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
         assertNotNull(status);
         assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
         assertEquals("p1", status.getProfileId());

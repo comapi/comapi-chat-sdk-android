@@ -26,14 +26,18 @@ import android.support.annotation.Nullable;
 
 import com.comapi.ComapiConfig;
 import com.comapi.GlobalState;
+import com.comapi.MessagingListener;
+import com.comapi.ProfileListener;
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
+import com.comapi.StateListener;
 import com.comapi.internal.data.SessionData;
 import com.comapi.internal.log.LogManager;
 import com.comapi.internal.log.Logger;
 import com.comapi.internal.network.ComapiResult;
 import com.comapi.internal.network.api.RxComapiService;
+import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.ConversationCreate;
 import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
@@ -133,6 +137,18 @@ public class MockComapiClient extends RxComapiClient {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<List<ConversationDetails>>) result;
+                            }
+                        });
+                    }
+
+                    @Override
+                    public Observable<ComapiResult<List<Conversation>>> getConversations(boolean isPublic) {
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof List)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<List<Conversation>>) result;
                             }
                         });
                     }
@@ -377,6 +393,21 @@ public class MockComapiClient extends RxComapiClient {
                 return () -> null;
             }
         };
+    }
+
+    @Override
+    public void addListener(MessagingListener listener) {
+
+    }
+
+    @Override
+    public void addListener(ProfileListener listener) {
+
+    }
+
+    @Override
+    public void addListener(StateListener listener) {
+
     }
 
     @Override

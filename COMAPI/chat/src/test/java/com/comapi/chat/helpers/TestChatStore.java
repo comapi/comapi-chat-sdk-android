@@ -89,7 +89,7 @@ public class TestChatStore extends ChatStore {
     }
 
     @Override
-    public ChatMessageStatus getStatus(String messageId) {
+    public ChatMessageStatus getStatus(String conversationId, String messageId) {
         return messagesStatuses.get(messageId);
     }
 
@@ -174,7 +174,7 @@ public class TestChatStore extends ChatStore {
     }
 
     @Override
-    public boolean deleteMessage(String messageId) {
+    public boolean deleteMessage(String conversationId, String messageId) {
         messages.remove(messageId);
         return true;
     }

@@ -20,6 +20,7 @@
 
 package com.comapi.chat.helpers;
 
+import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.Role;
 import com.comapi.internal.network.model.conversation.Roles;
@@ -30,10 +31,13 @@ import com.comapi.internal.network.model.conversation.Roles;
  * @author Marcin Swierczek
  * @since 1.0.0
  */
-public class MockConversationDetails extends ConversationDetails {
+public class MockConversationDetails extends Conversation {
 
     public static final boolean IS_PUBLIC = false;
     public static final String NAME = "name";
+    public static final String ETAG = "eTag";
+    public static final Integer PARTICIPANT_COUNT = 2;
+    public static final Long LATEST_SENT_ID = 234L;
     public static final String DESCRIPTION = "description";
     public static final Roles ROLES = new Roles(Role.builder().build(), Role.builder().build());
 
@@ -43,10 +47,18 @@ public class MockConversationDetails extends ConversationDetails {
         this.name = NAME;
         this.description = DESCRIPTION;
         this.roles = ROLES;
+        this.eTag = ETAG;
+        this.participantCount = PARTICIPANT_COUNT;
+        this.latestSentEventId = LATEST_SENT_ID;
     }
 
     public MockConversationDetails setName(String name) {
         this.name = name;
+        return this;
+    }
+
+    public MockConversationDetails setETag(String eTag) {
+        this.eTag = eTag;
         return this;
     }
 }

@@ -128,6 +128,11 @@ public class ChatConversationBase {
         this.firstLocalEventId = firstLocalEventId;
     }
 
+    public ChatConversationBase setETag(String eTag) {
+        this.eTag = eTag;
+        return this;
+    }
+
     public void setUpdatedOn(Long updatedOn) {
         this.updatedOn = updatedOn;
     }

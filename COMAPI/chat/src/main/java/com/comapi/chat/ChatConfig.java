@@ -142,16 +142,14 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
      *
      * @return Build config for foundation SDK initialisation.
      */
-    ComapiConfig buildComapiConfig(EventsHandler handler) {
+    ComapiConfig buildComapiConfig() {
         return new ComapiConfig()
                 .apiSpaceId(apiSpaceId)
                 .authenticator(authenticator)
                 .logConfig(logConfig)
                 .apiConfiguration(apiConfig)
                 .logSizeLimitKilobytes(logSizeLimit)
-                .pushMessageListener(pushMessageListener)
-                .profileListener(handler.getProfileListenerAdapter())
-                .messagingListener(handler.getMessagingListenerAdapter());
+                .pushMessageListener(pushMessageListener);
     }
 
     @Override

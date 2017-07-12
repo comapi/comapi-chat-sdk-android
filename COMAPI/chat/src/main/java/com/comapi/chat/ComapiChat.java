@@ -51,7 +51,7 @@ public class ComapiChat {
         final EventsHandler eventsHandler = factory.getAdaptingEventsHandler();
         final CallbackAdapter adapter = chatConfig.getComapiCallbackAdapter();
 
-        return factory.getClientInstance(app, chatConfig, eventsHandler)
+        return factory.getClientInstance(app, chatConfig)
                 .map(client -> {
                     ComapiChatClient chatClient = new ComapiChatClient(app, client, chatConfig, eventsHandler, adapter);
                     ClientHelper.addLifecycleListener(client, chatClient.createLifecycleListener());
@@ -73,7 +73,7 @@ public class ComapiChat {
         final EventsHandler eventsHandler = new EventsHandler();
         final CallbackAdapter adapter = chatConfig.getComapiCallbackAdapter();
 
-        return factory.getClientInstance(app, chatConfig, eventsHandler)
+        return factory.getClientInstance(app, chatConfig)
                 .map(client -> {
                     ComapiChatClient chatClient = createShared(app, client, chatConfig, eventsHandler, adapter);
                     ClientHelper.addLifecycleListener(client, (chatClient.createLifecycleListener()));

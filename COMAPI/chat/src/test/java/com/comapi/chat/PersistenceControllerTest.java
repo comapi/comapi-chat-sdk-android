@@ -81,10 +81,11 @@ public class PersistenceControllerTest {
 
         LogManager logMgr = new LogManager();
         logMgr.init(RuntimeEnvironment.application, LogLevel.OFF.getValue(), LogLevel.OFF.getValue(), 0);
+        Logger log = new Logger(logMgr, "");
 
         ModelAdapter modelAdapter = new ModelAdapter();
         Database db = Database.getInstance(RuntimeEnvironment.application, true, new Logger(logMgr, ""));
-        persistenceController = new PersistenceController(db, modelAdapter, factory);
+        persistenceController = new PersistenceController(db, modelAdapter, factory, log);
     }
 
     @Test

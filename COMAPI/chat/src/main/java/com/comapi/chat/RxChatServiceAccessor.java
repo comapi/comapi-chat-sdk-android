@@ -100,6 +100,10 @@ class RxChatServiceAccessor {
 
     public class MessagingService {
 
+        private MessagingService() {
+
+        }
+
         /**
          * Returns observable to create a conversation.
          *
@@ -126,6 +130,16 @@ class RxChatServiceAccessor {
          */
         public Observable<ChatResult> updateConversation(@NonNull final String conversationId, @Nullable String eTag, @NonNull final ConversationUpdate request) {
             return foundation.service().messaging().updateConversation(conversationId, request, eTag).flatMap(result -> controller.handleConversationUpdated(request, result));
+        }
+
+        /**
+         * Returns observable to add a participant to.
+         *
+         * @param conversationId ID of a conversation to add a participant to.
+         * @return Observable to get a list of conversation participants.
+         */
+        public Observable<ChatResult> getParticipants(@NonNull final String conversationId) {
+            return foundation.service().messaging().getParticipants(conversationId).flatMap(result -> controller.handleParticipantsAdded(conversationId, modelAdapter.adapt(result.getResult()), result));
         }
 
         /**
@@ -159,7 +173,7 @@ class RxChatServiceAccessor {
             message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
             return controller.handleMessageSending(conversationId, message, tempId)
                     .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, message))
-                    .flatMap(result -> controller.handleMessageSent(conversationId, message, tempId, result));
+                    .flatMap(result -> controller.handleMessageSent(conversationId, message, result));
         }
 
         /**
@@ -174,7 +188,7 @@ class RxChatServiceAccessor {
             message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
             return controller.handleMessageSending(conversationId, message, tempId)
                     .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, body))
-                    .flatMap((result) -> controller.handleMessageSent(conversationId, message, tempId, result));
+                    .flatMap((result) -> controller.handleMessageSent(conversationId, message, result));
         }
 
         /**
@@ -193,7 +207,7 @@ class RxChatServiceAccessor {
             updateBuilder.setStatus(MessageStatus.read).setTimestamp(DateHelper.getCurrentUTC());
             statuses.add(updateBuilder.build());
 
-            return foundation.service().messaging().updateMessageStatus(conversationId, statuses).flatMap(result -> controller.handleMessageStatusToUpdate(statuses, result));
+            return foundation.service().messaging().updateMessageStatus(conversationId, statuses).flatMap(result -> controller.handleMessageStatusToUpdate(conversationId, statuses, result));
         }
 
         /**
@@ -212,6 +226,10 @@ class RxChatServiceAccessor {
             return controller.synchroniseStore();
         }
 
+        public Observable<Boolean> synchroniseConversation(@NonNull final String conversationId) {
+            return controller.synchroniseConversation(conversationId);
+        }
+
         /**
          * Sends participant is typing in conversation event.
          *
@@ -224,6 +242,10 @@ class RxChatServiceAccessor {
     }
 
     public class ProfileService implements RxServiceAccessor.ProfileService {
+
+        private ProfileService() {
+
+        }
 
         public Observable<ComapiResult<Map<String, Object>>> getProfile(@NonNull String profileId) {
             return foundation.service().profile().getProfile(profileId);
@@ -250,6 +272,10 @@ class RxChatServiceAccessor {
     }
 
     public class SessionService {
+
+        private SessionService() {
+
+        }
 
         /**
          * Create and start new ComapiImpl session.

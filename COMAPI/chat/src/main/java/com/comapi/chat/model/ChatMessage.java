@@ -164,6 +164,11 @@ public class ChatMessage {
         return metadata;
     }
 
+    public ChatMessage setSentEventId(Long sentEventId) {
+        this.sentEventId = sentEventId;
+        return this;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -194,7 +199,7 @@ public class ChatMessage {
 
             for (String profileId : update.getStatusUpdate().keySet()) {
                 MessageReceived.Status status = update.getStatusUpdate().get(profileId);
-                message.statusUpdates.add(new ChatMessageStatus(message.messageId, profileId, status.getStatus(), DateHelper.getUTCMilliseconds(status.getTimestamp())));
+                message.statusUpdates.add(new ChatMessageStatus(update.getConversationId(), message.messageId, profileId, status.getStatus(), DateHelper.getUTCMilliseconds(status.getTimestamp()), null));
             }
 
             return this;
@@ -246,6 +251,11 @@ public class ChatMessage {
 
         public Builder setMetadata(Map<String, Object> metadata) {
             message.metadata = metadata;
+            return this;
+        }
+
+        public Builder setSentEventId(Long sentEventId) {
+            message.sentEventId = sentEventId;
             return this;
         }
     }

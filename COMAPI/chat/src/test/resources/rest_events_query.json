@@ -3,7 +3,7 @@
     "eventId": "7b1e1b82-d9fa-436f-9a74-1069c2153acc",
     "name": "conversationMessage.sent",
     "conversationId": "someId1",
-    "conversationEventId": 0,
+    "conversationEventId": 1,
     "payload": {
       "messageId": "60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
       "metadata": {
@@ -48,7 +48,7 @@
     "eventId": "deee4588-1567-4c46-99a0-c010b491064a",
     "name": "conversationMessage.delivered",
     "conversationId": "someId1",
-    "conversationEventId": 1,
+    "conversationEventId": 2,
     "payload": {
       "messageId": "60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
       "conversationId": "someId1",
@@ -60,7 +60,7 @@
     "eventId": "b3e58e2d-d8f1-4e6f-a668-9f526d9eb0fb",
     "name": "conversationMessage.read",
     "conversationId": "someId1",
-    "conversationEventId": 2,
+    "conversationEventId": 3,
     "payload": {
       "messageId": "60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
       "conversationId": "someId1",
