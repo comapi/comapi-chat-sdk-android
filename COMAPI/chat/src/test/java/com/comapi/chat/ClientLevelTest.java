@@ -305,94 +305,6 @@ public class ClientLevelTest {
     }
 
     @Test
-    public void test_manageParticipants() throws InterruptedException {
-
-        String conversationId = ChatTestConst.CONVERSATION_ID1;
-
-        // Add conversation and participant to the store
-
-        store.addConversationToStore(conversationId, -1L, -1L, 0, ChatTestConst.ETAG);
-
-        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setRole(ChatRole.participant).build();
-        store.upsert(conversationId, participant1);
-
-        // Add another participant
-
-        Participant pToAdd = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID2).setIsParticipant().build();
-        List<Participant> participants = new ArrayList<>();
-        participants.add(pToAdd);
-        mockedComapiClient.addMockedResult(new MockResult<>(null, true, ETAG, 200));
-
-        ChatResult result1 = client.rxService().messaging().addParticipants(conversationId, participants).toBlocking().first();
-        assertNotNull(result1);
-        assertTrue(result1.isSuccessful());
-        assertNull(result1.getError());
-
-        assertEquals(2, store.getParticipants(conversationId).size());
-        ChatParticipant p1 = store.getParticipants(conversationId).get(0);
-        ChatParticipant p2 = store.getParticipants(conversationId).get(1);
-        assertTrue((p1.getParticipantId().equals(ChatTestConst.PARTICIPANT_ID1) && p2.getParticipantId().equals(ChatTestConst.PARTICIPANT_ID2)) || (p2.getParticipantId().equals(ChatTestConst.PARTICIPANT_ID1) && p1.getParticipantId().equals(ChatTestConst.PARTICIPANT_ID2)));
-
-        // Remove participants
-
-        mockedComapiClient.addMockedResult(new MockResult<>(null, true, ETAG, 200));
-        List<String> participantsIds = new ArrayList<>();
-        participantsIds.add(ChatTestConst.CONVERSATION_ID1);
-        participantsIds.add(ChatTestConst.CONVERSATION_ID2);
-
-        ChatResult result2 = client.rxService().messaging().removeParticipants(conversationId, participantsIds).toBlocking().first();
-        assertNotNull(result2);
-        assertTrue(result2.isSuccessful());
-        assertNull(result2.getError());
-        assertEquals(0, store.getParticipants(conversationId).size());
-    }
-
-    @Test
-    public void test_manageParticipants_callback() throws InterruptedException {
-
-        String conversationId = ChatTestConst.CONVERSATION_ID1;
-
-        // Add conversation and participant to the store
-
-        store.addConversationToStore(conversationId, -1L, -1L, 0, ChatTestConst.ETAG);
-
-        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setRole(ChatRole.participant).build();
-        store.upsert(conversationId, participant1);
-
-        // Add another participant
-
-        Participant pToAdd = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID2).setIsParticipant().build();
-        List<Participant> participants = new ArrayList<>();
-        participants.add(pToAdd);
-        mockedComapiClient.addMockedResult(new MockResult<>(null, true, ETAG, 200));
-
-        final MockCallback<ChatResult> callback = new MockCallback<>();
-        client.service().messaging().addParticipants(conversationId, participants, callback);
-        assertNotNull(callback.getResult());
-        assertTrue(callback.getResult().isSuccessful());
-        assertNull(callback.getResult().getError());
-
-        assertEquals(2, store.getParticipants(conversationId).size());
-        ChatParticipant p1 = store.getParticipants(conversationId).get(0);
-        ChatParticipant p2 = store.getParticipants(conversationId).get(1);
-        assertTrue((p1.getParticipantId().equals(ChatTestConst.PARTICIPANT_ID1) && p2.getParticipantId().equals(ChatTestConst.PARTICIPANT_ID2)) || (p2.getParticipantId().equals(ChatTestConst.PARTICIPANT_ID1) && p1.getParticipantId().equals(ChatTestConst.PARTICIPANT_ID2)));
-
-        // Remove participants
-
-        mockedComapiClient.addMockedResult(new MockResult<>(null, true, ETAG, 200));
-        List<String> participantsIds = new ArrayList<>();
-        participantsIds.add(ChatTestConst.CONVERSATION_ID1);
-        participantsIds.add(ChatTestConst.CONVERSATION_ID2);
-
-        callback.reset();
-        client.service().messaging().removeParticipants(conversationId, participantsIds, callback);
-        assertNotNull(callback.getResult());
-        assertTrue(callback.getResult().isSuccessful());
-        assertNull(callback.getResult().getError());
-        assertEquals(0, store.getParticipants(conversationId).size());
-    }
-
-    @Test
     public void test_sendMessages() throws InterruptedException {
 
         String conversationId = ChatTestConst.CONVERSATION_ID1;
@@ -502,25 +414,6 @@ public class ClientLevelTest {
         result.add(conversationB);
         mockedComapiClient.addMockedResult(new MockResult<>(result, true, newETag, 200));
 
-        // Participants setup
-
-        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setRole(ChatRole.participant).build();
-        ChatParticipant participant2 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID2).setRole(ChatRole.participant).build();
-        ChatParticipant participant3 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID3).setRole(ChatRole.participant).build();
-
-        store.upsert(ChatTestConst.CONVERSATION_ID1, participant1);
-        store.upsert(ChatTestConst.CONVERSATION_ID1, participant2);
-        store.upsert(ChatTestConst.CONVERSATION_ID1, participant3);
-
-        Participant pA = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID1).setIsParticipant().build();
-        Participant pB = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID4).setIsParticipant().build();
-
-        List<Participant> participants = new ArrayList<>();
-        participants.add(pA);
-        participants.add(pB);
-
-        mockedComapiClient.addMockedResult(new MockResult<>(participants, true, newETag, 200));
-
         // Events setup
 
         String json = ResponseTestHelper.readFromFile(this, "rest_events_query.json");
@@ -530,22 +423,13 @@ public class ClientLevelTest {
         List<JsonObject> list = new Gson().fromJson(json, listType);
 
         ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
-        mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
+        mockedComapiClient.addMockedResult(new MockResult<>(response, true, null, 200));
 
         // Test
 
         Boolean synchroniseSuccess = client.rxService().messaging().synchroniseStore().toBlocking().first();
 
         assertTrue(synchroniseSuccess);
-
-        // Check participants
-
-        List<ChatParticipant> loadedP = store.getParticipants(ChatTestConst.CONVERSATION_ID1);
-        assertTrue(loadedP.size() == 2);
-        ChatParticipant loadedP1 = loadedP.get(0);
-        ChatParticipant loadedP4 = loadedP.get(1);
-        assertNotNull(loadedP1);
-        assertNotNull(loadedP4);
 
         // Check conversation
 
@@ -557,7 +441,7 @@ public class ClientLevelTest {
         assertEquals(3, loadedConversation.getLastLocalEventId().longValue());
         assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
-        assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
+        assertEquals("eTag", loadedConversation.getETag());
 
         // Check message
 
@@ -604,25 +488,6 @@ public class ClientLevelTest {
         result.add(conversationB);
         mockedComapiClient.addMockedResult(new MockResult<>(result, true, newETag, 200));
 
-        // Participants setup
-
-        ChatParticipant participant1 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID1).setRole(ChatRole.participant).build();
-        ChatParticipant participant2 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID2).setRole(ChatRole.participant).build();
-        ChatParticipant participant3 = ChatParticipant.builder().setParticipantId(ChatTestConst.PARTICIPANT_ID3).setRole(ChatRole.participant).build();
-
-        store.upsert(ChatTestConst.CONVERSATION_ID1, participant1);
-        store.upsert(ChatTestConst.CONVERSATION_ID1, participant2);
-        store.upsert(ChatTestConst.CONVERSATION_ID1, participant3);
-
-        Participant pA = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID1).setIsParticipant().build();
-        Participant pB = Participant.builder().setId(ChatTestConst.PARTICIPANT_ID4).setIsParticipant().build();
-
-        List<Participant> participants = new ArrayList<>();
-        participants.add(pA);
-        participants.add(pB);
-
-        mockedComapiClient.addMockedResult(new MockResult<>(participants, true, newETag, 200));
-
         // Events setup
 
         String json = ResponseTestHelper.readFromFile(this, "rest_events_query.json");
@@ -632,22 +497,13 @@ public class ClientLevelTest {
         List<JsonObject> list = new Gson().fromJson(json, listType);
 
         ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
-        mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
+        mockedComapiClient.addMockedResult(new MockResult<>(response, true, null, 200));
 
         // Test
         final MockCallback<Boolean> callback = new MockCallback<>();
         client.service().messaging().synchroniseStore(callback);
 
         assertTrue(callback.getResult());
-
-        // Check participants
-
-        List<ChatParticipant> loadedP = store.getParticipants(ChatTestConst.CONVERSATION_ID1);
-        assertTrue(loadedP.size() == 2);
-        ChatParticipant loadedP1 = loadedP.get(0);
-        ChatParticipant loadedP4 = loadedP.get(1);
-        assertNotNull(loadedP1);
-        assertNotNull(loadedP4);
 
         // Check conversation
 
@@ -659,7 +515,7 @@ public class ClientLevelTest {
         assertEquals(3, loadedConversation.getLastLocalEventId().longValue());
         assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
-        assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
+        assertEquals("eTag", loadedConversation.getETag());
 
         // Check message
 

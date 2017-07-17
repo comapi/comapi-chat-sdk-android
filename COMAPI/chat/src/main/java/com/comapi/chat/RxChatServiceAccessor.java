@@ -139,7 +139,7 @@ class RxChatServiceAccessor {
          * @return Observable to get a list of conversation participants.
          */
         public Observable<ChatResult> getParticipants(@NonNull final String conversationId) {
-            return foundation.service().messaging().getParticipants(conversationId).flatMap(result -> controller.handleParticipantsAdded(conversationId, modelAdapter.adapt(result.getResult()), result));
+            return foundation.service().messaging().getParticipants(conversationId).map(modelAdapter::adaptResult);
         }
 
         /**
@@ -149,7 +149,7 @@ class RxChatServiceAccessor {
          * @param ids            List of participant ids to be removed.
          */
         public Observable<ChatResult> removeParticipants(@NonNull final String conversationId, @NonNull final List<String> ids) {
-            return foundation.service().messaging().removeParticipants(conversationId, ids).flatMap(result -> controller.handleParticipantsRemoved(conversationId, ids, result));
+            return foundation.service().messaging().removeParticipants(conversationId, ids).map(modelAdapter::adaptResult);
         }
 
         /**
@@ -159,7 +159,7 @@ class RxChatServiceAccessor {
          * @param participants   New conversation participants details.
          */
         public Observable<ChatResult> addParticipants(@NonNull final String conversationId, @NonNull final List<Participant> participants) {
-            return foundation.service().messaging().addParticipants(conversationId, participants).flatMap(result -> controller.handleParticipantsAdded(conversationId, modelAdapter.adapt(participants), result));
+            return foundation.service().messaging().addParticipants(conversationId, participants).flatMap(result -> controller.handleParticipantsAdded(conversationId, result)).map(modelAdapter::adaptResult);
         }
 
         /**

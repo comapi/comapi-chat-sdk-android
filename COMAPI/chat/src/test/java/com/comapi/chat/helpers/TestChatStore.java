@@ -94,58 +94,6 @@ public class TestChatStore extends ChatStore {
     }
 
     @Override
-    public List<ChatParticipant> getParticipants(String conversationId) {
-        return participants.get(conversationId);
-    }
-
-    @Override
-    public boolean upsert(String conversationId, ChatParticipant participant) {
-
-        if (!participants.containsKey(conversationId)) {
-            participants.put(conversationId, new ArrayList<>());
-        }
-
-        ChatParticipant toRemove = null;
-        for (ChatParticipant p : participants.get(conversationId)) {
-            if (p.getParticipantId().equals(participant.getParticipantId())) {
-                toRemove = p;
-            }
-        }
-        if (toRemove != null) {
-            participants.get(conversationId).remove(toRemove);
-        }
-        participants.get(conversationId).add(participant);
-        return true;
-    }
-
-    @Override
-    public boolean removeParticipant(String conversationId, String profileId) {
-
-        int toDelete = -1;
-
-        List<ChatParticipant> list = participants.get(conversationId);
-        if (list != null) {
-            for (int i = 0; i < list.size(); i++) {
-                if (list.get(i).getParticipantId().equals(profileId)) {
-                    toDelete = i;
-                }
-            }
-        }
-
-        if (toDelete >= 0) {
-            list.remove(toDelete);
-        }
-
-        return true;
-    }
-
-    @Override
-    public boolean upsert(ChatProfile profile) {
-        this.profile = profile;
-        return true;
-    }
-
-    @Override
     public boolean clearDatabase() {
         conversations.clear();
         messages.clear();

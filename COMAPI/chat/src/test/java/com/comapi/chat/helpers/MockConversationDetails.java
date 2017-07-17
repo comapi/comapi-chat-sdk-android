@@ -37,7 +37,7 @@ public class MockConversationDetails extends Conversation {
     public static final String NAME = "name";
     public static final String ETAG = "eTag";
     public static final Integer PARTICIPANT_COUNT = 2;
-    public static final Long LATEST_SENT_ID = 234L;
+    public static final Long LATEST_SENT_ID = 0L;
     public static final String DESCRIPTION = "description";
     public static final Roles ROLES = new Roles(Role.builder().build(), Role.builder().build());
 

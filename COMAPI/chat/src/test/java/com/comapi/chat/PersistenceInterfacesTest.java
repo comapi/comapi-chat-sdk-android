@@ -84,33 +84,11 @@ public class PersistenceInterfacesTest {
                 String messageId = "id123";
                 String conversationId = "id321";
 
-                assertNull(((TestChatStore)store).getMessages().get(messageId));
+                assertNull(((TestChatStore) store).getMessages().get(messageId));
                 store.upsert(DBObjectsHelper.createMessage(messageId, conversationId));
-                assertEquals(conversationId, ((TestChatStore)store).getMessages().get(messageId).getConversationId());
+                assertEquals(conversationId, ((TestChatStore) store).getMessages().get(messageId).getConversationId());
                 store.deleteAllMessages(conversationId);
-                assertNull(((TestChatStore)store).getMessages().get(messageId));
-            }
-        });
-    }
-
-    @Test
-    public void test_StoreApisForParticipants() throws InterruptedException {
-
-        factory.execute(new StoreTransaction<ChatStore>() {
-            @Override
-            protected void execute(ChatStore store) {
-                String participantId1 = "id";
-                String participantId2 = "id2";
-                String conversationId = "id321";
-
-                assertNull(store.getParticipants(conversationId));
-
-                store.upsert(conversationId, DBObjectsHelper.createParticipants(participantId1));
-                store.upsert(conversationId, DBObjectsHelper.createParticipants(participantId2));
-                assertEquals(2, store.getParticipants(conversationId).size());
-
-                store.deleteAllMessages(conversationId);
-                assertNull(store.getParticipants(conversationId));
+                assertNull(((TestChatStore) store).getMessages().get(messageId));
             }
         });
     }
@@ -121,17 +99,9 @@ public class PersistenceInterfacesTest {
         factory.execute(new StoreTransaction<ChatStore>() {
             @Override
             protected void execute(ChatStore store) {
-                String participantId1 = "id";
-                String participantId2 = "id2";
                 String conversationId = "id321";
-
-                store.upsert(conversationId, DBObjectsHelper.createParticipants(participantId1));
-                store.upsert(conversationId, DBObjectsHelper.createParticipants(participantId2));
-                assertEquals(2, store.getParticipants(conversationId).size());
                 store.upsert(DBObjectsHelper.createConversation(conversationId));
-
                 store.clearDatabase();
-                assertNull(store.getParticipants(conversationId));
                 assertNull(store.getConversation(conversationId));
             }
         });

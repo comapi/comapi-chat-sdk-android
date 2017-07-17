@@ -22,13 +22,13 @@ package com.comapi.chat;
 import android.os.Handler;
 
 import com.comapi.MessagingListener;
-import com.comapi.ProfileListener;
+import com.comapi.chat.listeners.ProfileListener;
 import com.comapi.chat.internal.MissingEventsTracker;
+import com.comapi.chat.listeners.ParticipantsListener;
+import com.comapi.chat.listeners.TypingListener;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
-import com.comapi.chat.model.ChatParticipant;
-import com.comapi.chat.model.ChatProfile;
 import com.comapi.internal.network.model.events.ProfileUpdateEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationCreateEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationDeleteEvent;
@@ -59,6 +59,8 @@ public class EventsHandler {
     private PersistenceController persistenceController;
 
     private TypingListener typingListener;
+    private ParticipantsListener participantsListener;
+    private ProfileListener profileListener;
 
     private Handler mainThreadHandler;
 
@@ -68,15 +70,17 @@ public class EventsHandler {
 
     private ObservableExecutor observableExecutor;
 
-    void init(Handler mainThreadHandler, PersistenceController store, ChatController controller, MissingEventsTracker tracker, ObservableExecutor observableExecutor, TypingListener typingListener) {
+    void init(Handler mainThreadHandler, PersistenceController store, ChatController controller, MissingEventsTracker tracker, ChatConfig config) {
         this.mainThreadHandler = mainThreadHandler;
         this.persistenceController = store;
         this.controller = controller;
-        this.typingListener = typingListener;
+        this.typingListener = config.getTypingListener();
+        this.participantsListener = config.getParticipantsListener();
+        this.profileListener = config.getProfileListener();
         this.profileListenerAdapter = new ProfileListenerAdapter();
         this.messagingListenerAdapter = new MessagingListenerAdapter();
         this.tracker = tracker;
-        this.observableExecutor = observableExecutor;
+        this.observableExecutor = config.getObservableExecutor();
         this.missingEventsListener = controller::queryMissingEvents;
     }
 
@@ -88,7 +92,7 @@ public class EventsHandler {
         return messagingListenerAdapter;
     }
 
-    class ProfileListenerAdapter extends ProfileListener {
+    class ProfileListenerAdapter extends com.comapi.ProfileListener {
 
         /**
          * Update user profile.
@@ -96,7 +100,9 @@ public class EventsHandler {
          * @param event Profile update.
          */
         public void onProfileUpdate(ProfileUpdateEvent event) {
-            observableExecutor.execute(persistenceController.upsertUserProfile(ChatProfile.builder().populate(event).build()));
+            if (profileListener != null) {
+                profileListener.onProfileUpdate(event);
+            }
         }
     }
 
@@ -137,7 +143,10 @@ public class EventsHandler {
          */
         @Override
         public void onParticipantAdded(ParticipantAddedEvent event) {
-            observableExecutor.execute(persistenceController.upsertParticipant(event.getConversationId(), ChatParticipant.builder().populate(event).build(), controller.getNoConversationListener()));
+            observableExecutor.execute(controller.handleParticipantsAdded(event.getConversationId()));
+            if (participantsListener != null) {
+                participantsListener.onParticipantAdded(event);
+            }
         }
 
         /**
@@ -147,7 +156,9 @@ public class EventsHandler {
          */
         @Override
         public void onParticipantUpdated(ParticipantUpdatedEvent event) {
-            observableExecutor.execute(persistenceController.upsertParticipant(event.getConversationId(), ChatParticipant.builder().populate(event).build(), controller.getNoConversationListener()));
+            if (participantsListener != null) {
+                participantsListener.onParticipantUpdated(event);
+            }
         }
 
         /**
@@ -157,7 +168,9 @@ public class EventsHandler {
          */
         @Override
         public void onParticipantRemoved(ParticipantRemovedEvent event) {
-            observableExecutor.execute(persistenceController.removeParticipant(event.getConversationId(), event.getProfileId()));
+            if (participantsListener != null) {
+                participantsListener.onParticipantRemoved(event);
+            }
         }
 
         /**

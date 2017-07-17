@@ -89,27 +89,6 @@ public class PersistenceControllerTest {
     }
 
     @Test
-    public void test_storeProfileDetails() throws IOException {
-
-        String json = ResponseTestHelper.readFromFile(this, "profile_update.json");
-        ProfileUpdateEvent update = new Parser().parse(json, ProfileUpdateEvent.class);
-
-        ChatProfile profile = ChatProfile.builder().populate(update).build();
-
-        Boolean result = persistenceController.upsertUserProfile(profile).toBlocking().first();
-        assertTrue(result);
-
-        assertEquals("profileId", store.getProfile().getProfileId());
-        assertEquals("\"c-cSYaByHVYhzDLvTlV/6DReHISIA\"", store.getProfile().geteTag());
-        assertTrue(store.getProfile().getPayload().size() > 0);
-        assertEquals("John", store.getProfile().getPayload().get("forename"));
-        assertEquals("Doe", store.getProfile().getPayload().get("surname"));
-        assertNotNull(store.getProfile().getPayload().get("address"));
-        assertTrue(store.getProfile().getPayload().size() > 0);
-        assertTrue(store.getProfile().getPublishedOn() > 0);
-    }
-
-    @Test
     public void test_upsertConversations() {
 
         ChatConversation conversationA = ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setLatestRemoteEventId(3L).setUpdatedOn(1L).build();

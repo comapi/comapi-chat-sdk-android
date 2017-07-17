@@ -22,6 +22,9 @@ package com.comapi.chat;
 
 import com.comapi.BaseConfig;
 import com.comapi.ComapiConfig;
+import com.comapi.chat.listeners.ParticipantsListener;
+import com.comapi.chat.listeners.ProfileListener;
+import com.comapi.chat.listeners.TypingListener;
 import com.comapi.chat.model.ChatStore;
 import com.comapi.internal.CallbackAdapter;
 
@@ -36,6 +39,10 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
     private StoreFactory<ChatStore> storeFactory;
 
     private TypingListener typingListener;
+
+    private ProfileListener profileListener;
+
+    private ParticipantsListener participantsListener;
 
     private FoundationFactory foundationFactory;
 
@@ -70,6 +77,46 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
     public ChatConfig typingListener(TypingListener typingListener) {
         this.typingListener = typingListener;
         return this;
+    }
+
+    /**
+     * Sets conversation participants changes listener.
+     *
+     * @param participantsListener Conversation participants changes listener.
+     * @return Builder instance with new value set.
+     */
+    public ChatConfig participantsListener(ParticipantsListener participantsListener) {
+        this.participantsListener = participantsListener;
+        return this;
+    }
+
+    /**
+     * Gets conversation participants changes listener.
+     *
+     * @return Conversation participants changes listener.
+     */
+    public ParticipantsListener getParticipantsListener() {
+        return participantsListener;
+    }
+
+    /**
+     * Sets profile changes listener.
+     *
+     * @param profileListener Profile changes listener.
+     * @return Builder instance with new value set.
+     */
+    public ChatConfig profileListener(ProfileListener profileListener) {
+        this.profileListener = profileListener;
+        return this;
+    }
+
+    /**
+     * Gets profile changes listener.
+     *
+     * @return Profile changes listener.
+     */
+    public ProfileListener getProfileListener() {
+        return profileListener;
     }
 
     /**

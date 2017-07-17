@@ -74,7 +74,7 @@ public class ComapiChatClient {
         controller = new ChatController(client, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, log);
         rxServiceAccessor = new RxChatServiceAccessor(modelAdapter, client, controller);
         serviceAccessor = new ChatServiceAccessor(callbackAdapter, rxServiceAccessor);
-        eventsHandler.init(new Handler(Looper.getMainLooper()), persistenceController, controller, new MissingEventsTracker(), chatConfig.getObservableExecutor(), chatConfig.getTypingListener());
+        eventsHandler.init(new Handler(Looper.getMainLooper()), persistenceController, controller, new MissingEventsTracker(), chatConfig);
         client.addListener(eventsHandler.getMessagingListenerAdapter());
         client.addListener(eventsHandler.getProfileListenerAdapter());
     }

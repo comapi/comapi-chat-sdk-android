@@ -18,12 +18,12 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.comapi.chat;
+package com.comapi.chat.listeners;
 
 /**
  * @author Marcin Swierczek
  * @since 1.0.0
  */
-interface TypingListener {
-    void participantTyping(String conversationId, String participantId, boolean isTyping);
+public abstract class TypingListener {
+    public abstract void participantTyping(String conversationId, String participantId, boolean isTyping);
 }

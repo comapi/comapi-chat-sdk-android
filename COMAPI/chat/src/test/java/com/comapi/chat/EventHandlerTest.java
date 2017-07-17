@@ -35,6 +35,7 @@ import com.comapi.chat.helpers.MockResult;
 import com.comapi.chat.helpers.ResponseTestHelper;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.internal.MissingEventsTracker;
+import com.comapi.chat.listeners.TypingListener;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
@@ -120,6 +121,18 @@ public class EventHandlerTest {
                         authClient.authenticateWithToken(ChatTestConst.TOKEN);
                     }
                 })
+                .observableExecutor(new ObservableExecutor() {
+                    @Override
+                    <T> void execute(Observable<T> obs) {
+                        obs.toBlocking().first();
+                    }
+                })
+                .typingListener(new TypingListener() {
+                    @Override
+                    public void participantTyping(String conversationId, String participantId, boolean isTyping) {
+                        EventHandlerTest.this.isTyping = isTyping;
+                    }
+                })
                 .apiConfiguration(apiConfig)
                 .store(factory);
 
@@ -148,14 +161,7 @@ public class EventHandlerTest {
                 wasChecked = true;
                 return false;
             }
-        }, new ObservableExecutor() {
-            @Override
-            <T> void execute(Observable<T> obs) {
-                obs.toBlocking().first();
-            }
-        }, (conversationId, participantId, isTyping) -> {
-            this.isTyping = isTyping;
-        });
+        }, chatConfig);
     }
 
     @Test
@@ -255,48 +261,6 @@ public class EventHandlerTest {
         assertTrue(status.getUpdatedOn() > 0);
         assertEquals("profileId", status.getProfileId());
         assertEquals(MessageStatus.delivered, status.getMessageStatus());
-    }
-
-    @Test
-    public void test_participantsEvents() throws IOException {
-
-        Parser parser = new Parser();
-        String json = ResponseTestHelper.readFromFile(this, "participant_added.json");
-        ParticipantAddedEvent event = parser.parse(json, ParticipantAddedEvent.class);
-
-        String conversationId = "conversationId";
-        ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
-                .setConversationId(conversationId)
-                .setETag("eTag-0")
-                .setFirstEventId(1L)
-                .setLastEventIdd(2L)
-                .setLatestRemoteEventId(2L)
-                .setUpdatedOn(0L)
-                .build();
-        store.getConversations().put(conversationId, conversationInStore);
-
-        // Added
-
-        eventsHandler.getMessagingListenerAdapter().onParticipantAdded(event);
-        List<ChatParticipant> participants = store.getParticipants(conversationId);
-        assertEquals(1, participants.size());
-        assertEquals("profileId" ,participants.get(0).getParticipantId());
-        assertEquals("owner",participants.get(0).getRole().name());
-
-        // Updated
-
-        json = ResponseTestHelper.readFromFile(this, "participant_updated.json");
-        ParticipantUpdatedEvent eventUpdate = parser.parse(json, ParticipantUpdatedEvent.class);
-        eventsHandler.getMessagingListenerAdapter().onParticipantUpdated(eventUpdate);
-        assertEquals(1, participants.size());
-        assertEquals("profileId" ,participants.get(0).getParticipantId());
-        assertEquals("participant",participants.get(0).getRole().name());
-
-        // Removed
-        json = ResponseTestHelper.readFromFile(this, "participant_removed.json");
-        ParticipantRemovedEvent eventRemove = parser.parse(json, ParticipantRemovedEvent.class);
-        eventsHandler.getMessagingListenerAdapter().onParticipantRemoved(eventRemove);
-        assertTrue(participants.isEmpty());
     }
 
     @Test

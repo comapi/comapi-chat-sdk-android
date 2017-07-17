@@ -20,7 +20,6 @@
 
 package com.comapi.chat;
 
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import com.comapi.RxComapiClient;
@@ -28,7 +27,6 @@ import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
-import com.comapi.chat.model.ChatParticipant;
 import com.comapi.chat.model.ChatStore;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.ComapiException;
@@ -38,7 +36,6 @@ import com.comapi.internal.network.ComapiResult;
 import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
-import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.events.Event;
 import com.comapi.internal.network.model.events.conversation.message.MessageDeliveredEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageReadEvent;
@@ -66,8 +63,6 @@ import java.util.concurrent.TimeUnit;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
-
-import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
 
 /**
  * Main controller for Chat Layer specific functionality.
@@ -98,6 +93,23 @@ class ChatController {
     private NoConversationListener noConversationListener;
 
     private OrphanedEventsToRemoveListener orphanedEventsToRemoveListener;
+
+    public Observable<ComapiResult<Void>> handleParticipantsAdded(final String conversationId, final ComapiResult<Void> result) {
+        return handleParticipantsAdded(conversationId).map(conversation -> result);
+    }
+
+    public Observable<ChatResult> handleParticipantsAdded(final String conversationId) {
+        return persistenceController.getConversation(conversationId).flatMap(new Func1<ChatConversationBase, Observable<ChatResult>>() {
+            @Override
+            public Observable<ChatResult> call(ChatConversationBase conversation) {
+                if (conversation == null) {
+                    return handleNoLocalConversation(conversationId);
+                } else {
+                    return Observable.fromCallable(() -> new ChatResult(true, null));
+                }
+            }
+        });
+    }
 
     interface NoConversationListener {
         void getConversation(String conversationId);
@@ -373,38 +385,6 @@ class ChatController {
     }
 
     /**
-     * Handle add participant service response
-     *
-     * @param conversationId Unique identifier of an conversation.
-     * @param participants   List of participants to process.
-     * @param result         Service call response.
-     * @return Observable emitting result of operations.
-     */
-    Observable<ChatResult> handleParticipantsAdded(String conversationId, List<ChatParticipant> participants, ComapiResult<?> result) {
-        if (result.isSuccessful()) {
-            return persistenceController.upsertParticipant(conversationId, participants).map(success -> adapter.adaptResult(result, success));
-        } else {
-            return Observable.fromCallable(() -> adapter.adaptResult(result));
-        }
-    }
-
-    /**
-     * Handle remove participant service response
-     *
-     * @param conversationId Unique identifier of an conversation.
-     * @param ids            List of ids of participants to remove.
-     * @param result         Service call response.
-     * @return Observable emitting result of operations.
-     */
-    Observable<ChatResult> handleParticipantsRemoved(@NonNull final String conversationId, @NonNull final List<String> ids, ComapiResult<Void> result) {
-        if (result.isSuccessful()) {
-            return persistenceController.removeParticipants(conversationId, ids).map(success -> adapter.adaptResult(result, success));
-        } else {
-            return Observable.fromCallable(() -> adapter.adaptResult(result));
-        }
-    }
-
-    /**
      * Updates all conversation states.
      *
      * @return Result of synchronisation with services.
@@ -416,7 +396,6 @@ class ChatController {
                 .flatMap(result -> persistenceController.loadAllConversations()
                         .map(chatConversationBases -> compare(result.getResult(), chatConversationBases, result.getETag())))
                 .flatMap(this::updateLocalConversationList)
-                .flatMap(result -> lookForDiffInParticipantList(client, result))
                 .flatMap(result -> lookForMissingEvents(client, result))
                 .map(result -> result.isSuccessful));
     }
@@ -425,8 +404,8 @@ class ChatController {
         return new ConversationComparison(adapter.makeMapFromDownloadedConversations(remote), remoteETag, adapter.makeMapFromSavedConversations(local));
     }
 
-    ConversationComparison compare(ConversationDetails remote, ChatConversationBase local, String remoteETag) {
-        return new ConversationComparison(remote, remoteETag, local);
+    ConversationComparison compare(Long remoteLasetEventId, ChatConversationBase conversation) {
+        return new ConversationComparison(remoteLasetEventId, conversation);
     }
 
     /**
@@ -437,10 +416,15 @@ class ChatController {
     Observable<Boolean> synchroniseConversation(String conversationId) {
 
         return checkState().flatMap(client -> client.service().messaging()
-                .getConversation(conversationId)
-                .flatMap(result -> persistenceController.loadConversation(conversationId).map(loaded -> compare(result.getResult(), loaded, result.getETag())))
+                .queryMessages(conversationId, null, 1)
+                .map(result -> {
+                    if (result.isSuccessful() && result.getResult() != null) {
+                        return (long) result.getResult().getLatestEventId();
+                    }
+                    return -1L;
+                })
+                .flatMap(result -> persistenceController.loadConversation(conversationId).map(loaded -> compare(result, loaded)))
                 .flatMap(this::updateLocalConversationList)
-                .flatMap(result -> lookForDiffInParticipantList(client, result))
                 .flatMap(result -> lookForMissingEvents(client, result))
                 .map(result -> result.isSuccessful));
     }
@@ -465,40 +449,6 @@ class ChatController {
                     }
                     return conversationComparison;
                 });
-    }
-
-    /**
-     * Checks services for differences in local/remote participant lists for stored conversations.
-     *
-     * @param client                 Foundation client.
-     * @param conversationComparison Describes differences in local and remote participant list.
-     * @return Observable returning unchanged argument to further processing.
-     */
-    private Observable<ConversationComparison> lookForDiffInParticipantList(final RxComapiClient client, ConversationComparison conversationComparison) {
-
-        if (!conversationComparison.isSuccessful || conversationComparison.conversationsToUpdate.isEmpty()) {
-            return Observable.fromCallable(() -> conversationComparison);
-        }
-
-        return Observable.from(limitNumberOfConversations(conversationComparison.conversationsToUpdate))
-                .onBackpressureBuffer()
-                .flatMap(conversation -> Observable.zip(
-                        client.service().messaging().getParticipants(conversation.getConversationId()),
-                        persistenceController.getParticipants(conversation.getConversationId()),
-                        (listComapiResult, chatParticipants) -> new ParticipantsComparison(
-                                conversation.getConversationId(),
-                                adapter.makeMapFromDownloadedParticipants(listComapiResult.getResult()),
-                                adapter.makeMapFromSavedParticipants(chatParticipants))
-                ))
-                .flatMap(new Func1<ParticipantsComparison, Observable<Boolean>>() {
-                    @Override
-                    public Observable<Boolean> call(ParticipantsComparison participantsComparison) {
-                        return Observable.zip(persistenceController.removeParticipants(participantsComparison.conversationId, participantsComparison.getParticipantsToDeleteIds()),
-                                persistenceController.upsertParticipants(participantsComparison.conversationId, participantsComparison.participantsToAdd),
-                                (success1, success2) -> success1 && success2);
-                    }
-                })
-                .map(participantsComparison -> conversationComparison);
     }
 
     /**
@@ -670,10 +620,6 @@ class ChatController {
                 .flatMap((result) -> processEventsQueryResponse(result, new ArrayList<>())));
     }
 
-    NoConversationListener getNoConversationListener() {
-        return noConversationListener;
-    }
-
     class ConversationComparison {
 
         boolean isSuccessful = false;
@@ -711,68 +657,21 @@ class ChatController {
             }
         }
 
-        ConversationComparison(ConversationDetails result, String eTag, ChatConversationBase loaded) {
+        public ConversationComparison(Long remoteLasetEventId, ChatConversationBase conversation) {
 
             conversationsToDelete = new ArrayList<>();
             conversationsToUpdate = new ArrayList<>();
             conversationsToAdd = new ArrayList<>();
 
-            if (result != null) {
-                if (loaded == null) {
-                    conversationsToAdd.add(ChatConversation.builder().populate(result, eTag).build());
-                } else {
-                    conversationsToUpdate.add(ChatConversation.builder().populate(loaded).populate(result, eTag).build());
+            if (conversation != null && remoteLasetEventId != null) {
+                if (conversation.getLatestRemoteEventId() != null && remoteLasetEventId > conversation.getLatestRemoteEventId()) {
+                    conversationsToUpdate.add(ChatConversation.builder().populate(conversation).setLatestRemoteEventId(remoteLasetEventId).build());
                 }
-            } else {
-                conversationsToDelete.add(loaded);
             }
         }
 
         void setSuccessful(boolean isSuccessful) {
             this.isSuccessful = isSuccessful;
-        }
-    }
-
-    class ParticipantsComparison {
-
-        List<ChatParticipant> participantsToDelete;
-        List<ChatParticipant> participantsToAdd;
-        String conversationId;
-
-        ParticipantsComparison(String conversationId, Map<String, Participant> downloaded, Map<String, ChatParticipant> saved) {
-
-            participantsToDelete = new ArrayList<>();
-            participantsToAdd = new ArrayList<>();
-            this.conversationId = conversationId;
-
-            Map<String, Participant> downloadedProcessed = new HashMap<>();
-
-            for (String downloadedId : downloaded.keySet()) {
-                if (!saved.containsKey(downloadedId)) {
-                    participantsToAdd.add(adapter.adapt(downloaded.get(downloadedId)));
-                } else {
-                    downloadedProcessed.put(downloadedId, downloaded.get(downloadedId));
-                }
-            }
-
-            for (String savedId : saved.keySet()) {
-                if (!downloadedProcessed.containsKey(savedId)) {
-                    participantsToDelete.add(saved.get(savedId));
-                }
-            }
-        }
-
-        List<String> getParticipantsToDeleteIds() {
-
-            if (!participantsToDelete.isEmpty()) {
-                List<String> ids = new ArrayList<>();
-                for (int i = 0; i < participantsToDelete.size(); i++) {
-                    ids.add(participantsToDelete.get(i).getParticipantId());
-                }
-                return ids;
-            } else {
-                return null;
-            }
         }
     }
 }

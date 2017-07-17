@@ -112,38 +112,6 @@ public abstract class ChatStore {
     public abstract ChatMessageStatus getStatus(String conversationId, String messageId);
 
     /**
-     * Get participants of the conversation.
-     *
-     * @param conversationId Unique global conversation identifier.
-     * @return Participants of the conversation.
-     */
-    public abstract List<ChatParticipant> getParticipants(String conversationId);
-
-    /**
-     * Insert or update participants of an conversation in persistence store.
-     *
-     * @param conversationId Unique global conversation identifier.
-     * @return True if operation was successful.
-     */
-    public abstract boolean upsert(String conversationId, ChatParticipant participant);
-
-    /**
-     * Remove participant from conversation in persistence store.
-     *
-     * @param conversationId Unique global conversation identifier.
-     * @return True if operation was successful.
-     */
-    public abstract boolean removeParticipant(String conversationId, String profileId);
-
-    /**
-     * Insert or update user profile details.
-     *
-     * @param profile user profile details
-     * @return True if operation was successful.
-     */
-    public abstract boolean upsert(ChatProfile profile);
-
-    /**
      * Delete all content of persistence store that is related to current user.
      *
      * @return True if operation was successful.

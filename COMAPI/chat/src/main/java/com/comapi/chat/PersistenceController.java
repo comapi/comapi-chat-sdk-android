@@ -22,15 +22,12 @@ package com.comapi.chat;
 
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.comapi.chat.database.Database;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
-import com.comapi.chat.model.ChatParticipant;
-import com.comapi.chat.model.ChatProfile;
 import com.comapi.chat.model.ChatStore;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.helpers.DateHelper;
@@ -222,16 +219,6 @@ class PersistenceController {
         }
     }
 
-    public Observable<Boolean> upsertUserProfile(ChatProfile profile) {
-
-        return asObservable(new Executor<Boolean>() {
-            @Override
-            void execute(ChatStore store, Emitter<Boolean> emitter) {
-                emitter.onNext(store.upsert(profile));
-            }
-        });
-    }
-
     public Observable<Boolean> updateStoreForNewMessage(final ChatMessage message, final ChatController.NoConversationListener noConversationListener) {
 
         return asObservable(new Executor<Boolean>() {
@@ -338,82 +325,6 @@ class PersistenceController {
                             isSuccess = isSuccess && store.upsert(new ChatMessageStatus(conversationId, messageId, profileId, status, DateHelper.getUTCMilliseconds(statusUpdate.getTimestamp()), null));
                         }
                     }
-                }
-                emitter.onNext(isSuccess);
-            }
-        });
-    }
-
-    public Observable<List<ChatParticipant>> getParticipants(String conversationId) {
-
-        return asObservable(new Executor<List<ChatParticipant>>() {
-            @Override
-            void execute(ChatStore store, Emitter<List<ChatParticipant>> emitter) {
-                emitter.onNext(store.getParticipants(conversationId));
-            }
-        });
-    }
-
-    public Observable<Boolean> upsertParticipant(String conversationId, List<ChatParticipant> participants) {
-
-        return asObservable(new Executor<Boolean>() {
-            @Override
-            void execute(ChatStore store, Emitter<Boolean> emitter) {
-                boolean isSuccess = true;
-                for (ChatParticipant participant : participants) {
-                    isSuccess = isSuccess && store.upsert(conversationId, participant);
-                }
-                emitter.onNext(isSuccess);
-            }
-        });
-    }
-
-    public Observable<Boolean> upsertParticipant(String conversationId, ChatParticipant participant, ChatController.NoConversationListener noConversationListener) {
-
-        return asObservable(new Executor<Boolean>() {
-            @Override
-            void execute(ChatStore store, Emitter<Boolean> emitter) {
-                if (store.getConversation(conversationId) == null) {
-                    noConversationListener.getConversation(conversationId);
-                }
-                emitter.onNext(store.upsert(conversationId, participant));
-            }
-        });
-    }
-
-    public Observable<Boolean> removeParticipant(String conversationId, String profileId) {
-
-        return asObservable(new Executor<Boolean>() {
-            @Override
-            void execute(ChatStore store, Emitter<Boolean> emitter) {
-                emitter.onNext(store.removeParticipant(conversationId, profileId));
-            }
-        });
-    }
-
-    public Observable<Boolean> removeParticipants(String conversationId, List<String> profileIds) {
-
-        return asObservable(new Executor<Boolean>() {
-            @Override
-            void execute(ChatStore store, Emitter<Boolean> emitter) {
-                boolean isSuccess = true;
-                if (profileIds != null) {
-                    for (String id : profileIds) {
-                        isSuccess = isSuccess && store.removeParticipant(conversationId, id);
-                    }
-                }
-                emitter.onNext(isSuccess);
-            }
-        });
-    }
-
-    public Observable<Boolean> upsertParticipants(String conversationId, List<ChatParticipant> participantsToAdd) {
-        return asObservable(new Executor<Boolean>() {
-            @Override
-            void execute(ChatStore store, Emitter<Boolean> emitter) {
-                boolean isSuccess = true;
-                for (ChatParticipant participant : participantsToAdd) {
-                    isSuccess = isSuccess && store.upsert(conversationId, participant);
                 }
                 emitter.onNext(isSuccess);
             }
