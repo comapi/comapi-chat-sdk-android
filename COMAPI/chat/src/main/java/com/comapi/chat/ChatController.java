@@ -111,6 +111,10 @@ class ChatController {
         });
     }
 
+    public Observable<ChatResult> handleMessageError(String conversationId, String tempId, Throwable throwable) {
+        return persistenceController.updateStoreForSentError(conversationId, tempId, getProfileId()).map(success -> new ChatResult(false, new ChatResult.Error(1501, throwable.getLocalizedMessage())));
+    }
+
     interface NoConversationListener {
         void getConversation(String conversationId);
     }
@@ -369,7 +373,7 @@ class ChatController {
             String profileId = getProfileId();
             ChatMessage chatMessage = ChatMessage.builder()
                     .setMessageId(result.getResult().getId())
-                    .setSentEventId(-1L) // temporary value, will be replaced by persistence controller
+                    .setSentEventId(result.getResult().getEventId())
                     .setConversationId(conversationId)
                     .setSentBy(profileId)
                     .setFromWhom(new Sender(profileId, profileId))
@@ -394,14 +398,14 @@ class ChatController {
         return checkState().flatMap(client -> client.service().messaging()
                 .getConversations(false)
                 .flatMap(result -> persistenceController.loadAllConversations()
-                        .map(chatConversationBases -> compare(result.getResult(), chatConversationBases, result.getETag())))
+                        .map(chatConversationBases -> compare(result.getResult(), chatConversationBases)))
                 .flatMap(this::updateLocalConversationList)
                 .flatMap(result -> lookForMissingEvents(client, result))
                 .map(result -> result.isSuccessful));
     }
 
-    ConversationComparison compare(List<Conversation> remote, List<ChatConversationBase> local, String remoteETag) {
-        return new ConversationComparison(adapter.makeMapFromDownloadedConversations(remote), remoteETag, adapter.makeMapFromSavedConversations(local));
+    ConversationComparison compare(List<Conversation> remote, List<ChatConversationBase> local) {
+        return new ConversationComparison(adapter.makeMapFromDownloadedConversations(remote), adapter.makeMapFromSavedConversations(local));
     }
 
     ConversationComparison compare(Long remoteLasetEventId, ChatConversationBase conversation) {
@@ -628,7 +632,7 @@ class ChatController {
         List<ChatConversationBase> conversationsToDelete;
         List<ChatConversation> conversationsToUpdate;
 
-        ConversationComparison(Map<String, Conversation> downloadedList, String eTag, Map<String, ChatConversationBase> savedList) {
+        ConversationComparison(Map<String, Conversation> downloadedList, Map<String, ChatConversationBase> savedList) {
 
             conversationsToDelete = new ArrayList<>();
             conversationsToUpdate = new ArrayList<>();
@@ -640,11 +644,13 @@ class ChatController {
                 if (savedListProcessed.containsKey(key)) {
 
                     ChatConversationBase saved = savedListProcessed.get(key);
-                    conversationsToUpdate.add(ChatConversation.builder()
-                            .populate(downloadedList.get(key))
-                            .setFirstLocalEventId(saved.getFirstLocalEventId())
-                            .setLastLocalEventId(saved.getLastLocalEventId())
-                            .build());
+                    if (saved.getLastLocalEventId() != -1L) {
+                        conversationsToUpdate.add(ChatConversation.builder()
+                                .populate(downloadedList.get(key))
+                                .setFirstLocalEventId(saved.getFirstLocalEventId())
+                                .setLastLocalEventId(saved.getLastLocalEventId())
+                                .build());
+                    }
                 } else {
                     conversationsToAdd.add(ChatConversation.builder().populate(downloadedList.get(key)).build());
                 }
@@ -657,15 +663,15 @@ class ChatController {
             }
         }
 
-        public ConversationComparison(Long remoteLasetEventId, ChatConversationBase conversation) {
+        public ConversationComparison(Long remoteLastEventId, ChatConversationBase conversation) {
 
             conversationsToDelete = new ArrayList<>();
             conversationsToUpdate = new ArrayList<>();
             conversationsToAdd = new ArrayList<>();
 
-            if (conversation != null && remoteLasetEventId != null) {
-                if (conversation.getLatestRemoteEventId() != null && remoteLasetEventId > conversation.getLatestRemoteEventId()) {
-                    conversationsToUpdate.add(ChatConversation.builder().populate(conversation).setLatestRemoteEventId(remoteLasetEventId).build());
+            if (conversation != null && remoteLastEventId != null) {
+                if (conversation.getLatestRemoteEventId() != null && conversation.getLatestRemoteEventId() != -1L && remoteLastEventId > conversation.getLatestRemoteEventId()) {
+                    conversationsToUpdate.add(ChatConversation.builder().populate(conversation).setLatestRemoteEventId(remoteLastEventId).build());
                 }
             }
         }

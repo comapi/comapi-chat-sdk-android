@@ -117,4 +117,6 @@ public abstract class ChatStore {
      * @return True if operation was successful.
      */
     public abstract boolean clearDatabase();
+
+    public abstract ChatMessage getMessage(String conversationId, String messageId);
 }

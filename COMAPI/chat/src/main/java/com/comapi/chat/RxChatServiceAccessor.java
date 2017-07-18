@@ -26,6 +26,7 @@ import android.support.annotation.Nullable;
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
+import com.comapi.chat.model.ChatParticipant;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.helpers.APIHelper;
 import com.comapi.internal.helpers.DateHelper;
@@ -138,8 +139,8 @@ class RxChatServiceAccessor {
          * @param conversationId ID of a conversation to add a participant to.
          * @return Observable to get a list of conversation participants.
          */
-        public Observable<ChatResult> getParticipants(@NonNull final String conversationId) {
-            return foundation.service().messaging().getParticipants(conversationId).map(modelAdapter::adaptResult);
+        public Observable<List<ChatParticipant>> getParticipants(@NonNull final String conversationId) {
+            return foundation.service().messaging().getParticipants(conversationId).map(result -> modelAdapter.adapt(result.getResult()));
         }
 
         /**
@@ -188,7 +189,8 @@ class RxChatServiceAccessor {
             message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
             return controller.handleMessageSending(conversationId, message, tempId)
                     .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, body))
-                    .flatMap((result) -> controller.handleMessageSent(conversationId, message, result));
+                    .flatMap((result) -> controller.handleMessageSent(conversationId, message, result))
+                    .onErrorResumeNext(controller.handleMessageError(conversationId, tempId, null));
         }
 
         /**

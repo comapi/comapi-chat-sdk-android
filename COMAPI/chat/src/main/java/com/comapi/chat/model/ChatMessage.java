@@ -23,6 +23,7 @@ package com.comapi.chat.model;
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.model.events.conversation.message.MessageSentEvent;
 import com.comapi.internal.network.model.messaging.MessageReceived;
+import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.Part;
 import com.comapi.internal.network.model.messaging.Sender;
 
@@ -199,7 +200,7 @@ public class ChatMessage {
 
             for (String profileId : update.getStatusUpdate().keySet()) {
                 MessageReceived.Status status = update.getStatusUpdate().get(profileId);
-                message.statusUpdates.add(new ChatMessageStatus(update.getConversationId(), message.messageId, profileId, status.getStatus(), DateHelper.getUTCMilliseconds(status.getTimestamp()), null));
+                message.statusUpdates.add(new ChatMessageStatus(update.getConversationId(), message.messageId, profileId, localStatus(status.getStatus()), DateHelper.getUTCMilliseconds(status.getTimestamp()), null));
             }
 
             return this;
@@ -257,6 +258,17 @@ public class ChatMessage {
         public Builder setSentEventId(Long sentEventId) {
             message.sentEventId = sentEventId;
             return this;
+        }
+    }
+
+    private static LocalMessageStatus localStatus(MessageStatus remoteStatus) {
+        switch (remoteStatus) {
+            case delivered:
+                return LocalMessageStatus.delivered;
+            case read:
+                return LocalMessageStatus.read;
+            default:
+                return LocalMessageStatus.error;
         }
     }
 }

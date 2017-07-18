@@ -28,7 +28,6 @@ import com.comapi.internal.network.ComapiResult;
 import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.messaging.MessageReceived;
-import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.OrphanedEvent;
 
 import java.util.ArrayList;
@@ -50,7 +49,7 @@ public class ModelAdapter {
         for (DbOrphanedEvent event : dbOrphanedEvents) {
             OrphanedEvent orphanedEvent = parser.parse(event.event(), OrphanedEvent.class);
             statuses.add(new ChatMessageStatus(orphanedEvent.getConversationId(), orphanedEvent.getMessageId(), orphanedEvent.getProfileId(),
-                    orphanedEvent.isEventTypeRead() ? MessageStatus.read : MessageStatus.delivered,
+                    orphanedEvent.isEventTypeRead() ? LocalMessageStatus.read : LocalMessageStatus.delivered,
                     DateHelper.getUTCMilliseconds(orphanedEvent.getTimestamp()), null));
         }
 
@@ -91,24 +90,6 @@ public class ModelAdapter {
             }
         }
         return result;
-    }
-
-    public Map<String, Participant> makeMapFromDownloadedParticipants(List<Participant> result) {
-        Map<String, Participant> map = new HashMap<>();
-        for (Participant participant : result) {
-            map.put(participant.getId(), participant);
-        }
-
-        return map;
-    }
-
-    public Map<String, ChatParticipant> makeMapFromSavedParticipants(List<ChatParticipant> result) {
-        Map<String, ChatParticipant> map = new HashMap<>();
-        for (ChatParticipant participant : result) {
-            map.put(participant.getParticipantId(), participant);
-        }
-
-        return map;
     }
 
     public Map<String, ChatConversationBase> makeMapFromSavedConversations(List<ChatConversationBase> list) {

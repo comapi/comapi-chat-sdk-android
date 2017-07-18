@@ -127,7 +127,7 @@ public class ChatServiceAccessor {
             callbackAdapter.adapt(rxMessaging.updateConversation(conversationId, eTag, request), callback);
         }
 
-        public void getParticipants(@NonNull final String conversationId, @Nullable Callback<ChatResult> callback) {
+        public void getParticipants(@NonNull final String conversationId, @Nullable Callback<List<ChatParticipant>> callback) {
             callbackAdapter.adapt(rxMessaging.getParticipants(conversationId), callback);
         }
 

@@ -26,14 +26,21 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.comapi.ClientHelper;
+import com.comapi.MessagingListener;
+import com.comapi.chat.listeners.ProfileListener;
 import com.comapi.RxComapiClient;
 import com.comapi.Session;
 import com.comapi.chat.database.Database;
 import com.comapi.chat.internal.MissingEventsTracker;
+import com.comapi.chat.listeners.ParticipantsListener;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.lifecycle.LifecycleListener;
 import com.comapi.internal.log.Logger;
+import com.comapi.internal.network.model.events.ProfileUpdateEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantAddedEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantRemovedEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedEvent;
 
 /**
  * Client implementation for chat layer SDK. Handles initialisation and stores all internal objects.
@@ -54,6 +61,9 @@ public class ComapiChatClient {
     private final ChatServiceAccessor serviceAccessor;
 
     private final RxChatServiceAccessor rxServiceAccessor;
+
+    private MessagingListener participantsListener;
+    private com.comapi.ProfileListener profileListener;
 
     /**
      * Recommended constructor.
@@ -122,5 +132,55 @@ public class ComapiChatClient {
 
     void clean(Application application) {
         client.clean(application.getApplicationContext());
+    }
+
+    public void setListener(final ParticipantsListener participantsListener) {
+
+        if (participantsListener != null) {
+
+            this.participantsListener = new MessagingListener() {
+
+                @Override
+                public void onParticipantAdded(ParticipantAddedEvent event) {
+                    participantsListener.onParticipantAdded(event);
+                }
+
+                @Override
+                public void onParticipantUpdated(ParticipantUpdatedEvent event) {
+                    participantsListener.onParticipantUpdated(event);
+                }
+
+                @Override
+                public void onParticipantRemoved(ParticipantRemovedEvent event) {
+                    participantsListener.onParticipantRemoved(event);
+                }
+            };
+        }
+
+        client.addListener(this.participantsListener);
+    }
+
+    public void removeParticipantsListener() {
+        client.removeListener(this.participantsListener);
+        this.participantsListener = null;
+    }
+
+    public void setListener(final ProfileListener profileListener) {
+
+        if (profileListener != null) {
+            this.profileListener = new com.comapi.ProfileListener() {
+                @Override
+                public void onProfileUpdate(ProfileUpdateEvent event) {
+                    profileListener.onProfileUpdate(event);
+                }
+            };
+        }
+
+        client.addListener(this.participantsListener);
+    }
+
+    public void removeProfileListener() {
+        client.removeListener(this.profileListener);
+        this.profileListener = null;
     }
 }

@@ -29,6 +29,7 @@ import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
 import com.comapi.chat.model.ChatStore;
+import com.comapi.chat.model.LocalMessageStatus;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.log.Logger;
@@ -132,21 +133,27 @@ class PersistenceController {
                                 if (msg.getSentOn() > updatedOn) {
                                     updatedOn = msg.getSentOn();
                                 }
+
+                                if (msg.getStatusUpdates() != null && !msg.getStatusUpdates().isEmpty()) {
+                                    for (ChatMessageStatus s : msg.getStatusUpdates()) {
+                                        upsertMessageStatus(s);
+                                    }
+                                }
                             }
                         }
 
-                        ChatConversationBase conv = store.getConversation(conversationId);
-                        if (conv != null) {
-                            ChatConversationBase updateConv = ChatConversationBase.baseBuilder()
-                                    .setConversationId(conv.getConversationId())
-                                    .setETag(conv.getETag())
-                                    .setFirstEventId(conv.getFirstLocalEventId() < 0 ? response.getEarliestEventId() : Math.min(conv.getFirstLocalEventId(), response.getEarliestEventId()))
-                                    .setLastEventIdd(conv.getLastLocalEventId() < 0 ? response.getLatestEventId() : Math.max(conv.getLastLocalEventId(), response.getLatestEventId()))
-                                    .setLatestRemoteEventId(conv.getLatestRemoteEventId() < 0 ? response.getLatestEventId() : Math.max(conv.getLatestRemoteEventId(), response.getLatestEventId()))
-                                    .setUpdatedOn(Math.max(conv.getUpdatedOn(), updatedOn))
+                        ChatConversationBase savedConversation = store.getConversation(conversationId);
+                        if (savedConversation != null) {
+                            ChatConversationBase updateConversation = ChatConversationBase.baseBuilder()
+                                    .setConversationId(savedConversation.getConversationId())
+                                    .setETag(savedConversation.getETag())
+                                    .setFirstEventId(savedConversation.getFirstLocalEventId() < 0 ? response.getEarliestEventId() : Math.min(savedConversation.getFirstLocalEventId(), response.getEarliestEventId()))
+                                    .setLastEventIdd(savedConversation.getLastLocalEventId() < 0 ? response.getLatestEventId() : Math.max(savedConversation.getLastLocalEventId(), response.getLatestEventId()))
+                                    .setLatestRemoteEventId(savedConversation.getLatestRemoteEventId() < 0 ? response.getLatestEventId() : Math.max(savedConversation.getLatestRemoteEventId(), response.getLatestEventId()))
+                                    .setUpdatedOn(Math.max(savedConversation.getUpdatedOn(), updatedOn))
                                     .build();
 
-                            store.update(updateConv);
+                            store.update(updateConversation);
                         }
 
                         emitter.onNext(result);
@@ -271,6 +278,19 @@ class PersistenceController {
         });
     }
 
+    public Observable<Boolean> updateStoreForSentError(String conversationId, String tempId, String profileId) {
+
+        return asObservable(new Executor<Boolean>() {
+            @Override
+            protected void execute(ChatStore store, Emitter<Boolean> emitter) {
+
+                //TODO
+
+                emitter.onNext(true);
+            }
+        });
+    }
+
     public Observable<Boolean> upsertMessageStatus(ChatMessageStatus status) {
 
         return asObservable(new Executor<Boolean>() {
@@ -288,13 +308,13 @@ class PersistenceController {
                 if (conversation != null) {
                     final Long eventId = status.getConversationEventId();
                     if (eventId != null) {
-                        if(conversation.getLatestRemoteEventId() < eventId) {
+                        if (conversation.getLatestRemoteEventId() < eventId) {
                             conversation.setLatestRemoteEventId(eventId);
                         }
                         if (conversation.getLastLocalEventId() < eventId) {
                             conversation.setLatestLocalEventId(eventId);
                         }
-                        if(conversation.getFirstLocalEventId() == -1) {
+                        if (conversation.getFirstLocalEventId() == -1) {
                             conversation.setFirstLocalEventId(eventId);
                         }
                     }
@@ -314,12 +334,12 @@ class PersistenceController {
                 boolean isSuccess = true;
                 for (MessageStatusUpdate statusUpdate : msgStatusList) {
                     for (String messageId : statusUpdate.getMessageIds()) {
-                        MessageStatus status = null;
+                        LocalMessageStatus status = LocalMessageStatus.sending;
                         ChatMessageStatus saved = store.getStatus(conversationId, messageId);
                         if (MessageStatus.delivered.name().equals(statusUpdate.getStatus())) {
-                            status = MessageStatus.delivered;
+                            status = LocalMessageStatus.delivered;
                         } else if (MessageStatus.read.name().equals(statusUpdate.getStatus())) {
-                            status = MessageStatus.read;
+                            status = LocalMessageStatus.read;
                         }
                         if ((saved != null && saved.getMessageStatus().compareTo(status) < 0) || saved == null) {
                             isSuccess = isSuccess && store.upsert(new ChatMessageStatus(conversationId, messageId, profileId, status, DateHelper.getUTCMilliseconds(statusUpdate.getTimestamp()), null));
@@ -432,7 +452,6 @@ class PersistenceController {
         });
 
     }
-
 
     public Observable<Boolean> deleteConversation(String conversationId) {
 

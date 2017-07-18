@@ -103,6 +103,11 @@ public class TestChatStore extends ChatStore {
     }
 
     @Override
+    public ChatMessage getMessage(String conversationId, String messageId) {
+        return null;
+    }
+
+    @Override
     public boolean deleteAllMessages(String conversationId) {
 
         List<String> idsToRemove = new ArrayList<>();

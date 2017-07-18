@@ -460,7 +460,7 @@ public class ControllerTest {
         result.add(conversationB);
         mockedComapiClient.addMockedResult(new MockResult<>(result, true, ChatTestConst.ETAG, 200));
 
-        ChatController.ConversationComparison comparison = chatController.compare(result, store.getAllConversations(), ChatTestConst.ETAG);
+        ChatController.ConversationComparison comparison = chatController.compare(result, store.getAllConversations());
 
         assertEquals(1, comparison.conversationsToAdd.size());
         assertEquals(ChatTestConst.CONVERSATION_ID4, comparison.conversationsToAdd.get(0).getConversationId());
@@ -470,13 +470,13 @@ public class ControllerTest {
         assertEquals(1, comparison.conversationsToUpdate.size());
         assertEquals(ChatTestConst.CONVERSATION_ID1, comparison.conversationsToUpdate.get(0).getConversationId());
 
-        comparison = chatController.compare(null, store.getAllConversations(), ChatTestConst.ETAG);
+        comparison = chatController.compare(null, store.getAllConversations());
         assertEquals(3, comparison.conversationsToDelete.size());
         assertEquals(0, comparison.conversationsToUpdate.size());
         assertEquals(0, comparison.conversationsToAdd.size());
 
 
-        comparison = chatController.compare(result, null, ChatTestConst.ETAG);
+        comparison = chatController.compare(result, null);
         assertEquals(0, comparison.conversationsToDelete.size());
         assertEquals(0, comparison.conversationsToUpdate.size());
         assertEquals(2, comparison.conversationsToAdd.size());
@@ -498,7 +498,7 @@ public class ControllerTest {
         result.add(conversationB);
         mockedComapiClient.addMockedResult(new MockResult<>(result, true, newETag, 200));
 
-        ChatController.ConversationComparison comparison = chatController.compare(result, store.getAllConversations(), newETag);
+        ChatController.ConversationComparison comparison = chatController.compare(result, store.getAllConversations());
 
 
         Method method = chatController.getClass().getDeclaredMethod("updateLocalConversationList", ChatController.ConversationComparison.class);
@@ -585,7 +585,7 @@ public class ControllerTest {
         ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
         mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
 
-        ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), null, new HashMap<>());
+        ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), new HashMap<>());
         comparison.setSuccessful(true);
         comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(3L).build());
 
@@ -907,7 +907,7 @@ public class ControllerTest {
 
         mockedComapiClient.addMockedResult(new MockResult<>(null, false, null, 500));
 
-        ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), null, new HashMap<>());
+        ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), new HashMap<>());
         comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
 
         Method method = chatController.getClass().getDeclaredMethod("lookForMissingEvents", RxComapiClient.class, ChatController.ConversationComparison.class);
@@ -946,7 +946,7 @@ public class ControllerTest {
             index = newIndex;
         }
 
-        ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), null, new HashMap<>());
+        ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), new HashMap<>());
         comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
 
         Method method = chatController.getClass().getDeclaredMethod("queryEventsRecursively", RxComapiClient.class, String.class, Long.TYPE, Integer.TYPE, List.class);
@@ -981,7 +981,7 @@ public class ControllerTest {
         ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
         mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
 
-        ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), null, new HashMap<>());
+        ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), new HashMap<>());
         comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
 
         chatController.queryMissingEvents(ChatTestConst.CONVERSATION_ID1, 0, 1002);

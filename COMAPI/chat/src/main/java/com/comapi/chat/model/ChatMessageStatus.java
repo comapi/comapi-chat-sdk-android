@@ -44,14 +44,14 @@ public class ChatMessageStatus {
     /**
      * Message status as defined in {@link MessageStatus}
      */
-    private MessageStatus messageStatus;
+    private LocalMessageStatus messageStatus;
 
     /**
      * Time when the status was set for the message.
      */
     private Long updatedOn;
 
-    public ChatMessageStatus(String conversationId, String messageId, String profileId, MessageStatus messageStatus, Long updatedOn, Long conversationEventId) {
+    public ChatMessageStatus(String conversationId, String messageId, String profileId, LocalMessageStatus messageStatus, Long updatedOn, Long conversationEventId) {
         this.messageId = messageId;
         this.profileId = profileId;
         this.messageStatus = messageStatus;
@@ -65,7 +65,7 @@ public class ChatMessageStatus {
     public ChatMessageStatus(MessageDeliveredEvent event) {
         this.messageId = event.getMessageId();
         this.profileId = event.getProfileId();
-        this.messageStatus = MessageStatus.delivered;
+        this.messageStatus = LocalMessageStatus.delivered;
         this.updatedOn = DateHelper.getUTCMilliseconds(event.getTimestamp());
         this.conversationId = event.getConversationId();
         this.conversationEventId = event.getConversationEventId();
@@ -74,7 +74,7 @@ public class ChatMessageStatus {
     public ChatMessageStatus(MessageReadEvent event) {
         this.messageId = event.getMessageId();
         this.profileId = event.getProfileId();
-        this.messageStatus = MessageStatus.read;
+        this.messageStatus = LocalMessageStatus.read;
         this.updatedOn = DateHelper.getUTCMilliseconds(event.getTimestamp());
         this.conversationId = event.getConversationId();
         this.conversationEventId = event.getConversationEventId();
@@ -93,7 +93,7 @@ public class ChatMessageStatus {
      *
      * @return Message status.
      */
-    public MessageStatus getMessageStatus() {
+    public LocalMessageStatus getMessageStatus() {
         return messageStatus;
     }
 
