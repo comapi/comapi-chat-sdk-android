@@ -124,20 +124,17 @@ class PersistenceController {
                     @Override
                     protected void execute(ChatStore store) {
 
+                        store.beginTransaction();
+
                         List<ChatMessage> messages = modelAdapter.adaptMessages(response.getMessages());
+
                         long updatedOn = 0;
 
-                        if (!messages.isEmpty()) {
+                        if (messages != null && !messages.isEmpty()) {
                             for (ChatMessage msg : messages) {
                                 store.upsert(msg);
                                 if (msg.getSentOn() > updatedOn) {
                                     updatedOn = msg.getSentOn();
-                                }
-
-                                if (msg.getStatusUpdates() != null && !msg.getStatusUpdates().isEmpty()) {
-                                    for (ChatMessageStatus s : msg.getStatusUpdates()) {
-                                        upsertMessageStatus(s);
-                                    }
                                 }
                             }
                         }
@@ -155,6 +152,8 @@ class PersistenceController {
 
                             store.update(updateConversation);
                         }
+
+                        store.endTransaction();
 
                         emitter.onNext(result);
                         emitter.onCompleted();
@@ -197,6 +196,8 @@ class PersistenceController {
                                             @Override
                                             protected void execute(ChatStore store) {
 
+                                                store.beginTransaction();
+
                                                 List<ChatMessageStatus> statuses = modelAdapter.adaptEvents(toDelete);
 
                                                 if (!statuses.isEmpty()) {
@@ -210,6 +211,8 @@ class PersistenceController {
                                                     ids[i] = toDelete.get(i).id();
                                                 }
                                                 removeListener.remove(ids);
+
+                                                store.endTransaction();
 
                                                 emitter.onNext(result);
                                                 emitter.onCompleted();
@@ -234,11 +237,13 @@ class PersistenceController {
 
                 boolean isSuccessful = true;
 
+                store.beginTransaction();
+
                 ChatConversationBase conversation = store.getConversation(message.getConversationId());
 
                 String tempId = (String) (message.getMetadata() != null ? message.getMetadata().get(MESSAGE_METADATA_TEMP_ID) : null);
                 if (!TextUtils.isEmpty(tempId)) {
-                    isSuccessful = store.deleteMessage(message.getConversationId(), tempId);
+                    store.deleteMessage(message.getConversationId(), tempId);
                 }
 
                 if (message.getSentEventId() == null) {
@@ -246,10 +251,14 @@ class PersistenceController {
                 }
 
                 if (message.getSentEventId() == -1L) {
-                    long latestSentId = conversation != null ? conversation.getLastLocalEventId() : -2;
-                    message.setSentEventId(latestSentId + 1);
+                    if (conversation != null && conversation.getLastLocalEventId() != -1L) {
+                        message.setSentEventId(conversation.getLastLocalEventId() + 1);
+                    }
+                    message.addStatusUpdate(new ChatMessageStatus(message.getConversationId(), message.getMessageId(), message.getFromWhom().getId(), LocalMessageStatus.sending, System.currentTimeMillis(), null));
+                    isSuccessful = isSuccessful && store.upsert(message);
+                } else {
+                    isSuccessful = isSuccessful && store.upsert(message);
                 }
-                isSuccessful = isSuccessful && store.upsert(message);
 
                 if (conversation != null) {
                     if (message.getSentEventId() != null) {
@@ -273,7 +282,10 @@ class PersistenceController {
                     }
                 }
 
+                store.endTransaction();
+
                 emitter.onNext(isSuccessful);
+                emitter.onCompleted();
             }
         });
     }
@@ -283,10 +295,11 @@ class PersistenceController {
         return asObservable(new Executor<Boolean>() {
             @Override
             protected void execute(ChatStore store, Emitter<Boolean> emitter) {
-
-                //TODO
-
-                emitter.onNext(true);
+                store.beginTransaction();
+                boolean isSuccess = store.upsert(new ChatMessageStatus(conversationId, tempId, profileId, LocalMessageStatus.error, System.currentTimeMillis(), null));
+                store.endTransaction();
+                emitter.onNext(isSuccess);
+                emitter.onCompleted();
             }
         });
     }
@@ -297,33 +310,37 @@ class PersistenceController {
             @Override
             void execute(ChatStore store, Emitter<Boolean> emitter) {
 
-                boolean isSuccessful = true;
+                store.beginTransaction();
 
-                ChatMessageStatus saved = store.getStatus(status.getConversationId(), status.getMessageId());
-                if ((saved != null && saved.getMessageStatus().compareTo(status.getMessageStatus()) < 0) || saved == null) {
-                    isSuccessful = store.upsert(status);
-                }
-
-                ChatConversationBase conversation = store.getConversation(status.getConversationId());
-                if (conversation != null) {
-                    final Long eventId = status.getConversationEventId();
-                    if (eventId != null) {
-                        if (conversation.getLatestRemoteEventId() < eventId) {
-                            conversation.setLatestRemoteEventId(eventId);
-                        }
-                        if (conversation.getLastLocalEventId() < eventId) {
-                            conversation.setLatestLocalEventId(eventId);
-                        }
-                        if (conversation.getFirstLocalEventId() == -1) {
-                            conversation.setFirstLocalEventId(eventId);
-                        }
-                    }
-                    isSuccessful = isSuccessful && store.update(conversation);
-                }
+                boolean isSuccessful = store.update(status) && doUpdateConversation(store, status);
+                store.endTransaction();
 
                 emitter.onNext(isSuccessful);
+                emitter.onCompleted();
             }
         });
+    }
+
+    private boolean doUpdateConversation(ChatStore store, ChatMessageStatus status) {
+        boolean isSuccessful = store.upsert(status);
+
+        ChatConversationBase conversation = store.getConversation(status.getConversationId());
+        if (conversation != null) {
+            final Long eventId = status.getConversationEventId();
+            if (eventId != null) {
+                if (conversation.getLatestRemoteEventId() < eventId) {
+                    conversation.setLatestRemoteEventId(eventId);
+                }
+                if (conversation.getLastLocalEventId() < eventId) {
+                    conversation.setLatestLocalEventId(eventId);
+                }
+                if (conversation.getFirstLocalEventId() == -1) {
+                    conversation.setFirstLocalEventId(eventId);
+                }
+            }
+            isSuccessful = isSuccessful && store.update(conversation);
+        }
+        return isSuccessful;
     }
 
     public Observable<Boolean> upsertMessageStatuses(String conversationId, String profileId, List<MessageStatusUpdate> msgStatusList) {
@@ -331,22 +348,29 @@ class PersistenceController {
         return asObservable(new Executor<Boolean>() {
             @Override
             void execute(ChatStore store, Emitter<Boolean> emitter) {
-                boolean isSuccess = true;
+
+                store.beginTransaction();
+
+                boolean isSuccess = false;
                 for (MessageStatusUpdate statusUpdate : msgStatusList) {
                     for (String messageId : statusUpdate.getMessageIds()) {
-                        LocalMessageStatus status = LocalMessageStatus.sending;
-                        ChatMessageStatus saved = store.getStatus(conversationId, messageId);
+                        LocalMessageStatus status = null;
                         if (MessageStatus.delivered.name().equals(statusUpdate.getStatus())) {
                             status = LocalMessageStatus.delivered;
                         } else if (MessageStatus.read.name().equals(statusUpdate.getStatus())) {
                             status = LocalMessageStatus.read;
                         }
-                        if ((saved != null && saved.getMessageStatus().compareTo(status) < 0) || saved == null) {
-                            isSuccess = isSuccess && store.upsert(new ChatMessageStatus(conversationId, messageId, profileId, status, DateHelper.getUTCMilliseconds(statusUpdate.getTimestamp()), null));
+
+                        if (status != null) {
+                            isSuccess = store.update(new ChatMessageStatus(conversationId, messageId, profileId, status, DateHelper.getUTCMilliseconds(statusUpdate.getTimestamp()), null));
                         }
                     }
                 }
+
+                store.endTransaction();
+
                 emitter.onNext(isSuccess);
+                emitter.onCompleted();
             }
         });
     }
@@ -357,6 +381,7 @@ class PersistenceController {
             @Override
             void execute(ChatStore store, Emitter<ChatConversationBase> emitter) {
                 emitter.onNext(store.getConversation(conversationId));
+                emitter.onCompleted();
             }
         });
     }
@@ -373,6 +398,8 @@ class PersistenceController {
         return asObservable(new Executor<Boolean>() {
             @Override
             void execute(ChatStore store, Emitter<Boolean> emitter) {
+
+                store.beginTransaction();
 
                 boolean isSuccess = true;
 
@@ -411,7 +438,10 @@ class PersistenceController {
                     isSuccess = isSuccess && store.upsert(toSave.build());
                 }
 
+                store.endTransaction();
+
                 emitter.onNext(isSuccess);
+                emitter.onCompleted();
             }
         });
     }
@@ -421,6 +451,8 @@ class PersistenceController {
         return asObservable(new Executor<Boolean>() {
             @Override
             void execute(ChatStore store, Emitter<Boolean> emitter) {
+
+                store.beginTransaction();
 
                 boolean isSuccess = true;
 
@@ -447,7 +479,10 @@ class PersistenceController {
                     isSuccess = isSuccess && store.update(toSave.build());
                 }
 
+                store.endTransaction();
+
                 emitter.onNext(isSuccess);
+                emitter.onCompleted();
             }
         });
 
@@ -458,7 +493,11 @@ class PersistenceController {
         return asObservable(new Executor<Boolean>() {
             @Override
             void execute(ChatStore store, Emitter<Boolean> emitter) {
-                emitter.onNext(store.deleteConversation(conversationId));
+                store.beginTransaction();
+                boolean isSuccess = store.deleteConversation(conversationId);
+                store.endTransaction();
+                emitter.onNext(isSuccess);
+                emitter.onCompleted();
             }
         });
     }
@@ -471,11 +510,14 @@ class PersistenceController {
         return asObservable(new Executor<Boolean>() {
             @Override
             void execute(ChatStore store, Emitter<Boolean> emitter) {
+                store.beginTransaction();
                 boolean isSuccess = true;
                 for (int i = 0; i < conversationsToDelete.size(); i++) {
                     isSuccess = isSuccess && store.deleteConversation(conversationsToDelete.get(i).getConversationId());
                 }
+                store.endTransaction();
                 emitter.onNext(isSuccess);
+                emitter.onCompleted();
             }
         });
     }
@@ -494,8 +536,6 @@ class PersistenceController {
     }
 
     abstract class Executor<T> {
-
         abstract void execute(ChatStore store, Emitter<T> emitter);
-
     }
 }

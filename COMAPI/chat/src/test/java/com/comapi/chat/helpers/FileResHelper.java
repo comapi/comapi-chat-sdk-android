@@ -36,7 +36,7 @@ import okhttp3.mockwebserver.MockResponse;
  * @author Marcin Swierczek
  * @since 1.0.0
  */
-public class ResponseTestHelper {
+public class FileResHelper {
 
     private static File getFileFromPath(Object obj, String fileName) {
         ClassLoader classLoader = obj.getClass().getClassLoader();
@@ -64,14 +64,5 @@ public class ResponseTestHelper {
 
     public static String readFromFile(Object obj, String fileName) throws IOException {
         return readFile(getFileFromPath(obj, fileName));
-    }
-
-    public static MockResponse createMockResponse(Object obj, String fileName, int responseCode) throws IOException {
-        String json = readFile(getFileFromPath(obj, fileName));
-        MockResponse response = new MockResponse();
-        response.addHeader("Authorization", AuthManager.addAuthPrefix("token123"));
-        response.setResponseCode(responseCode);
-        response.setBody(json);
-        return response;
     }
 }

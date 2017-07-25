@@ -78,6 +78,14 @@ public abstract class ChatStore {
     public abstract boolean upsert(ChatMessage message);
 
     /**
+     * Update stored {@link ChatMessage} with a new {@link ChatMessageStatus}. The chat message is unique for a combination of messageId, profileId and {@link LocalMessageStatus} value.
+     *
+     * @param status Chat message status for the {@link ChatMessage} with id {@link ChatMessageStatus#getMessageId()}
+     * @return True if operation was successful.
+     */
+    public abstract boolean update(ChatMessageStatus status);
+
+    /**
      * Delete all messages from persistence store that are related to given conversation.
      *
      * @param conversationId Unique global conversation identifier.
@@ -103,20 +111,19 @@ public abstract class ChatStore {
     public abstract boolean upsert(ChatMessageStatus status);
 
     /**
-     * Get message status.
-     *
-     * @param conversationId Unique global conversation identifier.
-     * @param messageId      Unique global message identifier.
-     * @return Message status.
-     */
-    public abstract ChatMessageStatus getStatus(String conversationId, String messageId);
-
-    /**
      * Delete all content of persistence store that is related to current user.
      *
      * @return True if operation was successful.
      */
     public abstract boolean clearDatabase();
 
-    public abstract ChatMessage getMessage(String conversationId, String messageId);
+    /**
+     * Begin transaction. From this point calling other methods of this class will queue store updates and inserts to be executed when {@link ChatStore#endTransaction()} on same instance is called.
+     */
+    public abstract void beginTransaction();
+
+    /**
+     * End transaction. Execute queued store updates and inserts.
+     */
+    public abstract void endTransaction();
 }

@@ -20,6 +20,8 @@
 
 package com.comapi.chat.model;
 
+import android.support.annotation.NonNull;
+
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.model.events.conversation.message.MessageSentEvent;
 import com.comapi.internal.network.model.messaging.MessageReceived;
@@ -27,7 +29,8 @@ import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.Part;
 import com.comapi.internal.network.model.messaging.Sender;
 
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,7 +40,7 @@ import java.util.Map;
  * @author Marcin Swierczek
  * @since 1.0.0
  */
-public class ChatMessage {
+public class ChatMessage implements Comparable<ChatMessage> {
 
     /**
      * Unique monotonically increasing identifier of message in the conversation. We recommend to sort the messages based on its value.
@@ -77,7 +80,7 @@ public class ChatMessage {
     /**
      * Message statuses 'delivered' or 'read' for particular participants.
      */
-    private List<ChatMessageStatus> statusUpdates;
+    private Map<Integer, ChatMessageStatus> statusUpdates;
 
     /**
      * Message custom metadata.
@@ -152,8 +155,13 @@ public class ChatMessage {
      *
      * @return Message statuses 'delivered' or 'read' for particular participants.
      */
-    public List<ChatMessageStatus> getStatusUpdates() {
-        return statusUpdates;
+    public Collection<ChatMessageStatus> getStatusUpdates() {
+        return statusUpdates.values();
+    }
+
+    public void addStatusUpdate(ChatMessageStatus status) {
+        int unique = (status.getMessageId()+status.getProfileId()+status.getMessageStatus().name()).hashCode();
+        statusUpdates.put(unique, status);
     }
 
     /**
@@ -180,7 +188,7 @@ public class ChatMessage {
 
         Builder() {
             message = new ChatMessage();
-            message.statusUpdates = new ArrayList<>();
+            message.statusUpdates = new HashMap<>();
         }
 
         public ChatMessage build() {
@@ -197,11 +205,6 @@ public class ChatMessage {
             message.sentOn = DateHelper.getUTCMilliseconds(update.getSentOn());
             message.parts = update.getParts();
             message.metadata = update.getMetadata();
-
-            for (String profileId : update.getStatusUpdate().keySet()) {
-                MessageReceived.Status status = update.getStatusUpdate().get(profileId);
-                message.statusUpdates.add(new ChatMessageStatus(update.getConversationId(), message.messageId, profileId, localStatus(status.getStatus()), DateHelper.getUTCMilliseconds(status.getTimestamp()), null));
-            }
 
             return this;
         }
@@ -261,14 +264,23 @@ public class ChatMessage {
         }
     }
 
-    private static LocalMessageStatus localStatus(MessageStatus remoteStatus) {
-        switch (remoteStatus) {
-            case delivered:
-                return LocalMessageStatus.delivered;
-            case read:
-                return LocalMessageStatus.read;
-            default:
-                return LocalMessageStatus.error;
+    @Override
+    public int compareTo(@NonNull ChatMessage message) {
+
+        if (sentEventId < message.sentEventId) {
+            return 1;
+        } else if (sentEventId > message.sentEventId) {
+            return -1;
+        } else {
+            if (sentOn != null && message.sentOn != null) {
+                if (sentOn < message.sentOn) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            }
         }
+
+        return 0;
     }
 }

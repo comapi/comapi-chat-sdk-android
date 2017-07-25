@@ -369,9 +369,14 @@ public class MockComapiClient extends RxComapiClient {
              */
             public SessionService session() {
                 return new SessionService() {
+
                     @Override
                     public Observable<Session> startSession() {
-                        return Observable.fromCallable(() -> new Session(null));
+                        return Observable.fromCallable(() -> new Session(new SessionData()
+                                .setSessionId(ChatTestConst.SESSION_ID)
+                                .setExpiresOn(System.currentTimeMillis() + 10000)
+                                .setAccessToken(ChatTestConst.TOKEN)
+                                .setProfileId(ChatTestConst.PROFILE_ID)));
                     }
 
                     @Override

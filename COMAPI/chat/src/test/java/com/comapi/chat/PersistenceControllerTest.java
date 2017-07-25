@@ -24,20 +24,14 @@ import android.os.Build;
 
 import com.comapi.chat.database.Database;
 import com.comapi.chat.helpers.ChatTestConst;
-import com.comapi.chat.helpers.MockConversationDetails;
-import com.comapi.chat.helpers.ResponseTestHelper;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
-import com.comapi.chat.model.ChatProfile;
 import com.comapi.chat.model.ChatStore;
 import com.comapi.chat.model.ModelAdapter;
-import com.comapi.internal.Parser;
 import com.comapi.internal.log.LogLevel;
 import com.comapi.internal.log.LogManager;
 import com.comapi.internal.log.Logger;
-import com.comapi.internal.network.model.conversation.ConversationDetails;
-import com.comapi.internal.network.model.events.ProfileUpdateEvent;
 
 import org.junit.After;
 import org.junit.Before;
@@ -47,7 +41,6 @@ import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 

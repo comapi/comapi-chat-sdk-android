@@ -22,9 +22,6 @@ package com.comapi.chat.helpers;
 
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatMessage;
-import com.comapi.chat.model.ChatMessageStatus;
-import com.comapi.chat.model.ChatParticipant;
-import com.comapi.chat.model.ChatRole;
 import com.comapi.internal.network.model.conversation.Role;
 import com.comapi.internal.network.model.messaging.Part;
 import com.comapi.internal.network.model.messaging.Sender;
@@ -95,7 +92,7 @@ public class DBObjectsHelper {
 
             @Override
             public Long getSentEventId() {
-                return null;
+                return 0L;
             }
 
             @Override
@@ -110,43 +107,22 @@ public class DBObjectsHelper {
 
             @Override
             public Sender getFromWhom() {
-                return null;
+                return new Sender("profileId", "name");
             }
 
             @Override
             public String getSentBy() {
-                return null;
+                return "profileId";
             }
 
             @Override
             public Long getSentOn() {
-                return null;
+                return 0L;
             }
 
             @Override
             public List<Part> getParts() {
                 return null;
-            }
-
-            @Override
-            public List<ChatMessageStatus> getStatusUpdates() {
-                return null;
-            }
-        };
-    }
-
-    public static ChatParticipant createParticipants(String id) {
-
-        return new ChatParticipant() {
-
-            @Override
-            public String getParticipantId() {
-                return id;
-            }
-
-            @Override
-            public ChatRole getRole() {
-                return super.getRole();
             }
         };
     }

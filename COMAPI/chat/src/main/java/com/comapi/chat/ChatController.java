@@ -223,8 +223,8 @@ class ChatController {
 
                             if (from == 0) {
                                 return Observable.fromCallable(() -> new ChatResult(true, null));
-                            } else if (from != -1) {
-                                queryFrom = from;
+                            } else if (from > 0) {
+                                queryFrom = from - 1;
                             } else {
                                 queryFrom = null;
                             }

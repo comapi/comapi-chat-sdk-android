@@ -24,8 +24,6 @@ import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
-import com.comapi.chat.model.ChatParticipant;
-import com.comapi.chat.model.ChatProfile;
 import com.comapi.chat.model.ChatStore;
 
 import java.util.ArrayList;
@@ -44,8 +42,6 @@ public class TestChatStore extends ChatStore {
     private final Map<String, ChatConversationBase> conversations = new HashMap<>();
     private final Map<String, ChatMessage> messages = new HashMap<>();
     private final Map<String, ChatMessageStatus> messagesStatuses = new HashMap<>();
-    private final Map<String, List<ChatParticipant>> participants = new HashMap<>();
-    private ChatProfile profile;
 
     @Override
     public ChatConversationBase getConversation(String conversationId) {
@@ -83,28 +79,31 @@ public class TestChatStore extends ChatStore {
     }
 
     @Override
+    public boolean update(ChatMessageStatus status) {
+        return true;
+    }
+
+    @Override
     public boolean upsert(ChatMessageStatus status) {
         messagesStatuses.put(status.getMessageId(), status);
         return true;
     }
 
     @Override
-    public ChatMessageStatus getStatus(String conversationId, String messageId) {
-        return messagesStatuses.get(messageId);
-    }
-
-    @Override
     public boolean clearDatabase() {
         conversations.clear();
         messages.clear();
-        participants.clear();
-        profile = null;
         return true;
     }
 
     @Override
-    public ChatMessage getMessage(String conversationId, String messageId) {
-        return null;
+    public void beginTransaction() {
+
+    }
+
+    @Override
+    public void endTransaction() {
+
     }
 
     @Override
@@ -121,8 +120,6 @@ public class TestChatStore extends ChatStore {
         for (String id : idsToRemove) {
             messages.remove(id);
         }
-
-        participants.remove(conversationId);
         return true;
     }
 
@@ -156,9 +153,5 @@ public class TestChatStore extends ChatStore {
                 .build();
         conversations.put(conversationId, conversationInStore1);
 
-    }
-
-    public ChatProfile getProfile() {
-        return profile;
     }
 }

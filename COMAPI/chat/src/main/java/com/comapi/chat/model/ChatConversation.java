@@ -133,7 +133,7 @@ public class ChatConversation extends ChatConversationBase {
         }
 
         public Builder setLatestRemoteEventId(Long id) {
-            conversation.setLatestRemoteEventId(id);
+            conversation.latestRemoteEventId = id;
             return this;
         }
 
@@ -203,8 +203,8 @@ public class ChatConversation extends ChatConversationBase {
 
         public Builder populate(ChatConversationBase base) {
             conversation.conversationId = base.getConversationId();
-            conversation.setUpdatedOn(base.getUpdatedOn());
-            conversation.setLatestRemoteEventId(base.getLatestRemoteEventId());
+            conversation.updatedOn = base.getUpdatedOn();
+            conversation.latestRemoteEventId = base.getLatestRemoteEventId();
             conversation.lastLocalEventId = base.getLastLocalEventId();
             conversation.firstLocalEventId = base.getFirstLocalEventId();
             conversation.eTag = base.getETag();

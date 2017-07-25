@@ -31,11 +31,6 @@ public class ChatTestConst {
     public static final String CONVERSATION_ID3 = "someId3";
     public static final String CONVERSATION_ID4 = "someId4";
 
-    public static final String PARTICIPANT_ID1 = "someId1";
-    public static final String PARTICIPANT_ID2 = "someId2";
-    public static final String PARTICIPANT_ID3 = "someId3";
-    public static final String PARTICIPANT_ID4 = "someId4";
-
     public static final String ETAG = "eTag-123";
     public static String TOKEN = "token-123";
     public static String PROFILE_ID = "profileId-123";

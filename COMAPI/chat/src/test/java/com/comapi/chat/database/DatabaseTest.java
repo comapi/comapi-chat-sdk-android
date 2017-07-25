@@ -25,7 +25,7 @@ import android.text.TextUtils;
 
 import com.comapi.chat.BuildConfig;
 import com.comapi.chat.database.model.DbOrphanedEvent;
-import com.comapi.chat.helpers.ResponseTestHelper;
+import com.comapi.chat.helpers.FileResHelper;
 import com.comapi.internal.Parser;
 import com.comapi.internal.log.LogLevel;
 import com.comapi.internal.log.LogManager;
@@ -86,7 +86,7 @@ public class DatabaseTest {
          * Load orphaned events from json file.
          */
         List<OrphanedEvent> orphanedEventsFromFile = new ArrayList<>();
-        String json = ResponseTestHelper.readFromFile(this, "orphaned_events_array.json");
+        String json = FileResHelper.readFromFile(this, "orphaned_events_array.json");
         Parser parser = new Parser();
         JSONArray jsonarray = new JSONArray(json);
         for (int i = 0; i < jsonarray.length(); i++) {

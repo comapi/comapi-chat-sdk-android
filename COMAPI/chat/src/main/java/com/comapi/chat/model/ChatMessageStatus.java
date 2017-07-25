@@ -20,6 +20,8 @@
 
 package com.comapi.chat.model;
 
+import android.support.annotation.NonNull;
+
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.model.events.conversation.message.MessageDeliveredEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageReadEvent;
@@ -31,7 +33,7 @@ import com.comapi.internal.network.model.messaging.MessageStatus;
  * @author Marcin Swierczek
  * @since 1.0.0
  */
-public class ChatMessageStatus {
+public class ChatMessageStatus implements Comparable<ChatMessageStatus> {
 
     private String conversationId;
 
@@ -112,5 +114,14 @@ public class ChatMessageStatus {
 
     public Long getConversationEventId() {
         return conversationEventId;
+    }
+
+    @Override
+    public int compareTo(@NonNull ChatMessageStatus status) {
+
+        if (messageStatus != null && status.messageStatus != null) {
+            return messageStatus.compareTo(status.getMessageStatus());
+        }
+        return 0;
     }
 }

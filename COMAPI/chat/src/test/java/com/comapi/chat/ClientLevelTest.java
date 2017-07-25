@@ -27,7 +27,6 @@ import android.support.annotation.Nullable;
 import com.comapi.APIConfig;
 import com.comapi.Callback;
 import com.comapi.ComapiAuthenticator;
-import com.comapi.ComapiConfig;
 import com.comapi.Session;
 import com.comapi.chat.helpers.ChatTestConst;
 import com.comapi.chat.helpers.MockCallback;
@@ -36,14 +35,13 @@ import com.comapi.chat.helpers.MockConversationDetails;
 import com.comapi.chat.helpers.MockFoundationFactory;
 import com.comapi.chat.helpers.MockMsgSentResponse;
 import com.comapi.chat.helpers.MockResult;
-import com.comapi.chat.helpers.ResponseTestHelper;
+import com.comapi.chat.helpers.FileResHelper;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
-import com.comapi.chat.model.ChatParticipant;
-import com.comapi.chat.model.ChatRole;
 import com.comapi.chat.model.ChatStore;
+import com.comapi.chat.model.LocalMessageStatus;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.Parser;
 import com.comapi.internal.network.AuthClient;
@@ -52,7 +50,6 @@ import com.comapi.internal.network.ComapiResult;
 import com.comapi.internal.network.model.conversation.ConversationCreate;
 import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
-import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.messaging.ConversationEventsResponse;
 import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.MessageToSend;
@@ -416,7 +413,7 @@ public class ClientLevelTest {
 
         // Events setup
 
-        String json = ResponseTestHelper.readFromFile(this, "rest_events_query.json");
+        String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
 
         Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
@@ -461,11 +458,13 @@ public class ClientLevelTest {
 
         // Check message status
 
-        ChatMessageStatus status = store.getStatus(null, "60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        Map<String, ChatMessageStatus> statuses = store.getStatuses();
+        assertNotNull(statuses);
+        ChatMessageStatus status = statuses.get("p1");
         assertNotNull(status);
         assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
         assertEquals("p1", status.getProfileId());
-        assertEquals(MessageStatus.read, status.getMessageStatus());
+        assertEquals(LocalMessageStatus.read, status.getMessageStatus());
         assertTrue(status.getUpdatedOn() > 0);
     }
 
@@ -490,7 +489,7 @@ public class ClientLevelTest {
 
         // Events setup
 
-        String json = ResponseTestHelper.readFromFile(this, "rest_events_query.json");
+        String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
 
         Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
@@ -535,11 +534,13 @@ public class ClientLevelTest {
 
         // Check message status
 
-        ChatMessageStatus status = store.getStatus(null, "60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        Map<String, ChatMessageStatus> statuses = store.getStatuses();
+        assertNotNull(statuses);
+        ChatMessageStatus status = statuses.get("p1");
         assertNotNull(status);
         assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
         assertEquals("p1", status.getProfileId());
-        assertEquals(MessageStatus.read, status.getMessageStatus());
+        assertEquals(LocalMessageStatus.read, status.getMessageStatus());
         assertTrue(status.getUpdatedOn() > 0);
     }
 
@@ -549,7 +550,7 @@ public class ClientLevelTest {
         String conversationId = "someId";
         String messageId = "60526ba0-76b3-4f33-9e2e-20f4a8bb548b";
 
-        String json = ResponseTestHelper.readFromFile(this, "rest_message_query_no_orphans.json");
+        String json = FileResHelper.readFromFile(this, "rest_message_query_no_orphans.json");
         Parser parser = new Parser();
         MessagesQueryResponse response = parser.parse(json, MessagesQueryResponse.class);
 
@@ -596,7 +597,7 @@ public class ClientLevelTest {
         String conversationId = "someId";
         String messageId = "60526ba0-76b3-4f33-9e2e-20f4a8bb548b";
 
-        String json = ResponseTestHelper.readFromFile(this, "rest_message_query_no_orphans.json");
+        String json = FileResHelper.readFromFile(this, "rest_message_query_no_orphans.json");
         Parser parser = new Parser();
         MessagesQueryResponse response = parser.parse(json, MessagesQueryResponse.class);
 
