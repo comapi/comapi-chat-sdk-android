@@ -491,6 +491,7 @@ class ChatController {
 
         return Observable.from(limited)
                 .onBackpressureBuffer()
+                .flatMap(conversation -> persistenceController.getConversation(conversation.getConversationId()))
                 .flatMap(conversation -> {
                     if (conversation.getLatestRemoteEventId() > conversation.getLastLocalEventId()) {
                         final long from = conversation.getLastLocalEventId() >= 0 ? conversation.getLastLocalEventId() : 0;

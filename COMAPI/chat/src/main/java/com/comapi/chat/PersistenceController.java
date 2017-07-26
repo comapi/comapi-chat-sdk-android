@@ -145,7 +145,7 @@ class PersistenceController {
                                     .setConversationId(savedConversation.getConversationId())
                                     .setETag(savedConversation.getETag())
                                     .setFirstEventId(savedConversation.getFirstLocalEventId() < 0 ? response.getEarliestEventId() : Math.min(savedConversation.getFirstLocalEventId(), response.getEarliestEventId()))
-                                    .setLastEventIdd(savedConversation.getLastLocalEventId() < 0 ? response.getLatestEventId() : Math.max(savedConversation.getLastLocalEventId(), response.getLatestEventId()))
+                                    .setLastEventId(savedConversation.getLastLocalEventId() < 0 ? response.getLatestEventId() : Math.max(savedConversation.getLastLocalEventId(), response.getLatestEventId()))
                                     .setLatestRemoteEventId(savedConversation.getLatestRemoteEventId() < 0 ? response.getLatestEventId() : Math.max(savedConversation.getLatestRemoteEventId(), response.getLatestEventId()))
                                     .setUpdatedOn(Math.max(savedConversation.getUpdatedOn(), updatedOn))
                                     .build();
@@ -202,7 +202,7 @@ class PersistenceController {
 
                                                 if (!statuses.isEmpty()) {
                                                     for (ChatMessageStatus status : statuses) {
-                                                        store.upsert(status);
+                                                        store.update(status);
                                                     }
                                                 }
 
@@ -260,26 +260,8 @@ class PersistenceController {
                     isSuccessful = isSuccessful && store.upsert(message);
                 }
 
-                if (conversation != null) {
-                    if (message.getSentEventId() != null) {
-                        if(conversation.getLatestRemoteEventId() < message.getSentEventId()) {
-                            conversation.setLatestRemoteEventId(message.getSentEventId());
-                        }
-                        if (conversation.getLastLocalEventId() < message.getSentEventId()) {
-                            conversation.setLatestLocalEventId(message.getSentEventId());
-                        }
-                        if(conversation.getFirstLocalEventId() == -1) {
-                            conversation.setFirstLocalEventId(message.getSentEventId());
-                        }
-                    }
-                    if (conversation.getUpdatedOn() < message.getSentOn()) {
-                        conversation.setUpdatedOn(message.getSentOn());
-                    }
-                    isSuccessful = isSuccessful && store.update(conversation);
-                } else {
-                    if (noConversationListener != null) {
-                        noConversationListener.getConversation(message.getConversationId());
-                    }
+                if (!doUpdateConversationFromEvent(store, message.getConversationId(), message.getSentEventId(), message.getSentOn()) && noConversationListener != null) {
+                    noConversationListener.getConversation(message.getConversationId());
                 }
 
                 store.endTransaction();
@@ -296,7 +278,7 @@ class PersistenceController {
             @Override
             protected void execute(ChatStore store, Emitter<Boolean> emitter) {
                 store.beginTransaction();
-                boolean isSuccess = store.upsert(new ChatMessageStatus(conversationId, tempId, profileId, LocalMessageStatus.error, System.currentTimeMillis(), null));
+                boolean isSuccess = store.update(new ChatMessageStatus(conversationId, tempId, profileId, LocalMessageStatus.error, System.currentTimeMillis(), null));
                 store.endTransaction();
                 emitter.onNext(isSuccess);
                 emitter.onCompleted();
@@ -312,7 +294,7 @@ class PersistenceController {
 
                 store.beginTransaction();
 
-                boolean isSuccessful = store.update(status) && doUpdateConversation(store, status);
+                boolean isSuccessful = store.update(status) && doUpdateConversationFromEvent(store, status.getConversationId(), status.getConversationEventId(), status.getUpdatedOn());
                 store.endTransaction();
 
                 emitter.onNext(isSuccessful);
@@ -321,12 +303,10 @@ class PersistenceController {
         });
     }
 
-    private boolean doUpdateConversation(ChatStore store, ChatMessageStatus status) {
-        boolean isSuccessful = store.upsert(status);
+    private boolean doUpdateConversationFromEvent(ChatStore store, String conversationId, Long eventId, Long updatedOn) {
 
-        ChatConversationBase conversation = store.getConversation(status.getConversationId());
+        ChatConversationBase conversation = store.getConversation(conversationId);
         if (conversation != null) {
-            final Long eventId = status.getConversationEventId();
             if (eventId != null) {
                 if (conversation.getLatestRemoteEventId() < eventId) {
                     conversation.setLatestRemoteEventId(eventId);
@@ -337,10 +317,13 @@ class PersistenceController {
                 if (conversation.getFirstLocalEventId() == -1) {
                     conversation.setFirstLocalEventId(eventId);
                 }
+                if (conversation.getUpdatedOn() < updatedOn) {
+                    conversation.setUpdatedOn(updatedOn);
+                }
             }
-            isSuccessful = isSuccessful && store.update(conversation);
+            return store.update(conversation);
         }
-        return isSuccessful;
+        return false;
     }
 
     public Observable<Boolean> upsertMessageStatuses(String conversationId, String profileId, List<MessageStatusUpdate> msgStatusList) {
@@ -463,7 +446,7 @@ class PersistenceController {
                     if (saved != null) {
                         toSave.setConversationId(saved.getConversationId());
                         toSave.setFirstEventId(saved.getFirstLocalEventId());
-                        toSave.setLastEventIdd(saved.getLastLocalEventId());
+                        toSave.setLastEventId(saved.getLastLocalEventId());
                         if (conversation.getLatestRemoteEventId() == null) {
                             toSave.setLatestRemoteEventId(saved.getLatestRemoteEventId());
                         } else {

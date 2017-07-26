@@ -41,7 +41,6 @@ public class TestChatStore extends ChatStore {
 
     private final Map<String, ChatConversationBase> conversations = new HashMap<>();
     private final Map<String, ChatMessage> messages = new HashMap<>();
-    private final Map<String, ChatMessageStatus> messagesStatuses = new HashMap<>();
 
     @Override
     public ChatConversationBase getConversation(String conversationId) {
@@ -80,12 +79,7 @@ public class TestChatStore extends ChatStore {
 
     @Override
     public boolean update(ChatMessageStatus status) {
-        return true;
-    }
-
-    @Override
-    public boolean upsert(ChatMessageStatus status) {
-        messagesStatuses.put(status.getMessageId(), status);
+        messages.get(status.getMessageId()).addStatusUpdate(status);
         return true;
     }
 
@@ -137,21 +131,23 @@ public class TestChatStore extends ChatStore {
         return conversations;
     }
 
-    public Map<String, ChatMessageStatus> getStatuses() {
-        return messagesStatuses;
-    }
-
-    public void addConversationToStore(String conversationId, long first, long last, long updatedOn, String eTag) {
+    public void addConversationToStore(String conversationId, long first, long last, long lastRemote, long updatedOn, String eTag) {
 
         ChatConversationBase conversationInStore1 = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag(eTag)
                 .setFirstEventId(first)
-                .setLastEventIdd(last)
-                .setLatestRemoteEventId(last)
+                .setLastEventId(last)
+                .setLatestRemoteEventId(lastRemote)
                 .setUpdatedOn(updatedOn)
                 .build();
         conversations.put(conversationId, conversationInStore1);
 
+    }
+
+    public void addMessageToStore(String messageId1) {
+
+        ChatMessage message = ChatMessage.builder().setMessageId(messageId1).build();
+        messages.put(message.getMessageId(), message);
     }
 }

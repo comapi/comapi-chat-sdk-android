@@ -103,14 +103,6 @@ public abstract class ChatStore {
     public abstract boolean deleteMessage(String conversationId, String messageId);
 
     /**
-     * Insert or update message status in persistence store.
-     *
-     * @param status Message status to insert or update.
-     * @return True if operation was successful.
-     */
-    public abstract boolean upsert(ChatMessageStatus status);
-
-    /**
      * Delete all content of persistence store that is related to current user.
      *
      * @return True if operation was successful.

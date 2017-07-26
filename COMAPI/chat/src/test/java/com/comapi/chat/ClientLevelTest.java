@@ -71,6 +71,7 @@ import org.robolectric.annotation.Config;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -399,12 +400,13 @@ public class ClientLevelTest {
 
         // Conversations setup
 
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 0, ChatTestConst.ETAG);
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 0, ChatTestConst.ETAG);
+        // local event != -1  and remote event larger than local so update will be triggered,
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, 2, 2, 3, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 0, 0, ChatTestConst.ETAG); // will be deleted
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 0, 0, ChatTestConst.ETAG); // will be deleted
 
-        ConversationDetails conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1);
-        ConversationDetails conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4);
+        ConversationDetails conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1); // will be updated
+        ConversationDetails conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4); // will be added
 
         List<ConversationDetails> result = new ArrayList<>();
         result.add(conversationA);
@@ -412,7 +414,7 @@ public class ClientLevelTest {
         mockedComapiClient.addMockedResult(new MockResult<>(result, true, newETag, 200));
 
         // Events setup
-
+        // 3 events with ids 1,2,3
         String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
 
@@ -434,8 +436,8 @@ public class ClientLevelTest {
         ChatConversationBase loadedConversation = store.getConversations().get(ChatTestConst.CONVERSATION_ID1);
         assertNotNull(loadedConversation);
         assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
-        assertEquals(1, loadedConversation.getFirstLocalEventId().longValue());
-        assertEquals(3, loadedConversation.getLastLocalEventId().longValue());
+        assertEquals(2, loadedConversation.getFirstLocalEventId().longValue()); // event query or socket events don't change first known id unless it's -1 (empty conversation)
+        assertEquals(3, loadedConversation.getLastLocalEventId().longValue()); // was increased
         assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals("eTag", loadedConversation.getETag());
@@ -458,9 +460,9 @@ public class ClientLevelTest {
 
         // Check message status
 
-        Map<String, ChatMessageStatus> statuses = store.getStatuses();
+        Collection<ChatMessageStatus> statuses = store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b").getStatusUpdates();
         assertNotNull(statuses);
-        ChatMessageStatus status = statuses.get("p1");
+        ChatMessageStatus status = (ChatMessageStatus) statuses.toArray()[0];
         assertNotNull(status);
         assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
         assertEquals("p1", status.getProfileId());
@@ -475,9 +477,9 @@ public class ClientLevelTest {
 
         // Conversations setup
 
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 0, ChatTestConst.ETAG);
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, 2, 2, 3, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 0, 0, ChatTestConst.ETAG); // will be deleted
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 0, 0, ChatTestConst.ETAG); // will be deleted
 
         ConversationDetails conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1);
         ConversationDetails conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4);
@@ -510,8 +512,8 @@ public class ClientLevelTest {
         ChatConversationBase loadedConversation = store.getConversations().get(ChatTestConst.CONVERSATION_ID1);
         assertNotNull(loadedConversation);
         assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
-        assertEquals(1, loadedConversation.getFirstLocalEventId().longValue());
-        assertEquals(3, loadedConversation.getLastLocalEventId().longValue());
+        assertEquals(2, loadedConversation.getFirstLocalEventId().longValue()); // event query or socket events don't change first known id unless it's -1 (empty conversation)
+        assertEquals(3, loadedConversation.getLastLocalEventId().longValue()); // was increased
         assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals("eTag", loadedConversation.getETag());
@@ -534,9 +536,9 @@ public class ClientLevelTest {
 
         // Check message status
 
-        Map<String, ChatMessageStatus> statuses = store.getStatuses();
+        Collection<ChatMessageStatus> statuses = store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b").getStatusUpdates();
         assertNotNull(statuses);
-        ChatMessageStatus status = statuses.get("p1");
+        ChatMessageStatus status = (ChatMessageStatus) statuses.toArray()[0];
         assertNotNull(status);
         assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
         assertEquals("p1", status.getProfileId());
@@ -562,7 +564,7 @@ public class ClientLevelTest {
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
                 .setFirstEventId(-1L)
-                .setLastEventIdd(-1L)
+                .setLastEventId(-1L)
                 .setLatestRemoteEventId(-1L)
                 .setUpdatedOn(0L)
                 .build();
@@ -609,7 +611,7 @@ public class ClientLevelTest {
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
                 .setFirstEventId(-1L)
-                .setLastEventIdd(-1L)
+                .setLastEventId(-1L)
                 .setLatestRemoteEventId(-1L)
                 .setUpdatedOn(0L)
                 .build();
@@ -644,6 +646,8 @@ public class ClientLevelTest {
         String conversationId = "someId";
         String messageId1 = "id-1";
 
+        store.addMessageToStore(messageId1);
+
         mockedComapiClient.addMockedResult(new MockResult<>(null, true, ChatTestConst.ETAG, 200));
 
         List<String> ids = new ArrayList<>();
@@ -654,7 +658,9 @@ public class ClientLevelTest {
 
         // Check message status
 
-        ChatMessageStatus status = store.getStatuses().get(messageId1);
+        Collection<ChatMessageStatus> statuses = store.getMessages().get("id-1").getStatusUpdates();
+        assertNotNull(statuses);
+        ChatMessageStatus status = (ChatMessageStatus) statuses.toArray()[0];
 
         assertNotNull(status);
         assertEquals(messageId1, status.getMessageId());
@@ -670,22 +676,26 @@ public class ClientLevelTest {
         String messageId1 = "id-1";
         String messageId2 = "id-2";
 
-        mockedComapiClient.addMockedResult(new MockResult<>(null, true, ChatTestConst.ETAG, 200));
+        store.addMessageToStore(messageId1);
 
         List<String> ids = new ArrayList<>();
         ids.add(messageId1);
 
         mockedComapiClient.addMockedResult(new MockResult<>(null, true, ChatTestConst.ETAG, 200));
         final MockCallback<ChatResult> callback = new MockCallback<>();
-        ids.add(messageId2);
+
         client.service().messaging().markMessagesAsRead(conversationId, ids, callback);
         assertTrue(callback.getResult().isSuccessful());
-        ChatMessageStatus status2 = store.getStatuses().get(messageId2);
-        assertNotNull(status2);
-        assertEquals(messageId2, status2.getMessageId());
-        assertEquals(MessageStatus.read.name(), status2.getMessageStatus().name());
-        assertEquals(client.getSession().getProfileId(), status2.getProfileId());
-        assertTrue(status2.getUpdatedOn() > 0);
+
+
+        Collection<ChatMessageStatus> statuses = store.getMessages().get(messageId1).getStatusUpdates();
+        assertNotNull(statuses);
+        ChatMessageStatus status = (ChatMessageStatus) statuses.toArray()[0];
+        assertNotNull(status);
+        assertEquals(messageId1, status.getMessageId());
+        assertEquals(MessageStatus.read.name(), status.getMessageStatus().name());
+        assertEquals(client.getSession().getProfileId(), status.getProfileId());
+        assertTrue(status.getUpdatedOn() > 0);
     }
 
     @Test

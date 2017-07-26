@@ -84,6 +84,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -246,7 +247,7 @@ public class ControllerTest {
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
                 .setFirstEventId(1L)
-                .setLastEventIdd(2L)
+                .setLastEventId(2L)
                 .setLatestRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
@@ -306,7 +307,7 @@ public class ControllerTest {
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
                 .setFirstEventId(1L)
-                .setLastEventIdd(2L)
+                .setLastEventId(2L)
                 .setLatestRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
@@ -379,7 +380,7 @@ public class ControllerTest {
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
                 .setFirstEventId(-1L)
-                .setLastEventIdd(-1L)
+                .setLastEventId(-1L)
                 .setLatestRemoteEventId(-1L)
                 .setUpdatedOn(0L)
                 .build();
@@ -447,9 +448,9 @@ public class ControllerTest {
     @Test
     public void test_Comparison() {
 
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 0, ChatTestConst.ETAG);
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, 1, 3, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 3, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 3, 0, ChatTestConst.ETAG);
 
         Conversation conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1);
         Conversation conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4);
@@ -485,9 +486,9 @@ public class ControllerTest {
 
         String newETag = "eTag-A";
 
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 0, ChatTestConst.ETAG);
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, 1, 3, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID2, -1L, -1L, 3, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID3, -1L, -1L, 3, 0, ChatTestConst.ETAG);
 
         Conversation conversationA = new MockConversationDetails(ChatTestConst.CONVERSATION_ID1).setETag(newETag);
         Conversation conversationB = new MockConversationDetails(ChatTestConst.CONVERSATION_ID4).setETag(newETag);
@@ -532,7 +533,7 @@ public class ControllerTest {
     @Test
     public void test_updateEvents() throws NoSuchFieldException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
 
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, 1, 3, 0, ChatTestConst.ETAG);
 
         String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
@@ -581,15 +582,17 @@ public class ControllerTest {
 
         // Check message status
 
-//        ChatMessageStatus status = store.getStatus(null, "60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        ChatMessageStatus status1 = (ChatMessageStatus) store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b").getStatusUpdates().toArray()[0];
+        ChatMessageStatus status2 = (ChatMessageStatus) store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b").getStatusUpdates().toArray()[1];
 
-        ChatMessageStatus status = store.getStatuses().get("p1");
+        assertTrue((LocalMessageStatus.delivered == status1.getMessageStatus() && LocalMessageStatus.read == status2.getMessageStatus()) || (LocalMessageStatus.read == status1.getMessageStatus() && LocalMessageStatus.delivered == status2.getMessageStatus()));
 
-        assertNotNull(status);
-        assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
-        assertEquals("p1", status.getProfileId());
-        assertEquals(LocalMessageStatus.read, status.getMessageStatus());
-        assertTrue(status.getUpdatedOn() > 0);
+        assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status1.getMessageId());
+        assertEquals("p1", status1.getProfileId());
+        assertTrue(status1.getUpdatedOn() > 0);
+        assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status2.getMessageId());
+        assertEquals("p1", status2.getProfileId());
+        assertTrue(status2.getUpdatedOn() > 0);
 
     }
 
@@ -600,7 +603,7 @@ public class ControllerTest {
 
         // Conversations setup
 
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, 1, 3, 0, ChatTestConst.ETAG);
 
         // message setup
 
@@ -655,13 +658,17 @@ public class ControllerTest {
 
         // Check message status
 
-        ChatMessageStatus status = store.getStatuses().get("p1");
+        ChatMessageStatus status1 = (ChatMessageStatus) store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b").getStatusUpdates().toArray()[0];
+        ChatMessageStatus status2 = (ChatMessageStatus) store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b").getStatusUpdates().toArray()[1];
 
-        assertNotNull(status);
-        assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
-        assertEquals("p1", status.getProfileId());
-        assertEquals(MessageStatus.read, status.getMessageStatus());
-        assertTrue(status.getUpdatedOn() > 0);
+        assertTrue((LocalMessageStatus.delivered == status1.getMessageStatus() && LocalMessageStatus.read == status2.getMessageStatus()) || (LocalMessageStatus.read == status1.getMessageStatus() && LocalMessageStatus.delivered == status2.getMessageStatus()));
+
+        assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status1.getMessageId());
+        assertEquals("p1", status1.getProfileId());
+        assertTrue(status1.getUpdatedOn() > 0);
+        assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status2.getMessageId());
+        assertEquals("p1", status2.getProfileId());
+        assertTrue(status2.getUpdatedOn() > 0);
     }
 
     @Test
@@ -833,15 +840,21 @@ public class ControllerTest {
 
         String conversationId = "id";
 
+        store.addMessageToStore("1");
+        store.addMessageToStore("2");
+        store.addMessageToStore("3");
+        store.addMessageToStore("4");
+
+
         ChatResult result = chatController.handleMessageStatusToUpdate(conversationId, list, new MockResult<>(null, true, null, 200)).toBlocking().first();
         assertNotNull(result);
         assertTrue(result.isSuccessful());
         assertNull(result.getError());
-//
-//        assertEquals(MessageStatus.delivered, store.getStatuses(conversationId, "1"));
-//        assertEquals(MessageStatus.delivered, store.getStatus(conversationId, "2").getMessageStatus());
-//        assertEquals(MessageStatus.read, store.getStatus(conversationId, "3").getMessageStatus());
-//        assertEquals(MessageStatus.read, store.getStatus(conversationId, "4").getMessageStatus());
+
+        assertEquals(MessageStatus.delivered.name(), ((ChatMessageStatus) store.getMessages().get("1").getStatusUpdates().toArray()[0]).getMessageStatus().name());
+        assertEquals(MessageStatus.delivered.name(), ((ChatMessageStatus) store.getMessages().get("2").getStatusUpdates().toArray()[0]).getMessageStatus().name());
+        assertEquals(MessageStatus.read.name(), ((ChatMessageStatus) store.getMessages().get("3").getStatusUpdates().toArray()[0]).getMessageStatus().name());
+        assertEquals(MessageStatus.read.name(), ((ChatMessageStatus) store.getMessages().get("4").getStatusUpdates().toArray()[0]).getMessageStatus().name());
     }
 
     @Test
@@ -865,7 +878,7 @@ public class ControllerTest {
     @Test
     public void test_synchroniseEvents_failed() throws IOException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 3, 0, ChatTestConst.ETAG);
 
         mockedComapiClient.addMockedResult(new MockResult<>(null, false, null, 500));
 
@@ -883,7 +896,7 @@ public class ControllerTest {
     @Test
     public void test_queryEventsRecursively_largeNumber() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
 
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, 1, 3, 0, ChatTestConst.ETAG);
 
         String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
@@ -917,13 +930,13 @@ public class ControllerTest {
 
         assertFalse(comparison.isSuccessful);
         assertEquals(999, store.getMessages().size());
-        assertEquals(1, store.getStatuses().size());
+        assertEquals(2, store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b").getStatusUpdates().size());
     }
 
     @Test
     public void test_queryMissingEvents() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, IOException {
 
-        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, -1L, 0, ChatTestConst.ETAG);
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, -1L, 1, 3, 0, ChatTestConst.ETAG);
 
         String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
@@ -950,7 +963,7 @@ public class ControllerTest {
 
         assertFalse(comparison.isSuccessful);
         assertEquals(1000, store.getMessages().size());
-        assertEquals(1, store.getStatuses().size());
+        assertEquals(2, store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b").getStatusUpdates().size());
     }
 
     @After

@@ -65,7 +65,6 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.io.IOException;
-
 import rx.Observable;
 
 import static org.junit.Assert.assertEquals;
@@ -174,7 +173,7 @@ public class EventHandlerTest {
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
                 .setFirstEventId(1L)
-                .setLastEventIdd(2L)
+                .setLastEventId(2L)
                 .setLatestRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
@@ -206,29 +205,31 @@ public class EventHandlerTest {
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
                 .setFirstEventId(1L)
-                .setLastEventIdd(2L)
+                .setLastEventId(2L)
                 .setLatestRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
+        store.addMessageToStore(messageId);
 
         eventsHandler.getMessagingListenerAdapter().onMessageDelivered(event);
         assertTrue(wasChecked);
-        ChatMessageStatus status = store.getStatuses().get("p1");
+
+        ChatMessageStatus status = (ChatMessageStatus) store.getMessages().get(messageId).getStatusUpdates().toArray()[0];
         assertEquals(messageId, status.getMessageId());
         assertTrue(status.getUpdatedOn() > 0);
         assertEquals("profileId", status.getProfileId());
-        assertEquals(MessageStatus.delivered, status.getMessageStatus());
+        assertEquals(MessageStatus.delivered.name(), status.getMessageStatus().name());
 
         // Repeat same status and check again
 
-//        eventsHandler.getMessagingListenerAdapter().onMessageDelivered(event);
-//        assertTrue(wasChecked);
-//        status = store.getStatuses(conversationId, messageId);
-//        assertEquals(messageId, status.getMessageId());
-//        assertTrue(status.getUpdatedOn() > 0);
-//        assertEquals("profileId", status.getProfileId());
-//        assertEquals(MessageStatus.delivered, status.getMessageStatus());
+        eventsHandler.getMessagingListenerAdapter().onMessageDelivered(event);
+        assertTrue(wasChecked);
+        status = (ChatMessageStatus) store.getMessages().get(messageId).getStatusUpdates().toArray()[0];
+        assertEquals(messageId, status.getMessageId());
+        assertTrue(status.getUpdatedOn() > 0);
+        assertEquals("profileId", status.getProfileId());
+        assertEquals(MessageStatus.delivered.name(), status.getMessageStatus().name());
     }
 
     @Test
@@ -244,19 +245,20 @@ public class EventHandlerTest {
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
                 .setFirstEventId(1L)
-                .setLastEventIdd(2L)
+                .setLastEventId(2L)
                 .setLatestRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
+        store.addMessageToStore(messageId);
 
         eventsHandler.getMessagingListenerAdapter().onMessageDelivered(event);
         assertTrue(wasChecked);
-//        ChatMessageStatus status = store.getStatus(null, messageId);
-//        assertEquals(messageId, status.getMessageId());
-//        assertTrue(status.getUpdatedOn() > 0);
-//        assertEquals("profileId", status.getProfileId());
-//        assertEquals(MessageStatus.delivered, status.getMessageStatus());
+        ChatMessageStatus status = (ChatMessageStatus) store.getMessages().get(messageId).getStatusUpdates().toArray()[0];
+        assertEquals(messageId, status.getMessageId());
+        assertTrue(status.getUpdatedOn() > 0);
+        assertEquals("profileId", status.getProfileId());
+        assertEquals(MessageStatus.delivered.name(), status.getMessageStatus().name());
     }
 
     @Test

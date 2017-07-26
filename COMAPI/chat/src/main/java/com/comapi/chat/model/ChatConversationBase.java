@@ -167,7 +167,7 @@ public class ChatConversationBase {
          * @param lastEventId Latest conversation event id known by the app.
          * @return Builder instance.
          */
-        public Builder setLastEventIdd(Long lastEventId) {
+        public Builder setLastEventId(Long lastEventId) {
             this.conversation.lastLocalEventId = lastEventId;
             return this;
         }
