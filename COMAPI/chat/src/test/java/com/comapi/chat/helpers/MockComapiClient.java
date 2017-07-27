@@ -24,13 +24,15 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import com.comapi.ComapiConfig;
 import com.comapi.GlobalState;
 import com.comapi.MessagingListener;
 import com.comapi.ProfileListener;
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
+import com.comapi.chat.ChatConfig;
+import com.comapi.chat.listeners.ParticipantsListener;
+import com.comapi.chat.listeners.TypingListener;
 import com.comapi.internal.data.SessionData;
 import com.comapi.internal.log.LogManager;
 import com.comapi.internal.log.Logger;
@@ -56,6 +58,7 @@ import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
 import com.comapi.internal.network.model.messaging.MessagesQueryResponse;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -74,8 +77,30 @@ public class MockComapiClient extends RxComapiClient {
     private ProfileListener testProfileListener;
     private MessagingListener testMessagingListener;
 
-    MockComapiClient(ComapiConfig config) {
-        super(config);
+    private com.comapi.chat.listeners.ProfileListener configTestProfileListener;
+    private ParticipantsListener configTestMessagingListener;
+    private TypingListener configTypingListener;
+
+    MockComapiClient(ChatConfig config, MockFoundationFactory.ConfigAdapter configAdapter) {
+        super(configAdapter.adapt(config));
+
+        try {
+            Method method = config.getClass().getDeclaredMethod("getParticipantsListener");
+            method.setAccessible(true);
+            configTestMessagingListener = (ParticipantsListener) (method.invoke(config));
+
+            method = config.getClass().getDeclaredMethod("getProfileListener");
+            method.setAccessible(true);
+            configTestProfileListener = (com.comapi.chat.listeners.ProfileListener) (method.invoke(config));
+
+            method = config.getClass().getDeclaredMethod("getTypingListener");
+            method.setAccessible(true);
+            configTypingListener = (TypingListener) (method.invoke(config));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         results = new LinkedBlockingQueue<>();
     }
 
@@ -465,26 +490,34 @@ public class MockComapiClient extends RxComapiClient {
         if (event instanceof ParticipantAddedEvent) {
             if (testMessagingListener != null) {
                 testMessagingListener.onParticipantAdded((ParticipantAddedEvent) event);
+                configTestMessagingListener.onParticipantAdded((ParticipantAddedEvent) event);
             }
         } else if (event instanceof ParticipantRemovedEvent) {
             if (testMessagingListener != null) {
                 testMessagingListener.onParticipantRemoved((ParticipantRemovedEvent) event);
+                configTestMessagingListener.onParticipantRemoved((ParticipantRemovedEvent) event);
             }
         } else if (event instanceof ParticipantUpdatedEvent) {
             if (testMessagingListener != null) {
                 testMessagingListener.onParticipantUpdated((ParticipantUpdatedEvent) event);
+                configTestMessagingListener.onParticipantUpdated((ParticipantUpdatedEvent) event);
             }
         } else if (event instanceof ProfileUpdateEvent) {
             if (testProfileListener != null) {
                 testProfileListener.onProfileUpdate((ProfileUpdateEvent) event);
+                configTestProfileListener.onProfileUpdate((ProfileUpdateEvent) event);
             }
         } else if (event instanceof ParticipantTypingEvent) {
             if (testMessagingListener != null) {
-                testMessagingListener.onParticipantIsTyping((ParticipantTypingEvent) event);
+                ParticipantTypingEvent on = (ParticipantTypingEvent) event;
+                testMessagingListener.onParticipantIsTyping(on);
+                configTypingListener.participantTyping(on.getConversationId(), on.getProfileId(), true);
             }
         } else if (event instanceof ParticipantTypingOffEvent) {
             if (testMessagingListener != null) {
-                testMessagingListener.onParticipantTypingOff((ParticipantTypingOffEvent) event);
+                ParticipantTypingOffEvent off = (ParticipantTypingOffEvent) event;
+                testMessagingListener.onParticipantTypingOff(off);
+                configTypingListener.participantTyping(off.getConversationId(), off.getProfileId(), false);
             }
         }
     }

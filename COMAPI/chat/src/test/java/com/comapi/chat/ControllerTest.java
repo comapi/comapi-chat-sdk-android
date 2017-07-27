@@ -29,12 +29,12 @@ import com.comapi.RxComapiClient;
 import com.comapi.chat.database.Database;
 import com.comapi.chat.database.model.DbOrphanedEvent;
 import com.comapi.chat.helpers.ChatTestConst;
+import com.comapi.chat.helpers.FileResHelper;
 import com.comapi.chat.helpers.MockCallback;
 import com.comapi.chat.helpers.MockComapiClient;
 import com.comapi.chat.helpers.MockConversationDetails;
 import com.comapi.chat.helpers.MockFoundationFactory;
 import com.comapi.chat.helpers.MockResult;
-import com.comapi.chat.helpers.FileResHelper;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
@@ -84,7 +84,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -246,9 +245,9 @@ public class ControllerTest {
         ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
-                .setFirstEventId(1L)
-                .setLastEventId(2L)
-                .setLatestRemoteEventId(2L)
+                .setFirstLocalEventId(1L)
+                .setLastLocalEventId(2L)
+                .setLastRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
@@ -306,9 +305,9 @@ public class ControllerTest {
         ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
-                .setFirstEventId(1L)
-                .setLastEventId(2L)
-                .setLatestRemoteEventId(2L)
+                .setFirstLocalEventId(1L)
+                .setLastLocalEventId(2L)
+                .setLastRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
@@ -379,9 +378,9 @@ public class ControllerTest {
         ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
-                .setFirstEventId(-1L)
-                .setLastEventId(-1L)
-                .setLatestRemoteEventId(-1L)
+                .setFirstLocalEventId(-1L)
+                .setLastLocalEventId(-1L)
+                .setLastRemoteEventId(-1L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
@@ -415,7 +414,7 @@ public class ControllerTest {
         assertTrue(loadedConversation.getConversationId().equals(conversationId));
         assertTrue(loadedConversation.getFirstLocalEventId() == 132L);
         assertTrue(loadedConversation.getLastLocalEventId() == 164L);
-        assertTrue(loadedConversation.getLatestRemoteEventId() == 164L);
+        assertTrue(loadedConversation.getLastRemoteEventId() == 164L);
         assertTrue(loadedConversation.getUpdatedOn() > 0);
 
         // Check if new message added
@@ -560,7 +559,7 @@ public class ControllerTest {
         assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
         assertEquals(1, loadedConversation.getFirstLocalEventId().longValue());
         assertEquals(3, loadedConversation.getLastLocalEventId().longValue());
-        assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
+        assertEquals(3, loadedConversation.getLastRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
 
@@ -636,7 +635,7 @@ public class ControllerTest {
         assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
         assertEquals(1, loadedConversation.getFirstLocalEventId().longValue());
         assertEquals(3, loadedConversation.getLastLocalEventId().longValue());
-        assertEquals(164, loadedConversation.getLatestRemoteEventId().longValue());
+        assertEquals(164, loadedConversation.getLastRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
 
@@ -690,7 +689,7 @@ public class ControllerTest {
         assertTrue(loadedConversation.getConversationId().equals(conversationId));
         assertEquals(-1L, loadedConversation.getFirstLocalEventId().longValue());
         assertEquals(-1L, loadedConversation.getLastLocalEventId().longValue());
-        assertEquals(-1L, loadedConversation.getLatestRemoteEventId().longValue());
+        assertEquals(-1L, loadedConversation.getLastRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals(ChatTestConst.ETAG, loadedConversation.getETag());
     }

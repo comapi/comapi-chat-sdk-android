@@ -29,13 +29,13 @@ import com.comapi.Callback;
 import com.comapi.ComapiAuthenticator;
 import com.comapi.Session;
 import com.comapi.chat.helpers.ChatTestConst;
+import com.comapi.chat.helpers.FileResHelper;
 import com.comapi.chat.helpers.MockCallback;
 import com.comapi.chat.helpers.MockComapiClient;
 import com.comapi.chat.helpers.MockConversationDetails;
 import com.comapi.chat.helpers.MockFoundationFactory;
 import com.comapi.chat.helpers.MockMsgSentResponse;
 import com.comapi.chat.helpers.MockResult;
-import com.comapi.chat.helpers.FileResHelper;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
@@ -438,7 +438,7 @@ public class ClientLevelTest {
         assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
         assertEquals(2, loadedConversation.getFirstLocalEventId().longValue()); // event query or socket events don't change first known id unless it's -1 (empty conversation)
         assertEquals(3, loadedConversation.getLastLocalEventId().longValue()); // was increased
-        assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
+        assertEquals(3, loadedConversation.getLastRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals("eTag", loadedConversation.getETag());
 
@@ -514,7 +514,7 @@ public class ClientLevelTest {
         assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
         assertEquals(2, loadedConversation.getFirstLocalEventId().longValue()); // event query or socket events don't change first known id unless it's -1 (empty conversation)
         assertEquals(3, loadedConversation.getLastLocalEventId().longValue()); // was increased
-        assertEquals(3, loadedConversation.getLatestRemoteEventId().longValue());
+        assertEquals(3, loadedConversation.getLastRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals("eTag", loadedConversation.getETag());
 
@@ -563,9 +563,9 @@ public class ClientLevelTest {
         ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
-                .setFirstEventId(-1L)
-                .setLastEventId(-1L)
-                .setLatestRemoteEventId(-1L)
+                .setFirstLocalEventId(-1L)
+                .setLastLocalEventId(-1L)
+                .setLastRemoteEventId(-1L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
@@ -582,7 +582,7 @@ public class ClientLevelTest {
         assertTrue(loadedConversation.getConversationId().equals(conversationId));
         assertTrue(loadedConversation.getFirstLocalEventId() == 132L);
         assertTrue(loadedConversation.getLastLocalEventId() == 164L);
-        assertTrue(loadedConversation.getLatestRemoteEventId() == 164L);
+        assertTrue(loadedConversation.getLastRemoteEventId() == 164L);
         assertTrue(loadedConversation.getUpdatedOn() > 0);
 
         // Check if new message added
@@ -610,9 +610,9 @@ public class ClientLevelTest {
         ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
-                .setFirstEventId(-1L)
-                .setLastEventId(-1L)
-                .setLatestRemoteEventId(-1L)
+                .setFirstLocalEventId(-1L)
+                .setLastLocalEventId(-1L)
+                .setLastRemoteEventId(-1L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
@@ -629,7 +629,7 @@ public class ClientLevelTest {
         assertTrue(loadedConversation.getConversationId().equals(conversationId));
         assertTrue(loadedConversation.getFirstLocalEventId() == 132L);
         assertTrue(loadedConversation.getLastLocalEventId() == 164L);
-        assertTrue(loadedConversation.getLatestRemoteEventId() == 164L);
+        assertTrue(loadedConversation.getLastRemoteEventId() == 164L);
         assertTrue(loadedConversation.getUpdatedOn() > 0);
 
         // Check if new message added

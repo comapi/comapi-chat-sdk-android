@@ -204,7 +204,7 @@ public class ChatConversation extends ChatConversationBase {
         public Builder populate(ChatConversationBase base) {
             conversation.conversationId = base.getConversationId();
             conversation.updatedOn = base.getUpdatedOn();
-            conversation.latestRemoteEventId = base.getLatestRemoteEventId();
+            conversation.latestRemoteEventId = base.getLastRemoteEventId();
             conversation.lastLocalEventId = base.getLastLocalEventId();
             conversation.firstLocalEventId = base.getFirstLocalEventId();
             conversation.eTag = base.getETag();

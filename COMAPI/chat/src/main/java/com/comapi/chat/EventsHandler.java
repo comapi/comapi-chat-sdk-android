@@ -19,25 +19,16 @@
  */
 package com.comapi.chat;
 
-import android.os.Handler;
-
 import com.comapi.MessagingListener;
-import com.comapi.chat.listeners.ProfileListener;
 import com.comapi.chat.internal.MissingEventsTracker;
-import com.comapi.chat.listeners.ParticipantsListener;
-import com.comapi.chat.listeners.TypingListener;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
-import com.comapi.internal.network.model.events.ProfileUpdateEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationCreateEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationDeleteEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationUndeleteEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationUpdateEvent;
 import com.comapi.internal.network.model.events.conversation.ParticipantAddedEvent;
-import com.comapi.internal.network.model.events.conversation.ParticipantRemovedEvent;
-import com.comapi.internal.network.model.events.conversation.ParticipantTypingEvent;
-import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageDeliveredEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageReadEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageSentEvent;
@@ -102,7 +93,7 @@ public class EventsHandler {
         @Override
         public void onMessageDelivered(MessageDeliveredEvent event) {
             tracker.checkEventId(event.getConversationId(), event.getConversationEventId(), missingEventsListener);
-            observableExecutor.execute(persistenceController.upsertMessageStatus(new ChatMessageStatus(event)));
+            observableExecutor.execute(persistenceController.upsertMessageStatus(ChatMessageStatus.builder().populate(event).build()));
         }
 
         /**
@@ -113,7 +104,7 @@ public class EventsHandler {
         @Override
         public void onMessageRead(MessageReadEvent event) {
             tracker.checkEventId(event.getConversationId(), event.getConversationEventId(), missingEventsListener);
-            observableExecutor.execute(persistenceController.upsertMessageStatus(new ChatMessageStatus(event)));
+            observableExecutor.execute(persistenceController.upsertMessageStatus(ChatMessageStatus.builder().populate(event).build()));
         }
 
         /**

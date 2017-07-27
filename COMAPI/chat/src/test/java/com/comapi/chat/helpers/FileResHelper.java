@@ -20,15 +20,11 @@
 
 package com.comapi.chat.helpers;
 
-import com.comapi.internal.network.AuthManager;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
-
-import okhttp3.mockwebserver.MockResponse;
 
 /**
  * Helper for loading json files and creating mock service responses.

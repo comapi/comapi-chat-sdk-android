@@ -53,33 +53,8 @@ public class ChatMessageStatus implements Comparable<ChatMessageStatus> {
      */
     private Long updatedOn;
 
-    public ChatMessageStatus(String conversationId, String messageId, String profileId, LocalMessageStatus messageStatus, Long updatedOn, Long conversationEventId) {
-        this.messageId = messageId;
-        this.profileId = profileId;
-        this.messageStatus = messageStatus;
-        this.updatedOn = updatedOn;
-        this.conversationId = conversationId;
-        if (conversationEventId != null) {
-            this.conversationEventId = conversationEventId;
-        }
-    }
+    private ChatMessageStatus() {
 
-    public ChatMessageStatus(MessageDeliveredEvent event) {
-        this.messageId = event.getMessageId();
-        this.profileId = event.getProfileId();
-        this.messageStatus = LocalMessageStatus.delivered;
-        this.updatedOn = DateHelper.getUTCMilliseconds(event.getTimestamp());
-        this.conversationId = event.getConversationId();
-        this.conversationEventId = event.getConversationEventId();
-    }
-
-    public ChatMessageStatus(MessageReadEvent event) {
-        this.messageId = event.getMessageId();
-        this.profileId = event.getProfileId();
-        this.messageStatus = LocalMessageStatus.read;
-        this.updatedOn = DateHelper.getUTCMilliseconds(event.getTimestamp());
-        this.conversationId = event.getConversationId();
-        this.conversationEventId = event.getConversationEventId();
     }
 
     public String getMessageId() {
@@ -114,6 +89,55 @@ public class ChatMessageStatus implements Comparable<ChatMessageStatus> {
 
     public Long getConversationEventId() {
         return conversationEventId;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+
+        ChatMessageStatus status;
+
+        Builder() {
+            status = new ChatMessageStatus();
+        }
+
+        public ChatMessageStatus build() {
+            return status;
+        }
+
+        public Builder populate(String conversationId, String messageId, String profileId, LocalMessageStatus messageStatus, Long updatedOn, Long conversationEventId) {
+            this.status.messageId = messageId;
+            this.status.profileId = profileId;
+            this.status.messageStatus = messageStatus;
+            this.status.updatedOn = updatedOn;
+            this.status.conversationId = conversationId;
+            if (conversationEventId != null) {
+                this.status.conversationEventId = conversationEventId;
+            }
+            return this;
+        }
+
+        public Builder populate(MessageDeliveredEvent event) {
+            this.status.messageId = event.getMessageId();
+            this.status.profileId = event.getProfileId();
+            this.status.messageStatus = LocalMessageStatus.delivered;
+            this.status.updatedOn = DateHelper.getUTCMilliseconds(event.getTimestamp());
+            this.status.conversationId = event.getConversationId();
+            this.status.conversationEventId = event.getConversationEventId();
+            return this;
+        }
+
+        public Builder populate(MessageReadEvent event) {
+            this.status.messageId = event.getMessageId();
+            this.status.profileId = event.getProfileId();
+            this.status.messageStatus = LocalMessageStatus.read;
+            this.status.updatedOn = DateHelper.getUTCMilliseconds(event.getTimestamp());
+            this.status.conversationId = event.getConversationId();
+            this.status.conversationEventId = event.getConversationEventId();
+            return this;
+        }
     }
 
     @Override

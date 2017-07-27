@@ -20,30 +20,34 @@
 
 package com.comapi.chat.model;
 
-import android.util.Pair;
-
 import com.comapi.chat.ChatResult;
 import com.comapi.chat.database.model.DbOrphanedEvent;
 import com.comapi.internal.Parser;
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.ComapiResult;
-import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.messaging.MessageReceived;
 import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.OrphanedEvent;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
+ * Class with helper methods to adapt interfaces of Foundation SDK to Chat SDK.
+ *
  * @author Marcin Swierczek
  * @since 1.0.0
  */
 public class ModelAdapter {
 
+    /**
+     * Translates Orphaned events to message statuses.
+     *
+     * @param dbOrphanedEvents Orphaned events received when paging back message history.
+     * @return Message statuses to be applied to appropriate messages.
+     */
     public List<ChatMessageStatus> adaptEvents(List<DbOrphanedEvent> dbOrphanedEvents) {
 
         List<ChatMessageStatus> statuses = new ArrayList<>();
@@ -51,14 +55,20 @@ public class ModelAdapter {
         Parser parser = new Parser();
         for (DbOrphanedEvent event : dbOrphanedEvents) {
             OrphanedEvent orphanedEvent = parser.parse(event.event(), OrphanedEvent.class);
-            statuses.add(new ChatMessageStatus(orphanedEvent.getConversationId(), orphanedEvent.getMessageId(), orphanedEvent.getProfileId(),
+            statuses.add(ChatMessageStatus.builder().populate(orphanedEvent.getConversationId(), orphanedEvent.getMessageId(), orphanedEvent.getProfileId(),
                     orphanedEvent.isEventTypeRead() ? LocalMessageStatus.read : LocalMessageStatus.delivered,
-                    DateHelper.getUTCMilliseconds(orphanedEvent.getTimestamp()), null));
+                    DateHelper.getUTCMilliseconds(orphanedEvent.getTimestamp()), (long) orphanedEvent.getConversationEventId()).build());
         }
 
         return statuses;
     }
 
+    /**
+     * Translates received messages through message query to chat SDK model.
+     *
+     * @param messagesReceived Foundation message objects.
+     * @return Chat SDK message objects.
+     */
     public List<ChatMessage> adaptMessages(List<MessageReceived> messagesReceived) {
 
         List<ChatMessage> chatMessages = new ArrayList<>();
@@ -78,63 +88,59 @@ public class ModelAdapter {
         return chatMessages;
     }
 
+    /**
+     * Translates received message statuses through message query to chat SDK model.
+     *
+     * @param conversationId Conversation unique id.
+     * @param messageId      Message unique id.
+     * @param statuses       Foundation statuses.
+     * @return
+     */
     public List<ChatMessageStatus> adaptStatuses(String conversationId, String messageId, Map<String, MessageReceived.Status> statuses) {
         List<ChatMessageStatus> adapted = new ArrayList<>();
         for (String key : statuses.keySet()) {
             MessageReceived.Status status = statuses.get(key);
-            adapted.add(new ChatMessageStatus(conversationId, messageId, key, status.getStatus().compareTo(MessageStatus.delivered) == 0 ? LocalMessageStatus.delivered : LocalMessageStatus.read, DateHelper.getUTCMilliseconds(status.getTimestamp()), null));
+            adapted.add(ChatMessageStatus.builder().populate(conversationId, messageId, key, status.getStatus().compareTo(MessageStatus.delivered) == 0 ? LocalMessageStatus.delivered : LocalMessageStatus.read, DateHelper.getUTCMilliseconds(status.getTimestamp()), null).build());
         }
         return adapted;
     }
 
+    /**
+     * Translates Foundation result to Chat SDK result.
+     *
+     * @param result Foundation result.
+     * @return Chat SDK result.
+     */
     public ChatResult adaptResult(ComapiResult<?> result) {
 
-        return new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage()+" "+result.getErrorBody()));
+        return new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage() + " " + result.getErrorBody()));
     }
 
+    /**
+     * Translates Foundation result to Chat SDK result.
+     *
+     * @param result  Foundation result.
+     * @param success True if required Chat SDK processing was successful.
+     * @return Chat SDK result.
+     */
     public ChatResult adaptResult(ComapiResult<?> result, Boolean success) {
 
-        return new ChatResult(result.isSuccessful() && success, result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage()+" "+result.getErrorBody()));
+        return new ChatResult(result.isSuccessful() && success, result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage() + " " + result.getErrorBody()));
     }
 
-    public ChatParticipant adapt(Participant participant) {
-
-        return ChatParticipant.builder().populate(participant).build();
-    }
-
+    /**
+     * Translates Foundation conversation participants to Chat SDK conversation participants.
+     *
+     * @param participants Foundation conversation participants.
+     * @return Chat SDK result.
+     */
     public List<ChatParticipant> adapt(List<Participant> participants) {
         List<ChatParticipant> result = new ArrayList<>();
         if (participants != null && !participants.isEmpty()) {
-            for (Participant p :participants) {
-                result.add(adapt(p));
+            for (Participant p : participants) {
+                result.add(ChatParticipant.builder().populate(p).build());
             }
         }
         return result;
-    }
-
-    public Map<String, ChatConversationBase> makeMapFromSavedConversations(List<ChatConversationBase> list) {
-
-        Map<String, ChatConversationBase> map = new HashMap<>();
-
-        if (list != null && !list.isEmpty()) {
-            for (ChatConversationBase details : list) {
-                map.put(details.getConversationId(), details);
-            }
-        }
-
-        return map;
-    }
-
-    public Map<String, Conversation> makeMapFromDownloadedConversations(List<Conversation> list) {
-
-        Map<String, Conversation> map = new HashMap<>();
-
-        if (list != null && !list.isEmpty()) {
-            for (Conversation details : list) {
-                map.put(details.getId(), details);
-            }
-        }
-
-        return map;
     }
 }

@@ -90,7 +90,7 @@ public class ChatConversationBase {
      *
      * @return Latest conversation event id.
      */
-    public Long getLatestRemoteEventId() {
+    public Long getLastRemoteEventId() {
         return latestRemoteEventId;
     }
 
@@ -116,23 +116,6 @@ public class ChatConversationBase {
         return new Builder();
     }
 
-    public void setLatestRemoteEventId(Long latestRemoteEventId) {
-        this.latestRemoteEventId = latestRemoteEventId;
-    }
-
-    public void setLatestLocalEventId(Long lastLocalEventId) {
-        this.lastLocalEventId = lastLocalEventId;
-    }
-
-    public void setFirstLocalEventId(Long firstLocalEventId) {
-        this.firstLocalEventId = firstLocalEventId;
-    }
-
-    public ChatConversationBase setETag(String eTag) {
-        this.eTag = eTag;
-        return this;
-    }
-
     public void setUpdatedOn(Long updatedOn) {
         this.updatedOn = updatedOn;
     }
@@ -156,7 +139,7 @@ public class ChatConversationBase {
          * @param firstEventId Oldest conversation event id known by the app.
          * @return Builder instance.
          */
-        public Builder setFirstEventId(Long firstEventId) {
+        public Builder setFirstLocalEventId(Long firstEventId) {
             this.conversation.firstLocalEventId = firstEventId;
             return this;
         }
@@ -167,7 +150,7 @@ public class ChatConversationBase {
          * @param lastEventId Latest conversation event id known by the app.
          * @return Builder instance.
          */
-        public Builder setLastEventId(Long lastEventId) {
+        public Builder setLastLocalEventId(Long lastEventId) {
             this.conversation.lastLocalEventId = lastEventId;
             return this;
         }
@@ -178,7 +161,7 @@ public class ChatConversationBase {
          * @param latestRemoteEventId Latest conversation event id.
          * @return Builder instance.
          */
-        public Builder setLatestRemoteEventId(Long latestRemoteEventId) {
+        public Builder setLastRemoteEventId(Long latestRemoteEventId) {
             this.conversation.latestRemoteEventId = latestRemoteEventId;
             return this;
         }
@@ -202,6 +185,16 @@ public class ChatConversationBase {
          */
         public Builder setUpdatedOn(Long updatedOn) {
             this.conversation.updatedOn = updatedOn;
+            return this;
+        }
+
+        public Builder populate(ChatConversationBase conversation) {
+            this.conversation.conversationId = conversation.conversationId;
+            this.conversation.latestRemoteEventId = conversation.latestRemoteEventId;
+            this.conversation.lastLocalEventId = conversation.lastLocalEventId;
+            this.conversation.firstLocalEventId = conversation.firstLocalEventId;
+            this.conversation.updatedOn = conversation.updatedOn;
+            this.conversation.eTag = conversation.eTag;
             return this;
         }
 

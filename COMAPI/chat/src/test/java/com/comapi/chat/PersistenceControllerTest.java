@@ -45,7 +45,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(RobolectricGradleTestRunner.class)
@@ -94,17 +93,16 @@ public class PersistenceControllerTest {
         assertTrue(result);
 
         assertEquals(ChatTestConst.CONVERSATION_ID1, store.getConversation(ChatTestConst.CONVERSATION_ID1).getConversationId());
-        assertEquals(Long.valueOf(3), store.getConversation(ChatTestConst.CONVERSATION_ID1).getLatestRemoteEventId());
+        assertEquals(Long.valueOf(3), store.getConversation(ChatTestConst.CONVERSATION_ID1).getLastRemoteEventId());
         assertEquals(Long.valueOf(1), store.getConversation(ChatTestConst.CONVERSATION_ID1).getUpdatedOn());
 
         assertEquals(ChatTestConst.CONVERSATION_ID2, store.getConversation(ChatTestConst.CONVERSATION_ID2).getConversationId());
-        assertEquals(Long.valueOf(6), store.getConversation(ChatTestConst.CONVERSATION_ID2).getLatestRemoteEventId());
+        assertEquals(Long.valueOf(6), store.getConversation(ChatTestConst.CONVERSATION_ID2).getLastRemoteEventId());
         assertEquals(Long.valueOf(2), store.getConversation(ChatTestConst.CONVERSATION_ID2).getUpdatedOn());
 
-        store.getConversation(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(1L);
-        store.getConversation(ChatTestConst.CONVERSATION_ID1).setLatestLocalEventId(2L);
-        store.getConversation(ChatTestConst.CONVERSATION_ID2).setFirstLocalEventId(4L);
-        store.getConversation(ChatTestConst.CONVERSATION_ID2).setLatestLocalEventId(5L);
+        store.upsert(ChatConversation.builder().populate(store.getConversation(ChatTestConst.CONVERSATION_ID1)).setFirstLocalEventId(1L).setLastLocalEventId(2L).build());
+        store.upsert(ChatConversation.builder().populate(store.getConversation(ChatTestConst.CONVERSATION_ID2)).setFirstLocalEventId(4L).setLastLocalEventId(5L).build());
+
         result = persistenceController.upsertConversations(list).toBlocking().first();
         assertTrue(result);
 
@@ -112,7 +110,7 @@ public class PersistenceControllerTest {
 
         assertEquals(ChatTestConst.CONVERSATION_ID1, conversation1.getConversationId());
         assertEquals(Long.valueOf(2), conversation1.getLastLocalEventId());
-        assertEquals(Long.valueOf(3), conversation1.getLatestRemoteEventId());
+        assertEquals(Long.valueOf(3), conversation1.getLastRemoteEventId());
         assertEquals(Long.valueOf(1), conversation1.getUpdatedOn());
         assertEquals(Long.valueOf(1), conversation1.getFirstLocalEventId());
 
@@ -120,7 +118,7 @@ public class PersistenceControllerTest {
 
         assertEquals(ChatTestConst.CONVERSATION_ID2, conversation2.getConversationId());
         assertEquals(Long.valueOf(5), conversation2.getLastLocalEventId());
-        assertEquals(Long.valueOf(6), conversation2.getLatestRemoteEventId());
+        assertEquals(Long.valueOf(6), conversation2.getLastRemoteEventId());
         assertEquals(Long.valueOf(2), conversation2.getUpdatedOn());
         assertEquals(Long.valueOf(4), conversation2.getFirstLocalEventId());
     }

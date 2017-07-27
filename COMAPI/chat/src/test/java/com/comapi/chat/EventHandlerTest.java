@@ -100,7 +100,8 @@ public class EventHandlerTest {
     private Logger logger;
 
     private boolean wasChecked = false;
-    private boolean isTyping = false;
+
+    final List<Object> events = new ArrayList<>();
 
     @Before
     public void setUpChat() throws Exception {
@@ -136,7 +137,29 @@ public class EventHandlerTest {
                 .typingListener(new TypingListener() {
                     @Override
                     public void participantTyping(String conversationId, String participantId, boolean isTyping) {
-                        EventHandlerTest.this.isTyping = isTyping;
+                        events.add(isTyping);
+                    }
+                })
+                .participantsListener(new ParticipantsListener() {
+                    @Override
+                    public void onParticipantAdded(ParticipantAddedEvent event) {
+                        events.add(event);
+                    }
+
+                    @Override
+                    public void onParticipantUpdated(ParticipantUpdatedEvent event) {
+                        events.add(event);
+                    }
+
+                    @Override
+                    public void onParticipantRemoved(ParticipantRemovedEvent event) {
+                        events.add(event);
+                    }
+                })
+                .profileListener(new ProfileListener() {
+                    @Override
+                    public void onProfileUpdate(ProfileUpdateEvent event) {
+                        events.add(event);
                     }
                 })
                 .apiConfiguration(apiConfig)
@@ -183,9 +206,9 @@ public class EventHandlerTest {
         ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
-                .setFirstEventId(1L)
-                .setLastEventId(2L)
-                .setLatestRemoteEventId(2L)
+                .setFirstLocalEventId(1L)
+                .setLastLocalEventId(2L)
+                .setLastRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
@@ -215,9 +238,9 @@ public class EventHandlerTest {
         ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
-                .setFirstEventId(1L)
-                .setLastEventId(2L)
-                .setLatestRemoteEventId(2L)
+                .setFirstLocalEventId(1L)
+                .setLastLocalEventId(2L)
+                .setLastRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
@@ -255,9 +278,9 @@ public class EventHandlerTest {
         ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag("eTag-0")
-                .setFirstEventId(1L)
-                .setLastEventId(2L)
-                .setLatestRemoteEventId(2L)
+                .setFirstLocalEventId(1L)
+                .setLastLocalEventId(2L)
+                .setLastRemoteEventId(2L)
                 .setUpdatedOn(0L)
                 .build();
         store.getConversations().put(conversationId, conversationInStore);
@@ -292,7 +315,7 @@ public class EventHandlerTest {
         assertEquals(conversationId, conversationLoaded.getConversationId());
         assertEquals(eTag, conversationLoaded.getETag());
         assertTrue(conversationLoaded.getUpdatedOn() > 0);
-        assertEquals(Long.valueOf(-1), conversationLoaded.getLatestRemoteEventId());
+        assertEquals(Long.valueOf(-1), conversationLoaded.getLastRemoteEventId());
         assertEquals(Long.valueOf(-1), conversationLoaded.getFirstLocalEventId());
         assertEquals(Long.valueOf(-1), conversationLoaded.getLastLocalEventId());
 
@@ -305,7 +328,7 @@ public class EventHandlerTest {
         assertEquals(conversationId, conversationLoaded.getConversationId());
         assertEquals(eTag, conversationLoaded.getETag());
         assertTrue(conversationLoaded.getUpdatedOn() > 0);
-        assertEquals(Long.valueOf(-1), conversationLoaded.getLatestRemoteEventId());
+        assertEquals(Long.valueOf(-1), conversationLoaded.getLastRemoteEventId());
         assertEquals(Long.valueOf(-1), conversationLoaded.getFirstLocalEventId());
         assertEquals(Long.valueOf(-1), conversationLoaded.getLastLocalEventId());
 
@@ -325,7 +348,7 @@ public class EventHandlerTest {
         assertEquals(conversationId, conversationLoaded.getConversationId());
         assertEquals(eTag, conversationLoaded.getETag());
         assertTrue(conversationLoaded.getUpdatedOn() > 0);
-        assertEquals(Long.valueOf(-1), conversationLoaded.getLatestRemoteEventId());
+        assertEquals(Long.valueOf(-1), conversationLoaded.getLastRemoteEventId());
         assertEquals(Long.valueOf(-1), conversationLoaded.getFirstLocalEventId());
         assertEquals(Long.valueOf(-1), conversationLoaded.getLastLocalEventId());
     }
@@ -384,6 +407,8 @@ public class EventHandlerTest {
         mockedComapiClient.dispatchTestEvent(event1);
 
         assertTrue(events.isEmpty());
+
+        assertTrue(this.events.size() == 3);
     }
 
     @Test
@@ -413,6 +438,8 @@ public class EventHandlerTest {
         mockedComapiClient.dispatchTestEvent(event1);
 
         assertTrue(events.isEmpty());
+
+        assertTrue(this.events.size() == 1); // only one event type was dispatched.
     }
 
     @Test
@@ -445,6 +472,7 @@ public class EventHandlerTest {
         mockedComapiClient.dispatchTestEvent(event1);
         assertTrue(events.isEmpty());
 
+        assertTrue(this.events.size() == 2);
     }
 
     @After
@@ -454,6 +482,6 @@ public class EventHandlerTest {
         callback.reset();
         store.clearDatabase();
         wasChecked = false;
-        isTyping = false;
+        events.clear();
     }
 }

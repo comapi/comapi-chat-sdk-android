@@ -25,7 +25,6 @@ import android.support.annotation.NonNull;
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.model.events.conversation.message.MessageSentEvent;
 import com.comapi.internal.network.model.messaging.MessageReceived;
-import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.Part;
 import com.comapi.internal.network.model.messaging.Sender;
 
@@ -159,11 +158,6 @@ public class ChatMessage implements Comparable<ChatMessage> {
         return statusUpdates.values();
     }
 
-    public void addStatusUpdate(ChatMessageStatus status) {
-        int unique = (status.getMessageId()+status.getProfileId()+status.getMessageStatus().name()).hashCode();
-        statusUpdates.put(unique, status);
-    }
-
     /**
      * Metadata associated with the message e.g. custom id.
      *
@@ -173,6 +167,19 @@ public class ChatMessage implements Comparable<ChatMessage> {
         return metadata;
     }
 
+    /**
+     * Update status list with a new status.
+     *
+     * @param status New message status details.
+     */
+    public void addStatusUpdate(ChatMessageStatus status) {
+        int unique = (status.getMessageId()+status.getProfileId()+status.getMessageStatus().name()).hashCode();
+        statusUpdates.put(unique, status);
+    }
+
+    /**
+     * Internal setter to update sent event id.
+     */
     public ChatMessage setSentEventId(Long sentEventId) {
         this.sentEventId = sentEventId;
         return this;

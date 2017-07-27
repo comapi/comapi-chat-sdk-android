@@ -405,7 +405,7 @@ class ChatController {
     }
 
     ConversationComparison compare(List<Conversation> remote, List<ChatConversationBase> local) {
-        return new ConversationComparison(adapter.makeMapFromDownloadedConversations(remote), adapter.makeMapFromSavedConversations(local));
+        return new ConversationComparison(makeMapFromDownloadedConversations(remote), makeMapFromSavedConversations(local));
     }
 
     ConversationComparison compare(Long remoteLasetEventId, ChatConversationBase conversation) {
@@ -493,7 +493,7 @@ class ChatController {
                 .onBackpressureBuffer()
                 .flatMap(conversation -> persistenceController.getConversation(conversation.getConversationId()))
                 .flatMap(conversation -> {
-                    if (conversation.getLatestRemoteEventId() > conversation.getLastLocalEventId()) {
+                    if (conversation.getLastRemoteEventId() > conversation.getLastLocalEventId()) {
                         final long from = conversation.getLastLocalEventId() >= 0 ? conversation.getLastLocalEventId() : 0;
                         return queryEventsRecursively(client, conversation.getConversationId(), from, 0, successes).map(ComapiResult::isSuccessful);
                     } else {
@@ -550,9 +550,9 @@ class ChatController {
                     MessageSentEvent messageEvent = (MessageSentEvent) event;
                     list.add(persistenceController.updateStoreForNewMessage(ChatMessage.builder().populate(messageEvent).build(), noConversationListener));
                 } else if (event instanceof MessageDeliveredEvent) {
-                    list.add(persistenceController.upsertMessageStatus(new ChatMessageStatus((MessageDeliveredEvent) event)));
+                    list.add(persistenceController.upsertMessageStatus(ChatMessageStatus.builder().populate((MessageDeliveredEvent) event).build()));
                 } else if (event instanceof MessageReadEvent) {
-                    list.add(persistenceController.upsertMessageStatus(new ChatMessageStatus((MessageReadEvent) event)));
+                    list.add(persistenceController.upsertMessageStatus(ChatMessageStatus.builder().populate((MessageReadEvent) event).build()));
                 }
             }
 
@@ -570,7 +570,7 @@ class ChatController {
 
         List<ChatConversation> noEmptyConversations = new ArrayList<>();
         for (ChatConversation c : conversations) {
-            if (c.getLatestRemoteEventId() != null && c.getLatestRemoteEventId() >= 0) {
+            if (c.getLastRemoteEventId() != null && c.getLastRemoteEventId() >= 0) {
                 noEmptyConversations.add(c);
             }
         }
@@ -625,6 +625,44 @@ class ChatController {
                 .flatMap((result) -> processEventsQueryResponse(result, new ArrayList<>())));
     }
 
+    /**
+     * Creates map of conversations based on conversationId for internal purpose.
+     *
+     * @param list List of conversations.
+     * @return Map of conversations.
+     */
+    private Map<String, ChatConversationBase> makeMapFromSavedConversations(List<ChatConversationBase> list) {
+
+        Map<String, ChatConversationBase> map = new HashMap<>();
+
+        if (list != null && !list.isEmpty()) {
+            for (ChatConversationBase details : list) {
+                map.put(details.getConversationId(), details);
+            }
+        }
+
+        return map;
+    }
+
+    /**
+     * Creates map of conversations based on conversationId for internal purpose.
+     *
+     * @param list List of conversations.
+     * @return Map of conversations.
+     */
+    private Map<String, Conversation> makeMapFromDownloadedConversations(List<Conversation> list) {
+
+        Map<String, Conversation> map = new HashMap<>();
+
+        if (list != null && !list.isEmpty()) {
+            for (Conversation details : list) {
+                map.put(details.getId(), details);
+            }
+        }
+
+        return map;
+    }
+
     class ConversationComparison {
 
         boolean isSuccessful = false;
@@ -671,7 +709,7 @@ class ChatController {
             conversationsToAdd = new ArrayList<>();
 
             if (conversation != null && remoteLastEventId != null) {
-                if (conversation.getLatestRemoteEventId() != null && conversation.getLatestRemoteEventId() != -1L && remoteLastEventId > conversation.getLatestRemoteEventId()) {
+                if (conversation.getLastRemoteEventId() != null && conversation.getLastRemoteEventId() != -1L && remoteLastEventId > conversation.getLastRemoteEventId()) {
                     conversationsToUpdate.add(ChatConversation.builder().populate(conversation).setLatestRemoteEventId(remoteLastEventId).build());
                 }
             }

@@ -136,9 +136,9 @@ public class TestChatStore extends ChatStore {
         ChatConversationBase conversationInStore1 = ChatConversationBase.baseBuilder()
                 .setConversationId(conversationId)
                 .setETag(eTag)
-                .setFirstEventId(first)
-                .setLastEventId(last)
-                .setLatestRemoteEventId(lastRemote)
+                .setFirstLocalEventId(first)
+                .setLastLocalEventId(last)
+                .setLastRemoteEventId(lastRemote)
                 .setUpdatedOn(updatedOn)
                 .build();
         conversations.put(conversationId, conversationInStore1);
