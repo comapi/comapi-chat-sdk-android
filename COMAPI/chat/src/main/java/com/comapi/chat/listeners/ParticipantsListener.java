@@ -25,29 +25,31 @@ import com.comapi.internal.network.model.events.conversation.ParticipantRemovedE
 import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedEvent;
 
 /**
+ * Listener for changes to participants list in conversations.
+ *
  * @author Marcin Swierczek
  * @since 1.0.0
  */
 public abstract class ParticipantsListener {
 
     /**
-     * Dispatched participant added to a conversation event.
+     * Participant was added to a conversation.
      *
      * @param event Participant added event.
      */
     public abstract void onParticipantAdded(ParticipantAddedEvent event);
 
     /**
-     * Dispatched participant updated event.
+     * Participant was updated in a a conversation.
      *
-     * @param event Participant removed event.
+     * @param event Participant update event.
      */
     public abstract void onParticipantUpdated(ParticipantUpdatedEvent event);
 
     /**
-     * Dispatched participant removed event.
+     * Participant was removed from a conversation.
      *
-     * @param event Event to dispatch.
+     * @param event Participant removed event.
      */
     public abstract void onParticipantRemoved(ParticipantRemovedEvent event);
 }

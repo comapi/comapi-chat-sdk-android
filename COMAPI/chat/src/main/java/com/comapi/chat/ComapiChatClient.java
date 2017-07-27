@@ -22,17 +22,16 @@ package com.comapi.chat;
 
 import android.app.Application;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 
 import com.comapi.ClientHelper;
 import com.comapi.MessagingListener;
-import com.comapi.chat.listeners.ProfileListener;
 import com.comapi.RxComapiClient;
 import com.comapi.Session;
 import com.comapi.chat.database.Database;
 import com.comapi.chat.internal.MissingEventsTracker;
 import com.comapi.chat.listeners.ParticipantsListener;
+import com.comapi.chat.listeners.ProfileListener;
+import com.comapi.chat.listeners.TypingListener;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.lifecycle.LifecycleListener;
@@ -40,7 +39,12 @@ import com.comapi.internal.log.Logger;
 import com.comapi.internal.network.model.events.ProfileUpdateEvent;
 import com.comapi.internal.network.model.events.conversation.ParticipantAddedEvent;
 import com.comapi.internal.network.model.events.conversation.ParticipantRemovedEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantTypingEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantTypingOffEvent;
 import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedEvent;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Client implementation for chat layer SDK. Handles initialisation and stores all internal objects.
@@ -62,8 +66,9 @@ public class ComapiChatClient {
 
     private final RxChatServiceAccessor rxServiceAccessor;
 
-    private MessagingListener participantsListener;
-    private com.comapi.ProfileListener profileListener;
+    private final Map<ParticipantsListener, MessagingListener> participantsListeners;
+    private final Map<ProfileListener, com.comapi.ProfileListener> profileListeners;
+    private final Map<TypingListener, MessagingListener> typingListeners;
 
     /**
      * Recommended constructor.
@@ -84,9 +89,17 @@ public class ComapiChatClient {
         controller = new ChatController(client, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, log);
         rxServiceAccessor = new RxChatServiceAccessor(modelAdapter, client, controller);
         serviceAccessor = new ChatServiceAccessor(callbackAdapter, rxServiceAccessor);
-        eventsHandler.init(new Handler(Looper.getMainLooper()), persistenceController, controller, new MissingEventsTracker(), chatConfig);
+        eventsHandler.init(persistenceController, controller, new MissingEventsTracker(), chatConfig);
+
         client.addListener(eventsHandler.getMessagingListenerAdapter());
         client.addListener(eventsHandler.getProfileListenerAdapter());
+
+        participantsListeners = new ConcurrentHashMap<>();
+        profileListeners = new ConcurrentHashMap<>();
+        typingListeners = new ConcurrentHashMap<>();
+        addListener(chatConfig.getParticipantsListener());
+        addListener(chatConfig.getProfileListener());
+        addListener(chatConfig.getTypingListener());
     }
 
     /**
@@ -134,11 +147,9 @@ public class ComapiChatClient {
         client.clean(application.getApplicationContext());
     }
 
-    public void setListener(final ParticipantsListener participantsListener) {
-
+    public void addListener(final ParticipantsListener participantsListener) {
         if (participantsListener != null) {
-
-            this.participantsListener = new MessagingListener() {
+            MessagingListener messagingListener = new MessagingListener() {
 
                 @Override
                 public void onParticipantAdded(ParticipantAddedEvent event) {
@@ -155,32 +166,64 @@ public class ComapiChatClient {
                     participantsListener.onParticipantRemoved(event);
                 }
             };
+            participantsListeners.put(participantsListener, messagingListener);
+            client.addListener(messagingListener);
         }
-
-        client.addListener(this.participantsListener);
     }
 
-    public void removeParticipantsListener() {
-        client.removeListener(this.participantsListener);
-        this.participantsListener = null;
+    public void removeListener(final ParticipantsListener participantsListener) {
+        MessagingListener messagingListener = participantsListeners.get(participantsListener);
+        if (messagingListener != null) {
+            client.removeListener(messagingListener);
+            participantsListeners.remove(participantsListener);
+        }
     }
 
-    public void setListener(final ProfileListener profileListener) {
-
+    public void addListener(final ProfileListener profileListener) {
         if (profileListener != null) {
-            this.profileListener = new com.comapi.ProfileListener() {
+            com.comapi.ProfileListener foundationListener = new com.comapi.ProfileListener() {
                 @Override
                 public void onProfileUpdate(ProfileUpdateEvent event) {
                     profileListener.onProfileUpdate(event);
                 }
             };
+            profileListeners.put(profileListener, foundationListener);
+            client.addListener(foundationListener);
         }
-
-        client.addListener(this.participantsListener);
     }
 
-    public void removeProfileListener() {
-        client.removeListener(this.profileListener);
-        this.profileListener = null;
+    public void removeListener(final ProfileListener profileListener) {
+        com.comapi.ProfileListener foundationListener = profileListeners.get(profileListener);
+        if (foundationListener != null) {
+            client.removeListener(foundationListener);
+            profileListeners.remove(profileListener);
+        }
+    }
+
+    public void addListener(final TypingListener typingListener) {
+        if (typingListener != null) {
+            MessagingListener messagingListener = new MessagingListener() {
+
+                @Override
+                public void onParticipantIsTyping(ParticipantTypingEvent event) {
+                    typingListener.participantTyping(event.getConversationId(), event.getProfileId(), true);
+                }
+
+                @Override
+                public void onParticipantTypingOff(ParticipantTypingOffEvent event) {
+                    typingListener.participantTyping(event.getConversationId(), event.getProfileId(), false);
+                }
+            };
+            typingListeners.put(typingListener, messagingListener);
+            client.addListener(messagingListener);
+        }
+    }
+
+    public void removeListener(final TypingListener typingListener) {
+        MessagingListener messagingListener = typingListeners.get(typingListener);
+        if (messagingListener != null) {
+            client.removeListener(messagingListener);
+            typingListeners.remove(typingListener);
+        }
     }
 }

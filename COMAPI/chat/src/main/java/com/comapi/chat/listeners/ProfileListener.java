@@ -23,15 +23,17 @@ package com.comapi.chat.listeners;
 import com.comapi.internal.network.model.events.ProfileUpdateEvent;
 
 /**
+ * Listener for changes to user profile details.
+ *
  * @author Marcin Swierczek
  * @since 1.0.0
  */
 public abstract class ProfileListener {
 
     /**
-     * Update user profile.
+     * User profile was updated.
      *
-     * @param event Profile update.
+     * @param event Profile update details.
      */
     public abstract void onProfileUpdate(ProfileUpdateEvent event);
 }

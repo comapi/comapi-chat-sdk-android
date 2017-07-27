@@ -21,20 +21,21 @@
 package com.comapi.chat;
 
 import android.os.Build;
-import android.os.Handler;
 
 import com.comapi.APIConfig;
 import com.comapi.ComapiAuthenticator;
 import com.comapi.chat.database.Database;
 import com.comapi.chat.helpers.ChatTestConst;
+import com.comapi.chat.helpers.FileResHelper;
 import com.comapi.chat.helpers.MockCallback;
 import com.comapi.chat.helpers.MockComapiClient;
 import com.comapi.chat.helpers.MockConversationDetails;
 import com.comapi.chat.helpers.MockFoundationFactory;
 import com.comapi.chat.helpers.MockResult;
-import com.comapi.chat.helpers.FileResHelper;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.internal.MissingEventsTracker;
+import com.comapi.chat.listeners.ParticipantsListener;
+import com.comapi.chat.listeners.ProfileListener;
 import com.comapi.chat.listeners.TypingListener;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
@@ -48,10 +49,16 @@ import com.comapi.internal.log.Logger;
 import com.comapi.internal.network.AuthClient;
 import com.comapi.internal.network.ChallengeOptions;
 import com.comapi.internal.network.model.conversation.ConversationDetails;
+import com.comapi.internal.network.model.events.ProfileUpdateEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationDeleteEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationUndeleteEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationUpdateEvent;
 import com.comapi.internal.network.model.events.conversation.ParticipantAddedEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantRemovedEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantTypingEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantTypingOffEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageDeliveredEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageSentEvent;
 import com.comapi.internal.network.model.messaging.MessageStatus;
@@ -65,9 +72,13 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import rx.Observable;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -150,7 +161,7 @@ public class EventHandlerTest {
             }
         }, modelAdapter, logger);
 
-        eventsHandler.init(new Handler(), persistenceController, chatController, new MissingEventsTracker() {
+        eventsHandler.init(persistenceController, chatController, new MissingEventsTracker() {
             @Override
             public boolean checkEventId(String conversationId, long conversationEventId, MissingEventsListener missingEventsListener) {
                 wasChecked = true;
@@ -317,6 +328,123 @@ public class EventHandlerTest {
         assertEquals(Long.valueOf(-1), conversationLoaded.getLatestRemoteEventId());
         assertEquals(Long.valueOf(-1), conversationLoaded.getFirstLocalEventId());
         assertEquals(Long.valueOf(-1), conversationLoaded.getLastLocalEventId());
+    }
+
+    @Test
+    public void test_ParticipantEvents() throws IOException {
+
+        final List<ParticipantEvent> events = new ArrayList<>();
+
+        ParticipantsListener participantListener = new ParticipantsListener() {
+            @Override
+            public void onParticipantAdded(ParticipantAddedEvent event) {
+                events.add(event);
+            }
+
+            @Override
+            public void onParticipantUpdated(ParticipantUpdatedEvent event) {
+                events.add(event);
+            }
+
+            @Override
+            public void onParticipantRemoved(ParticipantRemovedEvent event) {
+                events.add(event);
+            }
+        };
+
+        client.addListener(participantListener);
+
+        Parser parser = new Parser();
+        String json = FileResHelper.readFromFile(this, "participant_added.json");
+        ParticipantAddedEvent event1 = parser.parse(json, ParticipantAddedEvent.class);
+        mockedComapiClient.dispatchTestEvent(event1);
+
+        json = FileResHelper.readFromFile(this, "participant_updated.json");
+        ParticipantUpdatedEvent event2 = parser.parse(json, ParticipantUpdatedEvent.class);
+        mockedComapiClient.dispatchTestEvent(event2);
+
+        json = FileResHelper.readFromFile(this, "participant_removed.json");
+        ParticipantRemovedEvent event3 = parser.parse(json, ParticipantRemovedEvent.class);
+        mockedComapiClient.dispatchTestEvent(event3);
+
+        assertTrue(events.get(0) instanceof ParticipantAddedEvent);
+        assertEquals("conversationId", events.get(0).getConversationId());
+        assertEquals("profileId", events.get(0).getProfileId());
+
+        assertTrue(events.get(1) instanceof ParticipantUpdatedEvent);
+        assertEquals("conversationId", events.get(0).getConversationId());
+        assertEquals("profileId", events.get(0).getProfileId());
+
+        assertTrue(events.get(2) instanceof ParticipantRemovedEvent);
+        assertEquals("conversationId", events.get(0).getConversationId());
+        assertEquals("profileId", events.get(0).getProfileId());
+
+        events.clear();
+        client.removeListener(participantListener);
+        mockedComapiClient.dispatchTestEvent(event1);
+
+        assertTrue(events.isEmpty());
+    }
+
+    @Test
+    public void test_ProfileEvents() throws IOException {
+
+        final List<ProfileUpdateEvent> events = new ArrayList<>();
+
+        ProfileListener profileListener = new ProfileListener() {
+            @Override
+            public void onProfileUpdate(ProfileUpdateEvent event) {
+                events.add(event);
+            }
+        };
+
+        client.addListener(profileListener);
+
+        Parser parser = new Parser();
+        String json = FileResHelper.readFromFile(this, "profile_update.json");
+        ProfileUpdateEvent event1 = parser.parse(json, ProfileUpdateEvent.class);
+        mockedComapiClient.dispatchTestEvent(event1);
+
+        assertNotNull(events.get(0));
+        assertEquals("profileId", events.get(0).getProfileId());
+
+        events.clear();
+        client.removeListener(profileListener);
+        mockedComapiClient.dispatchTestEvent(event1);
+
+        assertTrue(events.isEmpty());
+    }
+
+    @Test
+    public void test_TypingEvents() throws IOException {
+
+        final List<Boolean> events = new ArrayList<>();
+
+        TypingListener typingListener = new TypingListener() {
+            @Override
+            public void participantTyping(String conversationId, String participantId, boolean isTyping) {
+                events.add(isTyping);
+            }
+        };
+
+        client.addListener(typingListener);
+
+        Parser parser = new Parser();
+        String json = FileResHelper.readFromFile(this, "is_typing.json");
+        ParticipantTypingEvent event1 = parser.parse(json, ParticipantTypingEvent.class);
+        mockedComapiClient.dispatchTestEvent(event1);
+
+        json = FileResHelper.readFromFile(this, "typing_off.json");
+        ParticipantTypingOffEvent event2 = parser.parse(json, ParticipantTypingOffEvent.class);
+        mockedComapiClient.dispatchTestEvent(event2);
+
+        assertEquals(true, (!events.get(0) && events.get(1)) || (events.get(0) && !events.get(1)));
+
+        client.removeListener(typingListener);
+        events.clear();
+        mockedComapiClient.dispatchTestEvent(event1);
+        assertTrue(events.isEmpty());
+
     }
 
     @After

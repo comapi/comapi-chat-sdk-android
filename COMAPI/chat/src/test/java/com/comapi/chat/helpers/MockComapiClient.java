@@ -31,7 +31,6 @@ import com.comapi.ProfileListener;
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
-import com.comapi.StateListener;
 import com.comapi.internal.data.SessionData;
 import com.comapi.internal.log.LogManager;
 import com.comapi.internal.log.Logger;
@@ -43,6 +42,13 @@ import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
 import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.conversation.Scope;
+import com.comapi.internal.network.model.events.Event;
+import com.comapi.internal.network.model.events.ProfileUpdateEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantAddedEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantRemovedEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantTypingEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantTypingOffEvent;
+import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedEvent;
 import com.comapi.internal.network.model.messaging.ConversationEventsResponse;
 import com.comapi.internal.network.model.messaging.EventsQueryResponse;
 import com.comapi.internal.network.model.messaging.MessageSentResponse;
@@ -64,6 +70,9 @@ import rx.Observable;
 public class MockComapiClient extends RxComapiClient {
 
     private LinkedBlockingQueue<ComapiResult<?>> results;
+
+    private ProfileListener testProfileListener;
+    private MessagingListener testMessagingListener;
 
     MockComapiClient(ComapiConfig config) {
         super(config);
@@ -402,17 +411,22 @@ public class MockComapiClient extends RxComapiClient {
 
     @Override
     public void addListener(MessagingListener listener) {
+        testMessagingListener = listener;
+    }
 
+    @Override
+    public void removeListener(MessagingListener listener) {
+        testMessagingListener = null;
     }
 
     @Override
     public void addListener(ProfileListener listener) {
-
+        testProfileListener = listener;
     }
 
     @Override
-    public void addListener(StateListener listener) {
-
+    public void removeListener(ProfileListener listener) {
+        testProfileListener = null;
     }
 
     @Override
@@ -445,5 +459,33 @@ public class MockComapiClient extends RxComapiClient {
 
     public void clearResults() {
         results.clear();
+    }
+
+    public void dispatchTestEvent(Event event) {
+        if (event instanceof ParticipantAddedEvent) {
+            if (testMessagingListener != null) {
+                testMessagingListener.onParticipantAdded((ParticipantAddedEvent) event);
+            }
+        } else if (event instanceof ParticipantRemovedEvent) {
+            if (testMessagingListener != null) {
+                testMessagingListener.onParticipantRemoved((ParticipantRemovedEvent) event);
+            }
+        } else if (event instanceof ParticipantUpdatedEvent) {
+            if (testMessagingListener != null) {
+                testMessagingListener.onParticipantUpdated((ParticipantUpdatedEvent) event);
+            }
+        } else if (event instanceof ProfileUpdateEvent) {
+            if (testProfileListener != null) {
+                testProfileListener.onProfileUpdate((ProfileUpdateEvent) event);
+            }
+        } else if (event instanceof ParticipantTypingEvent) {
+            if (testMessagingListener != null) {
+                testMessagingListener.onParticipantIsTyping((ParticipantTypingEvent) event);
+            }
+        } else if (event instanceof ParticipantTypingOffEvent) {
+            if (testMessagingListener != null) {
+                testMessagingListener.onParticipantTypingOff((ParticipantTypingOffEvent) event);
+            }
+        }
     }
 }

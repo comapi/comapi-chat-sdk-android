@@ -58,25 +58,15 @@ public class EventsHandler {
 
     private PersistenceController persistenceController;
 
-    private TypingListener typingListener;
-    private ParticipantsListener participantsListener;
-    private ProfileListener profileListener;
-
-    private Handler mainThreadHandler;
-
     private MissingEventsTracker tracker;
 
     private MissingEventsTracker.MissingEventsListener missingEventsListener;
 
     private ObservableExecutor observableExecutor;
 
-    void init(Handler mainThreadHandler, PersistenceController store, ChatController controller, MissingEventsTracker tracker, ChatConfig config) {
-        this.mainThreadHandler = mainThreadHandler;
+    void init(PersistenceController store, ChatController controller, MissingEventsTracker tracker, ChatConfig config) {
         this.persistenceController = store;
         this.controller = controller;
-        this.typingListener = config.getTypingListener();
-        this.participantsListener = config.getParticipantsListener();
-        this.profileListener = config.getProfileListener();
         this.profileListenerAdapter = new ProfileListenerAdapter();
         this.messagingListenerAdapter = new MessagingListenerAdapter();
         this.tracker = tracker;
@@ -94,16 +84,6 @@ public class EventsHandler {
 
     class ProfileListenerAdapter extends com.comapi.ProfileListener {
 
-        /**
-         * Update user profile.
-         *
-         * @param event Profile update.
-         */
-        public void onProfileUpdate(ProfileUpdateEvent event) {
-            if (profileListener != null) {
-                profileListener.onProfileUpdate(event);
-            }
-        }
     }
 
     class MessagingListenerAdapter extends MessagingListener {
@@ -144,33 +124,6 @@ public class EventsHandler {
         @Override
         public void onParticipantAdded(ParticipantAddedEvent event) {
             observableExecutor.execute(controller.handleParticipantsAdded(event.getConversationId()));
-            if (participantsListener != null) {
-                participantsListener.onParticipantAdded(event);
-            }
-        }
-
-        /**
-         * Dispatch participant updated event.
-         *
-         * @param event Event to dispatch.
-         */
-        @Override
-        public void onParticipantUpdated(ParticipantUpdatedEvent event) {
-            if (participantsListener != null) {
-                participantsListener.onParticipantUpdated(event);
-            }
-        }
-
-        /**
-         * Dispatch participant removed event.
-         *
-         * @param event Event to dispatch.
-         */
-        @Override
-        public void onParticipantRemoved(ParticipantRemovedEvent event) {
-            if (participantsListener != null) {
-                participantsListener.onParticipantRemoved(event);
-            }
         }
 
         /**
@@ -211,20 +164,6 @@ public class EventsHandler {
         @Override
         public void onConversationUndeleted(ConversationUndeleteEvent event) {
             observableExecutor.execute(persistenceController.upsertConversation(ChatConversation.builder().populate(event).build()));
-        }
-
-        /**
-         * Dispatch participant is typing event.
-         *
-         * @param event Event to dispatch.
-         */
-        @Override
-        public void onParticipantIsTyping(ParticipantTypingEvent event) {
-            if (typingListener != null) {
-                mainThreadHandler.post(() -> {
-                    typingListener.participantTyping(event.getConversationId(), event.getProfileId(), true);
-                });
-            }
         }
     }
 }

@@ -21,9 +21,19 @@
 package com.comapi.chat.listeners;
 
 /**
+ * Listener for user started, stopped typing events in a conversation.
+ *
  * @author Marcin Swierczek
  * @since 1.0.0
  */
 public abstract class TypingListener {
+
+    /**
+     * Participant started or stopped typing in a conversation.
+     *
+     * @param conversationId Conversation unique id.
+     * @param participantId  Participant uinque id.
+     * @param isTyping       True if participant started typing, false if he finished typing.
+     */
     public abstract void participantTyping(String conversationId, String participantId, boolean isTyping);
 }

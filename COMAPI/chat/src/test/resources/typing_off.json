@@ -1,0 +1,15 @@
+{
+  "eventId":"9166d3a9-4294-4405-9b04-0b04a9e15d22",
+  "payload":{
+    "conversationId":"support",
+    "profileId":"profile"
+  },
+  "context":{
+    "createdBy":"session:profile",
+    "createdOn":"2017-04-19T08:12:14.694Z"
+  },
+  "accountId":123,
+  "apiSpaceId":"05174ce9-e27d-413b-a696-29ce061930d5",
+  "name":"conversation.participantTypingOff",
+  "publishedOn":"2017-04-19T08:12:14.694Z"
+}
