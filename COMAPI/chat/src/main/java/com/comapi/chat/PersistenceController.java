@@ -229,6 +229,13 @@ class PersistenceController {
         }
     }
 
+    /**
+     * Deletes temporary message and inserts provided one. If no associated conversation exists will trigger GET from server.
+     *
+     * @param message                Message to save.
+     * @param noConversationListener Listener for the chat controller to get conversation if no local copy is present.
+     * @return Observable emitting result.
+     */
     public Observable<Boolean> updateStoreForNewMessage(final ChatMessage message, final ChatController.NoConversationListener noConversationListener) {
 
         return asObservable(new Executor<Boolean>() {
@@ -272,6 +279,14 @@ class PersistenceController {
         });
     }
 
+    /**
+     * Insert 'error' message status if sending message failed.
+     *
+     * @param conversationId Unique conversation id.
+     * @param tempId         Id of an temporary message for which
+     * @param profileId      Profile id from current session data.
+     * @return Observable emitting result.
+     */
     public Observable<Boolean> updateStoreForSentError(String conversationId, String tempId, String profileId) {
 
         return asObservable(new Executor<Boolean>() {
@@ -286,23 +301,15 @@ class PersistenceController {
         });
     }
 
-    public Observable<Boolean> upsertMessageStatus(ChatMessageStatus status) {
-
-        return asObservable(new Executor<Boolean>() {
-            @Override
-            void execute(ChatStore store, Emitter<Boolean> emitter) {
-
-                store.beginTransaction();
-
-                boolean isSuccessful = store.update(status) && doUpdateConversationFromEvent(store, status.getConversationId(), status.getConversationEventId(), status.getUpdatedOn());
-                store.endTransaction();
-
-                emitter.onNext(isSuccessful);
-                emitter.onCompleted();
-            }
-        });
-    }
-
+    /**
+     * Update conversation state with received event details.
+     *
+     * @param store          Chat Store instance.
+     * @param conversationId Unique conversation id.
+     * @param eventId        Conversation event id.
+     * @param updatedOn      New timestamp of state update.
+     * @return True if successful.
+     */
     private boolean doUpdateConversationFromEvent(ChatStore store, String conversationId, Long eventId, Long updatedOn) {
 
         ChatConversationBase conversation = store.getConversation(conversationId);
@@ -331,6 +338,37 @@ class PersistenceController {
         return false;
     }
 
+    /**
+     * Insert new message status.
+     *
+     * @param status New message status.
+     * @return Observable emitting result.
+     */
+    public Observable<Boolean> upsertMessageStatus(ChatMessageStatus status) {
+
+        return asObservable(new Executor<Boolean>() {
+            @Override
+            void execute(ChatStore store, Emitter<Boolean> emitter) {
+
+                store.beginTransaction();
+
+                boolean isSuccessful = store.update(status) && doUpdateConversationFromEvent(store, status.getConversationId(), status.getConversationEventId(), status.getUpdatedOn());
+                store.endTransaction();
+
+                emitter.onNext(isSuccessful);
+                emitter.onCompleted();
+            }
+        });
+    }
+
+    /**
+     * Insert new message statuses obtained from message query.
+     *
+     * @param conversationId Unique conversation id.
+     * @param profileId      Profile id from current session details.
+     * @param msgStatusList  New message statuses.
+     * @return Observable emitting result.
+     */
     public Observable<Boolean> upsertMessageStatuses(String conversationId, String profileId, List<MessageStatusUpdate> msgStatusList) {
 
         return asObservable(new Executor<Boolean>() {
@@ -363,6 +401,12 @@ class PersistenceController {
         });
     }
 
+    /**
+     * Get conversation from the store.
+     *
+     * @param conversationId Unique conversation id.
+     * @return Observable emitting conversation object from the store.
+     */
     public Observable<ChatConversationBase> getConversation(String conversationId) {
 
         return asObservable(new Executor<ChatConversationBase>() {
@@ -374,6 +418,12 @@ class PersistenceController {
         });
     }
 
+    /**
+     * Insert or update conversation in the store.
+     *
+     * @param conversation Conversation object to insert or apply an update.
+     * @return Observable emitting result.
+     */
     public Observable<Boolean> upsertConversation(ChatConversation conversation) {
 
         List<ChatConversation> conversations = new ArrayList<>();
@@ -381,6 +431,12 @@ class PersistenceController {
         return upsertConversations(conversations);
     }
 
+    /**
+     * Insert or update a list of conversations.
+     *
+     * @param conversationsToAdd List of conversations to insert or apply an update.
+     * @return bservable emitting result.
+     */
     public Observable<Boolean> upsertConversations(List<ChatConversation> conversationsToAdd) {
 
         return asObservable(new Executor<Boolean>() {
@@ -399,9 +455,9 @@ class PersistenceController {
                         toSave.setFirstLocalEventId(-1L);
                         toSave.setLastLocalEventId(-1L);
                         if (conversation.getLastRemoteEventId() == null) {
-                            toSave.setLatestRemoteEventId(-1L);
+                            toSave.setLastRemoteEventId(-1L);
                         } else {
-                            toSave.setLatestRemoteEventId(conversation.getLastRemoteEventId());
+                            toSave.setLastRemoteEventId(conversation.getLastRemoteEventId());
                         }
                         if (conversation.getUpdatedOn() == null) {
                             toSave.setUpdatedOn(System.currentTimeMillis());
@@ -412,9 +468,9 @@ class PersistenceController {
                         toSave.setFirstLocalEventId(saved.getFirstLocalEventId());
                         toSave.setLastLocalEventId(saved.getLastLocalEventId());
                         if (conversation.getLastRemoteEventId() == null) {
-                            toSave.setLatestRemoteEventId(saved.getLastRemoteEventId());
+                            toSave.setLastRemoteEventId(saved.getLastRemoteEventId());
                         } else {
-                            toSave.setLatestRemoteEventId(Math.max(saved.getLastRemoteEventId(), conversation.getLastRemoteEventId()));
+                            toSave.setLastRemoteEventId(Math.max(saved.getLastRemoteEventId(), conversation.getLastRemoteEventId()));
                         }
                         if (conversation.getUpdatedOn() == null) {
                             toSave.setUpdatedOn(System.currentTimeMillis());
@@ -434,6 +490,12 @@ class PersistenceController {
         });
     }
 
+    /**
+     * Update conversations.
+     *
+     * @param conversationsToUpdate List of conversations to apply an update.
+     * @return Observable emitting result.
+     */
     public Observable<Boolean> updateConversations(List<ChatConversation> conversationsToUpdate) {
 
         return asObservable(new Executor<Boolean>() {
@@ -476,6 +538,12 @@ class PersistenceController {
 
     }
 
+    /**
+     * Delete conversation from the store.
+     *
+     * @param conversationId Unique conversation id.
+     * @return Observable emitting result.
+     */
     public Observable<Boolean> deleteConversation(String conversationId) {
 
         return asObservable(new Executor<Boolean>() {
@@ -490,10 +558,22 @@ class PersistenceController {
         });
     }
 
+    /**
+     * Delete orphaned events from internal database.
+     *
+     * @param ids Ids of events to remove from internal database.
+     * @return Observable emitting number of deleted events.
+     */
     public Observable<Integer> deleteOrphanedEvents(String[] ids) {
         return db.deleteOrphanedEvents(ids);
     }
 
+    /**
+     * Delete conversations from the store.
+     *
+     * @param conversationsToDelete List of conversations to delete.
+     * @return Observable emitting result.
+     */
     public Observable<Boolean> deleteConversations(List<ChatConversationBase> conversationsToDelete) {
         return asObservable(new Executor<Boolean>() {
             @Override
@@ -510,6 +590,13 @@ class PersistenceController {
         });
     }
 
+    /**
+     * Executes transaction callback ass an observable.
+     *
+     * @param transaction Store transaction.
+     * @param <T>         Store class.
+     * @return Observable executing given store transaction.
+     */
     private <T> Observable<T> asObservable(Executor<T> transaction) {
         return Observable.create(emitter -> storeFactory.execute(new StoreTransaction<ChatStore>() {
             @Override
@@ -523,7 +610,18 @@ class PersistenceController {
         }), Emitter.BackpressureMode.BUFFER);
     }
 
+    /**
+     * Interface to provide implementation of an transaction to execute.
+     *
+     * @param <T> Emitted result class.
+     */
     abstract class Executor<T> {
+        /**
+         * Execute transaction.
+         *
+         * @param store   Store implementation.
+         * @param emitter Abstraction over a RxJava Subscriber.
+         */
         abstract void execute(ChatStore store, Emitter<T> emitter);
     }
 }

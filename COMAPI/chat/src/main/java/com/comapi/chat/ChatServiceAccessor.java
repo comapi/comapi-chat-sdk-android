@@ -24,6 +24,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.comapi.Callback;
+import com.comapi.QueryBuilder;
 import com.comapi.ServiceAccessor;
 import com.comapi.Session;
 import com.comapi.chat.model.ChatParticipant;
@@ -97,7 +98,7 @@ public class ChatServiceAccessor {
         }
 
         /**
-         * Returns observable to create a conversation.
+         * Create a conversation.
          *
          * @param request  Request with conversation details to create.
          * @param callback Callback with the result.
@@ -107,7 +108,7 @@ public class ChatServiceAccessor {
         }
 
         /**
-         * Returns observable to create a conversation.
+         * Create a conversation.
          *
          * @param conversationId ID of a conversation to delete.
          * @param callback       Callback with the result.
@@ -117,7 +118,7 @@ public class ChatServiceAccessor {
         }
 
         /**
-         * Returns observable to update a conversation.
+         * Update a conversation.
          *
          * @param conversationId ID of a conversation to update.
          * @param request        Request with conversation details to update.
@@ -127,12 +128,18 @@ public class ChatServiceAccessor {
             callbackAdapter.adapt(rxMessaging.updateConversation(conversationId, eTag, request), callback);
         }
 
+        /**
+         * Gets conversation participants.
+         *
+         * @param conversationId ID of a conversation to query participant list.
+         * @param callback       Callback with the result.
+         */
         public void getParticipants(@NonNull final String conversationId, @Nullable Callback<List<ChatParticipant>> callback) {
             callbackAdapter.adapt(rxMessaging.getParticipants(conversationId), callback);
         }
 
         /**
-         * Returns observable to remove list of participants from a conversation.
+         * Remove list of participants from a conversation.
          *
          * @param conversationId ID of a conversation to delete.
          * @param ids            List of participant ids to be removed.
@@ -143,7 +150,7 @@ public class ChatServiceAccessor {
         }
 
         /**
-         * Returns observable to add a list of participants to a conversation.
+         * Add a list of participants to a conversation.
          *
          * @param conversationId ID of a conversation to update.
          * @param participants   New conversation participants details.
@@ -211,6 +218,12 @@ public class ChatServiceAccessor {
             callbackAdapter.adapt(rxMessaging.synchroniseStore(), callback);
         }
 
+        /**
+         * Check for missing messages and other events and update local store.
+         *
+         * @param conversationId Unique conversationId.
+         * @param callback       Callback with the result.
+         */
         public void synchroniseConversation(@NonNull final String conversationId, @Nullable Callback<Boolean> callback) {
             callbackAdapter.adapt(rxMessaging.synchroniseConversation(conversationId), callback);
         }
@@ -235,26 +248,57 @@ public class ChatServiceAccessor {
             this.rxProfile = rxProfile;
         }
 
+        /**
+         * Gets profile data.
+         *
+         * @param profileId Unique profile id.
+         * @return Map of custom profile data.
+         */
         @Override
         public void getProfile(@NonNull String profileId, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
             callbackAdapter.adapt(rxProfile.getProfile(profileId), callback);
         }
 
+        /**
+         * Query user profiles.
+         *
+         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use {@link QueryBuilder} helper class to construct valid query string.
+         * @param callback    Callback with the result.
+         */
         @Override
         public void queryProfiles(@NonNull String queryString, @Nullable Callback<ComapiResult<List<Map<String, Object>>>> callback) {
             callbackAdapter.adapt(rxProfile.queryProfiles(queryString), callback);
         }
 
+        /**
+         * Updates profile for an active session.
+         *
+         * @param profileDetails Profile details.
+         * @param callback       Callback with the result.
+         */
         @Override
         public void updateProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
             callbackAdapter.adapt(rxProfile.updateProfile(profileDetails, eTag), callback);
         }
 
+        /**
+         * Applies given profile patch if required permission is granted.
+         *
+         * @param profileDetails Profile details.
+         * @param callback       Callback with the result.
+         */
         @Override
-        public void patchProfile(@NonNull String profileId, @NonNull Map<String, Object> profileDetails, @Nullable  String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
+        public void patchProfile(@NonNull String profileId, @NonNull Map<String, Object> profileDetails, @Nullable String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
             callbackAdapter.adapt(rxProfile.patchProfile(profileId, profileDetails, eTag), callback);
         }
 
+        /**
+         * Applies profile patch for an active session.
+         *
+         * @param profileDetails Profile details.
+         * @param eTag           Tag to specify local data version. Can be null.
+         * @param callback       Callback with the result.
+         */
         @Override
         public void patchMyProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
             callbackAdapter.adapt(rxProfile.updateProfile(profileDetails, eTag), callback);

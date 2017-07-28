@@ -1,31 +1,29 @@
 {
-  "latestEventId":164,
-  "earliestEventId":132,
-  "messages":[
+  "latestEventId": 164,
+  "earliestEventId": 132,
+  "messages": [
     {
-      "id":"60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
-      "metadata":{
-
+      "id": "60526ba0-76b3-4f33-9e2e-20f4a8bb548b",
+      "metadata": {
       },
-      "context":{
-        "from":{
-          "id":"someone",
-          "name":"someone"
+      "context": {
+        "from": {
+          "id": "someone",
+          "name": "someone"
         },
-        "conversationId":"someId",
-        "sentBy":"someone",
-        "sentOn":"2017-01-10T16:35:39.459Z"
+        "conversationId": "someId",
+        "sentBy": "someone",
+        "sentOn": "2017-01-10T16:35:39.459Z"
       },
-      "parts":[
+      "parts": [
         {
-          "type":"text/plain",
-          "data":"If you try to kill -9 Chuck Norris's programs, it backfires."
+          "type": "text/plain",
+          "data": "If you try to kill -9 Chuck Norris's programs, it backfires."
         }
       ],
-      "statusUpdates":{
-
+      "statusUpdates": {
       }
     }
   ],
-  "orphanedEvents":[]
+  "orphanedEvents": []
 }

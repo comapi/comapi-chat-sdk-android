@@ -22,7 +22,8 @@
 
     package="com.comapi.chat">
 
-    <application android:allowBackup="true"
+    <application
+        android:allowBackup="true"
         android:supportsRtl="true">
 
     </application>

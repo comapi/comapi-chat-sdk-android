@@ -37,9 +37,9 @@ public class DataTestHelper {
         Files
      */
 
-    public static final String fileNameSession = "profile."+API_SPACE_ID;
+    public static final String fileNameSession = "profile." + API_SPACE_ID;
 
-    public static final String fileNameDevice = "device."+API_SPACE_ID;
+    public static final String fileNameDevice = "device." + API_SPACE_ID;
 
     public static void clearSessionData() {
         SharedPreferences sharedPreferences = RuntimeEnvironment.application.getSharedPreferences(fileNameSession, Context.MODE_PRIVATE);

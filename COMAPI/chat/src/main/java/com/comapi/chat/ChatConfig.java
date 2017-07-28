@@ -95,7 +95,7 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
      *
      * @return Conversation participants changes listener.
      */
-    public ParticipantsListener getParticipantsListener() {
+    ParticipantsListener getParticipantsListener() {
         return participantsListener;
     }
 
@@ -115,7 +115,7 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
      *
      * @return Profile changes listener.
      */
-    public ProfileListener getProfileListener() {
+    ProfileListener getProfileListener() {
         return profileListener;
     }
 

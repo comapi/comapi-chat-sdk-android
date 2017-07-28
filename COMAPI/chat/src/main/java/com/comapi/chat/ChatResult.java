@@ -21,6 +21,8 @@
 package com.comapi.chat;
 
 /**
+ * Chat SDK result.
+ *
  * @author Marcin Swierczek
  * @since 1.0.0
  */
@@ -35,14 +37,27 @@ public class ChatResult {
         this.error = error;
     }
 
+    /**
+     * True if operation was performed successfully.
+     *
+     * @return True if operation was performed successfully.
+     */
     public boolean isSuccessful() {
         return isSuccessful;
     }
 
+    /**
+     * Gets error details if operation unsuccessful.
+     *
+     * @return Error details.
+     */
     public Error getError() {
         return error;
     }
 
+    /**
+     * Error details.
+     */
     public static class Error {
 
         private int code;
@@ -54,10 +69,20 @@ public class ChatResult {
             this.message = message;
         }
 
+        /**
+         * Error code. In most cases http error code.
+         *
+         * @return Error code.
+         */
         public int getCode() {
             return code;
         }
 
+        /**
+         * Error message.
+         *
+         * @return Error message.
+         */
         public String getMessage() {
             return message;
         }

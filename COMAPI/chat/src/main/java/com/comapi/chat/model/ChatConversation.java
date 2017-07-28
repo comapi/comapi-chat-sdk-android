@@ -132,7 +132,7 @@ public class ChatConversation extends ChatConversationBase {
             return this;
         }
 
-        public Builder setLatestRemoteEventId(Long id) {
+        public Builder setLastRemoteEventId(Long id) {
             conversation.latestRemoteEventId = id;
             return this;
         }

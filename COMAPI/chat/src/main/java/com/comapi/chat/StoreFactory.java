@@ -36,7 +36,7 @@ public abstract class StoreFactory<T extends ChatStore> {
     private Logger log;
 
     /**
-     * Execute store transaction based on provided {@link ChatStore} implementation.
+     * Execute store transaction based on provided {@link ChatStore} implementation. Every transaction should begin with {@link ChatStore#beginTransaction()} and end with {@link ChatStore#endTransaction()}
      *
      * @param transaction Store transaction based on provided {@link ChatStore} implementation.
      */
@@ -51,7 +51,7 @@ public abstract class StoreFactory<T extends ChatStore> {
     }
 
     /**
-     * Buid {@link ChatStore} implementation, preferably one that can support single transaction.
+     * Build {@link ChatStore} implementation, preferably one that can support transactions.
      *
      * @param callback Callback to provide store implementation asynchronously.
      */

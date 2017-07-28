@@ -23,6 +23,7 @@ package com.comapi.chat;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.comapi.QueryBuilder;
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
@@ -109,6 +110,7 @@ class RxChatServiceAccessor {
          * Returns observable to create a conversation.
          *
          * @param request Request with conversation details to create.
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> createConversation(@NonNull final ConversationCreate request) {
             return foundation.service().messaging().createConversation(request).flatMap(controller::handleConversationCreated);
@@ -118,8 +120,9 @@ class RxChatServiceAccessor {
          * Returns observable to create a conversation.
          *
          * @param conversationId ID of a conversation to delete.
+         * @return Observable to subscribe to.
          */
-        public Observable<ChatResult> deleteConversation(@NonNull final String conversationId, @Nullable  String eTag) {
+        public Observable<ChatResult> deleteConversation(@NonNull final String conversationId, @Nullable String eTag) {
             return foundation.service().messaging().deleteConversation(conversationId, eTag).flatMap(result -> controller.handleConversationDeleted(conversationId, result));
         }
 
@@ -128,15 +131,16 @@ class RxChatServiceAccessor {
          *
          * @param conversationId ID of a conversation to update.
          * @param request        Request with conversation details to update.
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> updateConversation(@NonNull final String conversationId, @Nullable String eTag, @NonNull final ConversationUpdate request) {
             return foundation.service().messaging().updateConversation(conversationId, request, eTag).flatMap(result -> controller.handleConversationUpdated(request, result));
         }
 
         /**
-         * Returns observable to add a participant to.
+         * Gets conversation participants.
          *
-         * @param conversationId ID of a conversation to add a participant to.
+         * @param conversationId ID of a conversation to query participant list.
          * @return Observable to get a list of conversation participants.
          */
         public Observable<List<ChatParticipant>> getParticipants(@NonNull final String conversationId) {
@@ -148,6 +152,7 @@ class RxChatServiceAccessor {
          *
          * @param conversationId ID of a conversation to delete.
          * @param ids            List of participant ids to be removed.
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> removeParticipants(@NonNull final String conversationId, @NonNull final List<String> ids) {
             return foundation.service().messaging().removeParticipants(conversationId, ids).map(modelAdapter::adaptResult);
@@ -158,6 +163,7 @@ class RxChatServiceAccessor {
          *
          * @param conversationId ID of a conversation to update.
          * @param participants   New conversation participants details.
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> addParticipants(@NonNull final String conversationId, @NonNull final List<Participant> participants) {
             return foundation.service().messaging().addParticipants(conversationId, participants).flatMap(result -> controller.handleParticipantsAdded(conversationId, result)).map(modelAdapter::adaptResult);
@@ -168,6 +174,7 @@ class RxChatServiceAccessor {
          *
          * @param conversationId ID of a conversation to send a message to.
          * @param message        Message to be send.
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message) {
             final String tempId = UUID.randomUUID().toString();
@@ -182,6 +189,7 @@ class RxChatServiceAccessor {
          *
          * @param conversationId ID of a conversation to send a message to.
          * @param body           Message body to be send.
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final String body) {
             final MessageToSend message = APIHelper.createMessage(conversationId, body, controller.getProfileId());
@@ -198,6 +206,7 @@ class RxChatServiceAccessor {
          *
          * @param conversationId ID of a conversation to modify.
          * @param messageIds     List of message ids for which the status should be updated.
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> markMessagesAsRead(@NonNull final String conversationId, @NonNull final List<String> messageIds) {
 
@@ -216,6 +225,7 @@ class RxChatServiceAccessor {
          * Queries the next message page in conversation and delivers messages to store implementation.
          *
          * @param conversationId ID of a conversation to query messages in.
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> getPreviousMessages(final String conversationId) {
             return controller.getPreviousMessages(conversationId);
@@ -223,11 +233,19 @@ class RxChatServiceAccessor {
 
         /**
          * Check for missing messages and other events and update local store.
+         *
+         * @return Observable to subscribe to.
          */
         public Observable<Boolean> synchroniseStore() {
             return controller.synchroniseStore();
         }
 
+        /**
+         * Check for missing messages and other events and update local store.
+         *
+         * @param conversationId Unique conversationId.
+         * @return Observable to subscribe to.
+         */
         public Observable<Boolean> synchroniseConversation(@NonNull final String conversationId) {
             return controller.synchroniseConversation(conversationId);
         }
@@ -237,6 +255,7 @@ class RxChatServiceAccessor {
          *
          * @param conversationId ID of a conversation in which participant is typing a message.
          * @param isTyping       True if user started typing, false if he finished typing.
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> isTyping(@NonNull final String conversationId, final boolean isTyping) {
             return foundation.service().messaging().isTyping(conversationId, isTyping).map(modelAdapter::adaptResult);
@@ -249,24 +268,57 @@ class RxChatServiceAccessor {
 
         }
 
+        /**
+         * Gets profile data.
+         *
+         * @param profileId Unique profile id.
+         * @return Map of custom profile data.
+         */
+        @Override
         public Observable<ComapiResult<Map<String, Object>>> getProfile(@NonNull String profileId) {
             return foundation.service().profile().getProfile(profileId);
         }
 
+        /**
+         * Query user profiles.
+         *
+         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use {@link QueryBuilder} helper class to construct valid query string.
+         * @return List of maps of custom profile data.
+         */
+        @Override
         public Observable<ComapiResult<List<Map<String, Object>>>> queryProfiles(@NonNull String queryString) {
             return foundation.service().profile().queryProfiles(queryString);
         }
 
+        /**
+         * Updates profile for an active session.
+         *
+         * @param profileDetails Profile details.
+         * @return Observable with to perform update profile for current session.
+         */
         @Override
         public Observable<ComapiResult<Map<String, Object>>> updateProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag) {
             return foundation.service().profile().updateProfile(profileDetails, eTag);
         }
 
+        /**
+         * Applies given profile patch if required permission is granted.
+         *
+         * @param profileDetails Profile details.
+         * @return Observable with to perform patch profile for current session.
+         */
         @Override
         public Observable<ComapiResult<Map<String, Object>>> patchProfile(@NonNull String profileId, @NonNull Map<String, Object> profileDetails, @Nullable String eTag) {
             return foundation.service().profile().patchProfile(profileId, profileDetails, eTag);
         }
 
+        /**
+         * Applies profile patch for an active session.
+         *
+         * @param profileDetails Profile details.
+         * @param eTag           Tag to specify local data version. Can be null.
+         * @return Observable with to perform patch profile for current session.
+         */
         @Override
         public Observable<ComapiResult<Map<String, Object>>> patchMyProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag) {
             return foundation.service().profile().patchMyProfile(profileDetails, eTag);
@@ -281,6 +333,8 @@ class RxChatServiceAccessor {
 
         /**
          * Create and start new ComapiImpl session.
+         *
+         * @return Observable to subscribe to. Returns Session details.
          */
         public Observable<Session> startSession() {
             return foundation.service().session().startSession();
@@ -288,6 +342,8 @@ class RxChatServiceAccessor {
 
         /**
          * Ends currently active session.
+         *
+         * @return Observable to subscribe to.
          */
         public Observable<ChatResult> endSession() {
             return foundation.service().session().endSession().map(modelAdapter::adaptResult);

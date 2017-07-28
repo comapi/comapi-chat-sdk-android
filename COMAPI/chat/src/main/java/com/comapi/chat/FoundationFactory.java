@@ -29,15 +29,29 @@ import com.comapi.RxComapiClient;
 import rx.Observable;
 
 /**
+ * Factory class to initialise and obtain Foundation SDK client. Also used to mock the client for tests.
+ *
  * @author Marcin Swierczek
  * @since 1.0.0
  */
 public class FoundationFactory {
 
+    /**
+     * Initialise and obtain Foundation SDK client.
+     *
+     * @param app        Application instance.
+     * @param chatConfig Chat SDK configuration.
+     * @return Observable returning Comapi Foundation Client instance.
+     */
     protected Observable<RxComapiClient> getClientInstance(@NonNull Application app, @NonNull final ChatConfig chatConfig) {
         return RxComapi.initialise(app, chatConfig.buildComapiConfig());
     }
 
+    /**
+     * Returns event handler adapting Foundation listeners for Chat SDK.
+     *
+     * @return Event handler adapting Foundation listeners for Chat SDK.
+     */
     protected EventsHandler getAdaptingEventsHandler() {
         return new EventsHandler();
     }

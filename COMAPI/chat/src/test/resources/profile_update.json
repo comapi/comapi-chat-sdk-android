@@ -1,22 +1,22 @@
 {
-  "eventId":"eventId",
-  "accountId":"accountId",
-  "apiSpaceId":"apiSpaceId",
-  "name":"profile.update",
-  "payload":{
-    "forename":"John",
-    "surname":"Doe",
-    "address":{
-      "number":"0",
-      "postcode":"postcode"
+  "eventId": "eventId",
+  "accountId": "accountId",
+  "apiSpaceId": "apiSpaceId",
+  "name": "profile.update",
+  "payload": {
+    "forename": "John",
+    "surname": "Doe",
+    "address": {
+      "number": "0",
+      "postcode": "postcode"
     },
-    "title":"Mr"
+    "title": "Mr"
   },
-  "context":{
-    "createdBy":"user123"
+  "context": {
+    "createdBy": "user123"
   },
-  "revision":2,
-  "etag":"\"c-cSYaByHVYhzDLvTlV/6DReHISIA\"",
-  "profileId":"profileId",
-  "publishedOn":"2017-01-25T13:54:32.888Z"
+  "revision": 2,
+  "etag": "\"c-cSYaByHVYhzDLvTlV/6DReHISIA\"",
+  "profileId": "profileId",
+  "publishedOn": "2017-01-25T13:54:32.888Z"
 }

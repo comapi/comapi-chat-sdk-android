@@ -34,6 +34,8 @@ import com.comapi.internal.network.model.events.conversation.message.MessageRead
 import com.comapi.internal.network.model.events.conversation.message.MessageSentEvent;
 
 /**
+ * Event interceptor for foundation events. Also adapter for Foundation SDK listeners.
+ *
  * @author Marcin Swierczek
  * @since 1.0.0
  */
@@ -65,10 +67,20 @@ public class EventsHandler {
         this.missingEventsListener = controller::queryMissingEvents;
     }
 
+    /**
+     * Listener for profile changes that can be registered in Foundation library.
+     *
+     * @return Listener for profile changes.
+     */
     ProfileListenerAdapter getProfileListenerAdapter() {
         return profileListenerAdapter;
     }
 
+    /**
+     * Listener for messaging events that can be registered in Foundation library.
+     *
+     * @return Listener for messaging events.
+     */
     MessagingListenerAdapter getMessagingListenerAdapter() {
         return messagingListenerAdapter;
     }

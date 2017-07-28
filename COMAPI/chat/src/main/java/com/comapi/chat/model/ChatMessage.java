@@ -173,7 +173,7 @@ public class ChatMessage implements Comparable<ChatMessage> {
      * @param status New message status details.
      */
     public void addStatusUpdate(ChatMessageStatus status) {
-        int unique = (status.getMessageId()+status.getProfileId()+status.getMessageStatus().name()).hashCode();
+        int unique = (status.getMessageId() + status.getProfileId() + status.getMessageStatus().name()).hashCode();
         statusUpdates.put(unique, status);
     }
 

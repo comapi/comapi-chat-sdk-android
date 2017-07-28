@@ -94,27 +94,6 @@ class ChatController {
 
     private OrphanedEventsToRemoveListener orphanedEventsToRemoveListener;
 
-    public Observable<ComapiResult<Void>> handleParticipantsAdded(final String conversationId, final ComapiResult<Void> result) {
-        return handleParticipantsAdded(conversationId).map(conversation -> result);
-    }
-
-    public Observable<ChatResult> handleParticipantsAdded(final String conversationId) {
-        return persistenceController.getConversation(conversationId).flatMap(new Func1<ChatConversationBase, Observable<ChatResult>>() {
-            @Override
-            public Observable<ChatResult> call(ChatConversationBase conversation) {
-                if (conversation == null) {
-                    return handleNoLocalConversation(conversationId);
-                } else {
-                    return Observable.fromCallable(() -> new ChatResult(true, null));
-                }
-            }
-        });
-    }
-
-    public Observable<ChatResult> handleMessageError(String conversationId, String tempId, Throwable throwable) {
-        return persistenceController.updateStoreForSentError(conversationId, tempId, getProfileId()).map(success -> new ChatResult(false, new ChatResult.Error(1501, throwable.getLocalizedMessage())));
-    }
-
     interface NoConversationListener {
         void getConversation(String conversationId);
     }
@@ -138,6 +117,48 @@ class ChatController {
         this.obsExec = obsExec;
         this.noConversationListener = conversationId -> obsExec.execute(handleNoLocalConversation(conversationId));
         this.orphanedEventsToRemoveListener = ids -> obsExec.execute(persistenceController.deleteOrphanedEvents(ids));
+    }
+
+    /**
+     * Handle participant added to a conversation Foundation SDK event.
+     *
+     * @param conversationId Unique conversation id.
+     * @param result         Foundation API result to process.
+     * @return Observable with a same result.
+     */
+    public Observable<ComapiResult<Void>> handleParticipantsAdded(final String conversationId, final ComapiResult<Void> result) {
+        return handleParticipantsAdded(conversationId).map(conversation -> result);
+    }
+
+    /**
+     * Handle participant added to a conversation Foundation SDK event.
+     *
+     * @param conversationId Unique conversation id.
+     * @return Observable with Chat SDK result.
+     */
+    public Observable<ChatResult> handleParticipantsAdded(final String conversationId) {
+        return persistenceController.getConversation(conversationId).flatMap(new Func1<ChatConversationBase, Observable<ChatResult>>() {
+            @Override
+            public Observable<ChatResult> call(ChatConversationBase conversation) {
+                if (conversation == null) {
+                    return handleNoLocalConversation(conversationId);
+                } else {
+                    return Observable.fromCallable(() -> new ChatResult(true, null));
+                }
+            }
+        });
+    }
+
+    /**
+     * Handle failure when sending message.
+     *
+     * @param conversationId Unique conversation id.
+     * @param tempId         Identifier of an temporary message inserted to db when sending process begun.
+     * @param throwable      Thrown exception.
+     * @return Observable with Chat SDK result.
+     */
+    public Observable<ChatResult> handleMessageError(String conversationId, String tempId, Throwable throwable) {
+        return persistenceController.updateStoreForSentError(conversationId, tempId, getProfileId()).map(success -> new ChatResult(false, new ChatResult.Error(1, throwable.getLocalizedMessage())));
     }
 
     /**
@@ -239,7 +260,6 @@ class ChatController {
                     }
                 });
     }
-
 
     /**
      * Gets profile id from Foundation for the active user.
@@ -343,6 +363,14 @@ class ChatController {
         }
     }
 
+    /**
+     * Insert temporary message to the store for the ui to be responsive.
+     *
+     * @param conversationId Unique conversation id.
+     * @param message        Message to be send.
+     * @param tempId         Message id of an temporary message. This message will be removed when it will be successfully delivered to the server. Same message but with correct message id will be inserted instead.
+     * @return
+     */
     Observable<Boolean> handleMessageSending(String conversationId, MessageToSend message, String tempId) {
 
         String profileId = getProfileId();
@@ -360,7 +388,7 @@ class ChatController {
     }
 
     /**
-     * Handles message send service response.
+     * Handles message send service response. Will delete temporary message object. Same message but with correct message id will be inserted instead.
      *
      * @param conversationId Unique identifier of an conversation.
      * @param message        Service API request object.
@@ -404,12 +432,26 @@ class ChatController {
                 .map(result -> result.isSuccessful));
     }
 
+    /**
+     * Compares remote and local conversation lists.
+     *
+     * @param remote Conversation list obtained from the server.
+     * @param local  Conversation list obtained from local store.
+     * @return Comparison object.
+     */
     ConversationComparison compare(List<Conversation> remote, List<ChatConversationBase> local) {
         return new ConversationComparison(makeMapFromDownloadedConversations(remote), makeMapFromSavedConversations(local));
     }
 
-    ConversationComparison compare(Long remoteLasetEventId, ChatConversationBase conversation) {
-        return new ConversationComparison(remoteLasetEventId, conversation);
+    /**
+     * Checks local conversation object if it need to be updated.
+     *
+     * @param remoteLastEventId Id of the last conversation event known by server.
+     * @param conversation      Conversation state to check.
+     * @return Comparison object.
+     */
+    ConversationComparison compare(Long remoteLastEventId, ChatConversationBase conversation) {
+        return new ConversationComparison(remoteLastEventId, conversation);
     }
 
     /**
@@ -510,7 +552,7 @@ class ChatController {
      * @param conversationId Unique ID of a conversation.
      * @param lastEventId    Last known event id - query should start form it.
      * @param count          Number of queries already made.
-     * @param successes
+     * @param successes      list of query & processing results in recursive call.
      * @return Observable with the merged result of operations.
      */
     private Observable<ComapiResult<ConversationEventsResponse>> queryEventsRecursively(final RxComapiClient client, final String conversationId, final long lastEventId, final int count, final List<Boolean> successes) {
@@ -534,6 +576,13 @@ class ChatController {
                 });
     }
 
+    /**
+     * Process the event query response. Calls appropraiate persistance controller methods for received events.
+     *
+     * @param result    Event query response.
+     * @param successes List of successes in recursive query.
+     * @return Observable with same result object for further processing.
+     */
     private Observable<ComapiResult<ConversationEventsResponse>> processEventsQueryResponse(ComapiResult<ConversationEventsResponse> result, final List<Boolean> successes) {
 
         ConversationEventsResponse response = result.getResult();
@@ -566,6 +615,12 @@ class ChatController {
         return Observable.fromCallable(() -> result);
     }
 
+    /**
+     * Limits number of conversations to check and synchronise. Emty conversations wont be synchronised. The synchronisation will take place for twenty conversations updated most recently.
+     *
+     * @param conversations List of conversations to be limited.
+     * @return Limited list of conversations to update.
+     */
     private List<ChatConversation> limitNumberOfConversations(List<ChatConversation> conversations) {
 
         List<ChatConversation> noEmptyConversations = new ArrayList<>();
@@ -594,6 +649,12 @@ class ChatController {
         return limitedList;
     }
 
+    /**
+     * Handle incomming message. Replace temporary message with received one and mark as delivered.
+     *
+     * @param message Message to save and mark delivered.
+     * @return Observable with a result.
+     */
     public Observable<Boolean> handleMessage(final ChatMessage message) {
 
         String sender = message.getSentBy();
@@ -671,6 +732,12 @@ class ChatController {
         List<ChatConversationBase> conversationsToDelete;
         List<ChatConversation> conversationsToUpdate;
 
+        /**
+         * Creates remote and local conversation list comparison.
+         *
+         * @param downloadedList Remote list.
+         * @param savedList      Local list.
+         */
         ConversationComparison(Map<String, Conversation> downloadedList, Map<String, ChatConversationBase> savedList) {
 
             conversationsToDelete = new ArrayList<>();
@@ -702,6 +769,12 @@ class ChatController {
             }
         }
 
+        /**
+         * Checks local conversation if it needs to be updated and creates comaprison object.
+         *
+         * @param remoteLastEventId Last event id in a conversation known by he server.
+         * @param conversation      Conversation object to check.
+         */
         public ConversationComparison(Long remoteLastEventId, ChatConversationBase conversation) {
 
             conversationsToDelete = new ArrayList<>();
@@ -710,11 +783,16 @@ class ChatController {
 
             if (conversation != null && remoteLastEventId != null) {
                 if (conversation.getLastRemoteEventId() != null && conversation.getLastRemoteEventId() != -1L && remoteLastEventId > conversation.getLastRemoteEventId()) {
-                    conversationsToUpdate.add(ChatConversation.builder().populate(conversation).setLatestRemoteEventId(remoteLastEventId).build());
+                    conversationsToUpdate.add(ChatConversation.builder().populate(conversation).setLastRemoteEventId(remoteLastEventId).build());
                 }
             }
         }
 
+        /**
+         * Set if processing of conversations was successful.
+         *
+         * @param isSuccessful TRue if processing of conversations was successful.
+         */
         void setSuccessful(boolean isSuccessful) {
             this.isSuccessful = isSuccessful;
         }

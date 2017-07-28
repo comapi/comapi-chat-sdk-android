@@ -83,8 +83,8 @@ public class PersistenceControllerTest {
     @Test
     public void test_upsertConversations() {
 
-        ChatConversation conversationA = ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setLatestRemoteEventId(3L).setUpdatedOn(1L).build();
-        ChatConversation conversationB = ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID2).setLatestRemoteEventId(6L).setUpdatedOn(2L).build();
+        ChatConversation conversationA = ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setLastRemoteEventId(3L).setUpdatedOn(1L).build();
+        ChatConversation conversationB = ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID2).setLastRemoteEventId(6L).setUpdatedOn(2L).build();
         List<ChatConversation> list = new ArrayList<>();
         list.add(conversationA);
         list.add(conversationB);

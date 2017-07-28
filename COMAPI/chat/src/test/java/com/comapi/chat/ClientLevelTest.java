@@ -418,7 +418,8 @@ public class ClientLevelTest {
         String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
 
-        Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
+        Type listType = new TypeToken<ArrayList<JsonObject>>() {
+        }.getType();
         List<JsonObject> list = new Gson().fromJson(json, listType);
 
         ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
@@ -494,7 +495,8 @@ public class ClientLevelTest {
         String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
 
-        Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
+        Type listType = new TypeToken<ArrayList<JsonObject>>() {
+        }.getType();
         List<JsonObject> list = new Gson().fromJson(json, listType);
 
         ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
@@ -739,7 +741,7 @@ public class ClientLevelTest {
         assertNotNull(result2.getResult());
 
         mockedComapiClient.addMockedResult(new MockResult<>(new HashMap<>(), true, ChatTestConst.ETAG, 200));
-        ComapiResult<Map<String, Object>> result3 = client.rxService().profile().updateProfile(new HashMap<>(),"eTag").toBlocking().first();
+        ComapiResult<Map<String, Object>> result3 = client.rxService().profile().updateProfile(new HashMap<>(), "eTag").toBlocking().first();
         assertNotNull(result3.getResult());
     }
 
@@ -758,7 +760,7 @@ public class ClientLevelTest {
 
         mockedComapiClient.addMockedResult(new MockResult<>(new HashMap<>(), true, ChatTestConst.ETAG, 200));
         final MockCallback<ComapiResult<Map<String, Object>>> callback3 = new MockCallback<>();
-        client.service().profile().updateProfile(new HashMap<>(),"eTag", callback3);
+        client.service().profile().updateProfile(new HashMap<>(), "eTag", callback3);
         assertNotNull(callback3.getResult());
     }
 

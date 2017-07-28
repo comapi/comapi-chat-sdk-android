@@ -32,6 +32,7 @@ public abstract class StoreTransaction<T extends ChatStore> {
 
     /**
      * Provides {@link ChatStore} created by {@link StoreFactory} implementation set during SDK initialisation.
+     * Every transaction should begin with {@link ChatStore#beginTransaction()} and end with {@link ChatStore#endTransaction()}
      *
      * @param store {@link ChatStore} created by {@link StoreFactory} implementation.
      */

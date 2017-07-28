@@ -31,8 +31,19 @@ import rx.Subscriber;
  */
 abstract class ObservableExecutor {
 
+    /**
+     * Subscribe to observable.
+     *
+     * @param obs Observable to execute.
+     * @param <T> Type of result emited by the observable.
+     */
     abstract <T> void execute(final Observable<T> obs);
 
+    /**
+     * New instance.
+     *
+     * @return New instance.
+     */
     public static ObservableExecutor getInstance() {
 
         return new ObservableExecutor() {

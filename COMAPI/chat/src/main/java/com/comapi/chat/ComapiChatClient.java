@@ -129,14 +129,29 @@ public class ComapiChatClient {
         return serviceAccessor;
     }
 
+    /**
+     * Creates listener for Application visibility.
+     *
+     * @return
+     */
     LifecycleListener createLifecycleListener() {
         return new LifecycleListener() {
 
+            /**
+             * App foregrounded.
+             *
+             * @param context Application context
+             */
             public void onForegrounded(Context context) {
+                //
                 service().messaging().synchroniseStore(null);
             }
 
-
+            /**
+             * App backgrounded.
+             *
+             * @param context Application context
+             */
             public void onBackgrounded(Context context) {
 
             }
@@ -147,6 +162,11 @@ public class ComapiChatClient {
         client.clean(application.getApplicationContext());
     }
 
+    /**
+     * Registers listener for changes in participant list in conversations. Delivers participant added, updated and removed events.
+     *
+     * @param participantsListener Listener for changes in participant list in conversations.
+     */
     public void addListener(final ParticipantsListener participantsListener) {
         if (participantsListener != null) {
             MessagingListener messagingListener = new MessagingListener() {
@@ -171,6 +191,11 @@ public class ComapiChatClient {
         }
     }
 
+    /**
+     * Removes listener for changes in participant list in conversations.
+     *
+     * @param participantsListener Listener for changes in participant list in conversations.
+     */
     public void removeListener(final ParticipantsListener participantsListener) {
         MessagingListener messagingListener = participantsListeners.get(participantsListener);
         if (messagingListener != null) {
@@ -179,6 +204,11 @@ public class ComapiChatClient {
         }
     }
 
+    /**
+     * Registers listener for changes in profile details.
+     *
+     * @param profileListener Listener for changes in in profile details.
+     */
     public void addListener(final ProfileListener profileListener) {
         if (profileListener != null) {
             com.comapi.ProfileListener foundationListener = new com.comapi.ProfileListener() {
@@ -192,6 +222,11 @@ public class ComapiChatClient {
         }
     }
 
+    /**
+     * Removes listener for changes in profile details.
+     *
+     * @param profileListener Listener for changes in in profile details.
+     */
     public void removeListener(final ProfileListener profileListener) {
         com.comapi.ProfileListener foundationListener = profileListeners.get(profileListener);
         if (foundationListener != null) {
@@ -200,6 +235,11 @@ public class ComapiChatClient {
         }
     }
 
+    /**
+     * Registers listener for user is typing/finished typing events.
+     *
+     * @param typingListener Listener for user is typing/finished typing events.
+     */
     public void addListener(final TypingListener typingListener) {
         if (typingListener != null) {
             MessagingListener messagingListener = new MessagingListener() {
@@ -219,6 +259,11 @@ public class ComapiChatClient {
         }
     }
 
+    /**
+     * Removes listener for user is typing/finished typing events.
+     *
+     * @param typingListener Listener for user is typing/finished typing events.
+     */
     public void removeListener(final TypingListener typingListener) {
         MessagingListener messagingListener = typingListeners.get(typingListener);
         if (messagingListener != null) {

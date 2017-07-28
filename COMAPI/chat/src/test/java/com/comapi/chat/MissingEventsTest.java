@@ -40,7 +40,7 @@ public class MissingEventsTest {
         MissingEventsTracker tracker = new MissingEventsTracker();
         listener = new Listener();
 
-        for (int i = 0; i<100; i++) {
+        for (int i = 0; i < 100; i++) {
             tracker.checkEventId(conversationId, i, listener);
         }
         assertNull(listener.conversationId);
@@ -61,10 +61,10 @@ public class MissingEventsTest {
         MissingEventsTracker tracker = new MissingEventsTracker();
         listener = new Listener();
 
-        for (int i = 0; i<100; i++) {
+        for (int i = 0; i < 100; i++) {
             tracker.checkEventId(conversationId, i, listener);
         }
-        for (int i = 0; i<100; i++) {
+        for (int i = 0; i < 100; i++) {
             tracker.checkEventId(conversationId, i, listener);
         }
         assertNull(listener.conversationId);

@@ -518,8 +518,8 @@ public class ControllerTest {
 
         List<ChatConversation> list = new ArrayList<>();
 
-        for (int i = 0; i <100; i++) {
-            list.add(ChatConversation.builder().setConversationId(Integer.toString(i)).setLatestRemoteEventId(1L).setUpdatedOn((long) i).build());
+        for (int i = 0; i < 100; i++) {
+            list.add(ChatConversation.builder().setConversationId(Integer.toString(i)).setLastRemoteEventId(1L).setUpdatedOn((long) i).build());
         }
 
         Method method = chatController.getClass().getDeclaredMethod("limitNumberOfConversations", List.class);
@@ -537,7 +537,8 @@ public class ControllerTest {
         String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
 
-        Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
+        Type listType = new TypeToken<ArrayList<JsonObject>>() {
+        }.getType();
         List<JsonObject> list = new Gson().fromJson(json, listType);
 
         ConversationEventsResponse response = new ConversationEventsResponse(list, parser);
@@ -545,7 +546,7 @@ public class ControllerTest {
 
         ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), new HashMap<>());
         comparison.setSuccessful(true);
-        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(3L).build());
+        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLastRemoteEventId(3L).build());
 
         Method method = chatController.getClass().getDeclaredMethod("lookForMissingEvents", RxComapiClient.class, ChatController.ConversationComparison.class);
         method.setAccessible(true);
@@ -615,7 +616,8 @@ public class ControllerTest {
 
         json = FileResHelper.readFromFile(this, "rest_events_query.json");
 
-        Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
+        Type listType = new TypeToken<ArrayList<JsonObject>>() {
+        }.getType();
         List<JsonObject> list = new Gson().fromJson(json, listType);
 
         ConversationEventsResponse response2 = new ConversationEventsResponse(list, parser);
@@ -882,7 +884,7 @@ public class ControllerTest {
         mockedComapiClient.addMockedResult(new MockResult<>(null, false, null, 500));
 
         ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), new HashMap<>());
-        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
+        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLastRemoteEventId(-1L).build());
 
         Method method = chatController.getClass().getDeclaredMethod("lookForMissingEvents", RxComapiClient.class, ChatController.ConversationComparison.class);
         method.setAccessible(true);
@@ -900,12 +902,13 @@ public class ControllerTest {
         String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
 
-        Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
+        Type listType = new TypeToken<ArrayList<JsonObject>>() {
+        }.getType();
         List<JsonObject> list = new Gson().fromJson(json, listType);
 
         JsonObject obj = list.get(0);
         String str = obj.toString();
-        for (int i = 0; i <999; i++) {
+        for (int i = 0; i < 999; i++) {
             JsonObject newObj = parser.parse(str, JsonObject.class);
             newObj.getAsJsonObject("payload").remove("messageId");
             newObj.getAsJsonObject("payload").addProperty("messageId", String.valueOf(i));
@@ -913,19 +916,19 @@ public class ControllerTest {
         }
 
         int index = 0;
-        while (index < list.size()){
+        while (index < list.size()) {
             int newIndex = index + 100;
-            ConversationEventsResponse response = new ConversationEventsResponse(list.subList(index, newIndex < list.size() ? newIndex : (list.size()-1)), parser);
+            ConversationEventsResponse response = new ConversationEventsResponse(list.subList(index, newIndex < list.size() ? newIndex : (list.size() - 1)), parser);
             mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
             index = newIndex;
         }
 
         ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), new HashMap<>());
-        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
+        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLastRemoteEventId(-1L).build());
 
         Method method = chatController.getClass().getDeclaredMethod("queryEventsRecursively", RxComapiClient.class, String.class, Long.TYPE, Integer.TYPE, List.class);
         method.setAccessible(true);
-        ((Observable) method.invoke(chatController, mockedComapiClient, ChatTestConst.CONVERSATION_ID1, -1 ,0, new ArrayList<Boolean>())).toBlocking().first();
+        ((Observable) method.invoke(chatController, mockedComapiClient, ChatTestConst.CONVERSATION_ID1, -1, 0, new ArrayList<Boolean>())).toBlocking().first();
 
         assertFalse(comparison.isSuccessful);
         assertEquals(999, store.getMessages().size());
@@ -940,12 +943,13 @@ public class ControllerTest {
         String json = FileResHelper.readFromFile(this, "rest_events_query.json");
         Parser parser = new Parser();
 
-        Type listType = new TypeToken<ArrayList<JsonObject>>(){}.getType();
+        Type listType = new TypeToken<ArrayList<JsonObject>>() {
+        }.getType();
         List<JsonObject> list = new Gson().fromJson(json, listType);
 
         JsonObject obj = list.get(0);
         String str = obj.toString();
-        for (int i = 0; i <999; i++) {
+        for (int i = 0; i < 999; i++) {
             JsonObject newObj = parser.parse(str, JsonObject.class);
             newObj.getAsJsonObject("payload").remove("messageId");
             newObj.getAsJsonObject("payload").addProperty("messageId", String.valueOf(i));
@@ -956,7 +960,7 @@ public class ControllerTest {
         mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
 
         ChatController.ConversationComparison comparison = chatController.new ConversationComparison(new HashMap<>(), new HashMap<>());
-        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLatestRemoteEventId(-1L).build());
+        comparison.conversationsToUpdate.add(ChatConversation.builder().setConversationId(ChatTestConst.CONVERSATION_ID1).setFirstLocalEventId(-1L).setLastLocalEventId(-1L).setLastRemoteEventId(-1L).build());
 
         chatController.queryMissingEvents(ChatTestConst.CONVERSATION_ID1, 0, 1002);
 

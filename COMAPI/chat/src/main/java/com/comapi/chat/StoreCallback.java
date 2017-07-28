@@ -21,11 +21,17 @@
 package com.comapi.chat;
 
 /**
- * Callback interface.
+ * Callback interface for creating Store implementation instance.
  *
  * @author Marcin Swierczek
  * @since 1.0.0
  */
 public interface StoreCallback<T> {
+
+    /**
+     * External Store instance has been created.
+     *
+     * @param result External Store instance.
+     */
     void created(T result);
 }

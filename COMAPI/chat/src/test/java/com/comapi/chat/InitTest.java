@@ -402,7 +402,7 @@ public class InitTest {
     @Test
     public void test_coverPrivateConstructor() throws IllegalAccessException, InvocationTargetException, InstantiationException {
 
-        Constructor<ComapiChat> constructor= (Constructor<ComapiChat>) ComapiChat.class.getDeclaredConstructors()[0];
+        Constructor<ComapiChat> constructor = (Constructor<ComapiChat>) ComapiChat.class.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
         ComapiChat obj = constructor.newInstance();
         assertNotNull(obj);
