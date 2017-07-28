@@ -196,7 +196,8 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
                 .logConfig(logConfig)
                 .apiConfiguration(apiConfig)
                 .logSizeLimitKilobytes(logSizeLimit)
-                .pushMessageListener(pushMessageListener);
+                .pushMessageListener(pushMessageListener)
+                .fcmEnabled(fcmEnabled);
     }
 
     @Override
