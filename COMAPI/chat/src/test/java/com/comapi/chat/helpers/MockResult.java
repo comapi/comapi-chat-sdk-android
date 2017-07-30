@@ -23,7 +23,7 @@ package com.comapi.chat.helpers;
 import com.comapi.internal.network.ComapiResult;
 
 /**
- * Mocked {@link ComapiResult} from services.
+ * Mocked ComapiResult from services.
  *
  * @author Marcin Swierczek
  * @since 1.0.0

@@ -252,7 +252,7 @@ public class ChatServiceAccessor {
          * Gets profile data.
          *
          * @param profileId Unique profile id.
-         * @return Map of custom profile data.
+         * @param callback Callback returning Map of custom profile data.
          */
         @Override
         public void getProfile(@NonNull String profileId, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
@@ -262,7 +262,7 @@ public class ChatServiceAccessor {
         /**
          * Query user profiles.
          *
-         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use {@link QueryBuilder} helper class to construct valid query string.
+         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use QueryBuilder helper class to construct valid query string.
          * @param callback    Callback with the result.
          */
         @Override

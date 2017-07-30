@@ -44,7 +44,7 @@ public class ChatMessageStatus implements Comparable<ChatMessageStatus> {
     private Long conversationEventId;
 
     /**
-     * Message status as defined in {@link MessageStatus}
+     * Message status as defined in MessageStatus
      */
     private LocalMessageStatus messageStatus;
 
@@ -66,7 +66,7 @@ public class ChatMessageStatus implements Comparable<ChatMessageStatus> {
     }
 
     /**
-     * Message status as defined in {@link MessageStatus}
+     * Message status as defined in MessageStatus
      *
      * @return Message status.
      */

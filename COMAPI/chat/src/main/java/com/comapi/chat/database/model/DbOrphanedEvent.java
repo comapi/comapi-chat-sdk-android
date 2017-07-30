@@ -65,7 +65,7 @@ public abstract class DbOrphanedEvent implements Parcelable {
     public abstract String event();
 
     /**
-     * Maps cursor row to an {@link DbOrphanedEvent} object.
+     * Maps cursor row to an DbOrphanedEvent object.
      */
     public static Func1<Cursor, DbOrphanedEvent> MAP = cursor -> {
         String id = DbCursorHelper.getString(cursor, EVENT_ID);
@@ -104,9 +104,9 @@ public abstract class DbOrphanedEvent implements Parcelable {
         }
 
         /**
-         * Event jason (can be parsed to {@link com.comapi.internal.network.model.messaging.OrphanedEvent}
+         * Event jason (can be parsed to com.comapi.internal.network.model.messaging.OrphanedEvent
          *
-         * @param event {@link com.comapi.internal.network.model.messaging.OrphanedEvent} as a json string.
+         * @param event com.comapi.internal.network.model.messaging.OrphanedEvent as a json string.
          * @return Builder instance.
          */
         public Builder event(String event) {

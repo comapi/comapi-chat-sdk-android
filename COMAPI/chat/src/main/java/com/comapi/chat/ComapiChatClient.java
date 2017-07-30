@@ -54,6 +54,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ComapiChatClient {
 
+    private final static String VERSION = "1.0.0";
+
     private final RxComapiClient client;
 
     @SuppressWarnings("FieldCanBeLocal")
@@ -100,6 +102,8 @@ public class ComapiChatClient {
         addListener(chatConfig.getParticipantsListener());
         addListener(chatConfig.getProfileListener());
         addListener(chatConfig.getTypingListener());
+
+        log.i("Comapi Chat Client ver."+VERSION);
     }
 
     /**

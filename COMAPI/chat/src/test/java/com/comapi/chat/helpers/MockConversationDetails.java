@@ -26,7 +26,7 @@ import com.comapi.internal.network.model.conversation.Role;
 import com.comapi.internal.network.model.conversation.Roles;
 
 /**
- * Instance of {@link ConversationDetails} with some initial values.
+ * Instance of ConversationDetails with some initial values.
  *
  * @author Marcin Swierczek
  * @since 1.0.0
