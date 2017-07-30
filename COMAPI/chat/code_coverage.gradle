@@ -1,0 +1,177 @@
+/*
+
+    Code coverage result
+
+*/
+
+apply plugin: 'jacoco'
+apply plugin: "com.github.kt3k.coveralls"
+
+ext {
+    limits = [
+            'instruction': 75,
+            'branch'     : 75,
+            'line'       : 85,
+            'complexity' : 75,
+            'method'     : 80,
+            'class'      : 85
+    ]
+}
+
+jacoco {
+    toolVersion = "0.7.2.201409121644"
+}
+
+def coverageSourceDirs = [
+        '../chat/src/main/java'
+]
+
+task jacocoTestReport(type: JacocoReport, dependsOn: "testDebugUnitTest") {
+
+    group = "Reporting"
+
+    description = "Generate Jacoco coverage reports"
+
+    classDirectories = fileTree(
+            dir: '../chat/build/intermediates/classes/debug',
+            excludes: ['**/R.class',
+                       '**/R$*.class',
+                       '**/*$ViewInjector*.*',
+                       '**/*AutoValue_*',
+                       '**/BuildConfig.*',
+                       '**/Manifest*.*'
+            ]
+    )
+
+    additionalSourceDirs = files(coverageSourceDirs)
+    sourceDirectories = files(coverageSourceDirs)
+    executionData = files('../chat/build/jacoco/testDebugUnitTest.exec')
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+
+    def renamedFilesMap = [:]
+
+    // Hacky fix for issue: https://code.google.com/p/android/issues/detail?id=69174.
+    // Rename files with '$$' before generating report, and then rename back after
+    doFirst {
+
+        def classesPath
+
+        if (project.hasProperty("teamcity")) {
+            classesPath = 'COMAPI/chat/build/intermediates/classes/debug'
+        } else {
+            classesPath = 'chat/build/intermediates/classes/debug'
+        }
+
+        new File(classesPath).eachFileRecurse { file ->
+            if (file.name.contains('$$')) {
+                def oldPath = file.path
+                def newPath = oldPath.replace('$$', '$')
+                file.renameTo(newPath)
+                renamedFilesMap[newPath] = oldPath
+            }
+        }
+    }
+
+    /**
+     * Solution to jacoco test coverage report parsing found here https://github.com/springfox/springfox/blob/fb780ee1f14627b239fba95730a69900b9b2313a/gradle/coverage.gradle
+     */
+    doLast {
+
+        renamedFilesMap.each() {
+            def newPath, def oldPath ->
+                new File(newPath as String).renameTo(oldPath as String)
+        }
+
+        def report = file("build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
+        logger.lifecycle("Checking coverage results: ${report}")
+
+        def parser = new XmlParser()
+        parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        parser.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
+        def results = parser.parse(report)
+
+        def percentage = {
+            if (it != null) {
+                def covered = it.'@covered' as Double
+                def missed = it.'@missed' as Double
+                ((covered / (covered + missed)) * 100).round(2)
+            } else {
+                100
+            }
+        }
+
+        def counters = results.counter
+
+        def countersL = counters.find { it.'@type'.equals('LINE') }
+        def countersM = counters.find { it.'@type'.equals('METHOD') }
+        def countersC = counters.find { it.'@type'.equals('CLASS') }
+
+        def teamcityLogMethodsCoverage = {
+            if (it != null) {
+                def covered = it.'@covered' as Double
+                def missed = it.'@missed' as Double
+                logger.lifecycle("##teamcity[buildStatisticValue key='CodeCoverageAbsMCovered' value='" + covered + "']")
+                logger.lifecycle("##teamcity[buildStatisticValue key='CodeCoverageAbsMTotal' value='" + (covered + missed) + "']")
+            }
+        }
+
+        def teamcityLogLinesCoverage = {
+            if (it != null) {
+                def covered = it.'@covered' as Double
+                def missed = it.'@missed' as Double
+                logger.lifecycle("##teamcity[buildStatisticValue key='CodeCoverageAbsLCovered' value='" + covered + "']")
+                logger.lifecycle("##teamcity[buildStatisticValue key='CodeCoverageAbsLTotal' value='" + (covered + missed) + "']")
+            }
+        }
+
+        def teamcityLogClassCoverage = {
+            if (it != null) {
+                def covered = it.'@covered' as Double
+                def missed = it.'@missed' as Double
+                logger.lifecycle("##teamcity[buildStatisticValue key='CodeCoverageAbsCCovered' value='" + covered + "']")
+                logger.lifecycle("##teamcity[buildStatisticValue key='CodeCoverageAbsCTotal' value='" + (covered + missed) + "']")
+            }
+        }
+
+        logger.lifecycle("##teamcity[blockOpened name='Code Coverage Summary']")
+        teamcityLogLinesCoverage(countersL)
+        teamcityLogMethodsCoverage(countersM)
+        teamcityLogClassCoverage(countersC)
+        logger.lifecycle("##teamcity[blockClosed name='Code Coverage Summary']")
+
+        def metrics = [:]
+        metrics << [
+                'instruction': percentage(counters.find { it.'@type'.equals('INSTRUCTION') }),
+                'branch'     : percentage(counters.find { it.'@type'.equals('BRANCH') }),
+                'line'       : percentage(countersL),
+                'complexity' : percentage(counters.find { it.'@type'.equals('COMPLEXITY') }),
+                'method'     : percentage(countersM),
+                'class'      : percentage(countersC)
+        ]
+
+        def failures = []
+        metrics.each {
+            def limit = limits[it.key as String]
+            if (it.value < limit) {
+                failures.add("- ${it.key} coverage rate is: ${it.value}%, minimum is ${limit}%")
+            }
+        }
+
+        if (failures) {
+            logger.quiet("------------------ Code Coverage Failed -----------------------")
+            failures.each {
+                logger.quiet(it)
+            }
+            logger.quiet("---------------------------------------------------------------")
+            throw new GradleException("Code coverage failed")
+        } else {
+            logger.quiet("Passed Code Coverage Checks")
+        }
+    }
+}
+
+check.dependsOn jacocoTestReport

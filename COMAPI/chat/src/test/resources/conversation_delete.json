@@ -1,0 +1,15 @@
+{
+  "eventId": "eventId",
+  "apiSpaceId": "c7e5b7ed-7fe8-4c92-9035-5d190d43a22b",
+  "name": "conversation.delete",
+  "payload": {
+    "date": "2016-10-05T13:03:06.375Z"
+  },
+  "context": {
+    "createdBy": "user"
+  },
+  "revision": 40,
+  "etag": "\"c-cSYaByHVYhzDLvTlV/6DReHISIA\"",
+  "conversationId": "conversationId",
+  "publishedOn": "2016-10-13T07:53:05.555Z"
+}

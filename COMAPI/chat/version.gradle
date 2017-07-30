@@ -1,0 +1,36 @@
+/*
+
+    Defines version and build number
+
+*/
+
+ext.chatVersion = '1.0.0'
+
+def isComapiRelease = System.getenv("isparagonrelease")
+ext.isReleaseVersion = isComapiRelease != null ? isComapiRelease : false
+
+if (!isReleaseVersion) {
+    chatVersion = chatVersion + '-SNAPSHOT'
+}
+
+if (project.hasProperty("teamcity")) {
+    ext.buildNumber = teamcity['build.number']
+} else {
+    ext.buildNumber = getDate()
+}
+
+def getDate() {
+    def date = new Date()
+    def formattedDate = date.format('yyyyMMddHHmmss')
+    return formattedDate
+}
+
+task printChatVersion << {
+    logger.lifecycle("Version number is " + chatVersion)
+    println chatVersion
+}
+
+task printBuildNumber << {
+    logger.lifecycle("Build number is " + buildNumber)
+    println buildNumber
+}

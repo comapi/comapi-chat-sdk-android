@@ -1,0 +1,17 @@
+{
+  "eventId": "eventId",
+  "apiSpaceId": "c7e5b7ed-7fe8-4c92-9035-5d190d43a22b",
+  "name": "conversationMessage.delivered",
+  "payload": {
+    "messageId": "messageId",
+    "conversationId": "conversationId",
+    "profileId": "profileId",
+    "timestamp": "2016-10-13T07:53:05.957Z"
+  },
+  "context": {
+    "createdBy": "user"
+  },
+  "revision": 58,
+  "conversationEventId": 58,
+  "publishedOn": "2016-10-13T07:53:06.479Z"
+}
