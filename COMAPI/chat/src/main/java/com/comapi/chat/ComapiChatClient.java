@@ -24,6 +24,7 @@ import android.app.Application;
 import android.content.Context;
 
 import com.comapi.ClientHelper;
+import com.comapi.GlobalState;
 import com.comapi.MessagingListener;
 import com.comapi.RxComapiClient;
 import com.comapi.Session;
@@ -54,7 +55,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ComapiChatClient {
 
-    private final static String VERSION = "1.0.0";
+    private final static String VERSION = "1.0.1";
 
     private final RxComapiClient client;
 
@@ -160,6 +161,15 @@ public class ComapiChatClient {
 
             }
         };
+    }
+
+    /**
+     * Gets the internal state of the SDK. Possible values in {@link GlobalState}.
+     *
+     * @return State of the ComapiImpl SDK. Compare with values in {@link GlobalState}.
+     */
+    public int getState() {
+        return client.getState();
     }
 
     void clean(Application application) {

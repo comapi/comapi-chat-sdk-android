@@ -37,6 +37,7 @@ import com.comapi.internal.data.SessionData;
 import com.comapi.internal.log.LogManager;
 import com.comapi.internal.log.Logger;
 import com.comapi.internal.network.ComapiResult;
+import com.comapi.internal.network.ContentData;
 import com.comapi.internal.network.api.RxComapiService;
 import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.ConversationCreate;
@@ -57,6 +58,7 @@ import com.comapi.internal.network.model.messaging.MessageSentResponse;
 import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
 import com.comapi.internal.network.model.messaging.MessagesQueryResponse;
+import com.comapi.internal.network.model.messaging.UploadContentResponse;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -257,6 +259,11 @@ public class MockComapiClient extends RxComapiClient {
                                 return (ComapiResult<MessageSentResponse>) result;
                             }
                         });
+                    }
+
+                    @Override
+                    public Observable<ComapiResult<UploadContentResponse>> uploadContent(@NonNull String folder, @NonNull ContentData data) {
+                        return null;
                     }
 
                     @Override

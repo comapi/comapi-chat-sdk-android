@@ -11,20 +11,30 @@ public enum LocalMessageStatus {
     /**
      * Status set locally when the request to send the message has been sent.
      */
-    sending,
+    sending(0),
 
     /**
      * Message status set when the 'delivered' event has been delivered from another device.
      */
-    delivered,
+    delivered(1),
 
     /**
      * Message status set when the 'read' event has been delivered from another device.
      */
-    read,
+    read(2),
 
     /**
      * Message status set locally when the sdk failed to send the message.
      */
-    error
+    error(3);
+
+    private final int value;
+
+    LocalMessageStatus(int value) {
+        this.value = value;
+    }
+
+    public int getValue() {
+        return value;
+    }
 }
