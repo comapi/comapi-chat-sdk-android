@@ -236,7 +236,7 @@ class PersistenceController {
      * @param noConversationListener Listener for the chat controller to get conversation if no local copy is present.
      * @return Observable emitting result.
      */
-    public Observable<Boolean> updateStoreForNewMessage(final ChatMessage message, final ChatController.NoConversationListener noConversationListener) {
+    public Observable<Boolean> updateStoreWithNewMessage(final ChatMessage message, final ChatController.NoConversationListener noConversationListener) {
 
         return asObservable(new Executor<Boolean>() {
             @Override

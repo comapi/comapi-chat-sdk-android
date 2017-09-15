@@ -29,6 +29,7 @@ import com.comapi.MessagingListener;
 import com.comapi.RxComapiClient;
 import com.comapi.Session;
 import com.comapi.chat.database.Database;
+import com.comapi.chat.internal.AttachmentController;
 import com.comapi.chat.internal.MissingEventsTracker;
 import com.comapi.chat.listeners.ParticipantsListener;
 import com.comapi.chat.listeners.ProfileListener;
@@ -89,7 +90,7 @@ public class ComapiChatClient {
         ModelAdapter modelAdapter = new ModelAdapter();
         Database db = Database.getInstance(app, false, log);
         PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory(), log);
-        controller = new ChatController(client, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, log);
+        controller = new ChatController(client, persistenceController, new AttachmentController(log, 13333), chatConfig.getObservableExecutor(), modelAdapter, log);
         rxServiceAccessor = new RxChatServiceAccessor(modelAdapter, client, controller);
         serviceAccessor = new ChatServiceAccessor(callbackAdapter, rxServiceAccessor);
         eventsHandler.init(persistenceController, controller, new MissingEventsTracker(), chatConfig);

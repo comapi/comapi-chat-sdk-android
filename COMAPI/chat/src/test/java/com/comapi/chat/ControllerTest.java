@@ -36,6 +36,7 @@ import com.comapi.chat.helpers.MockConversationDetails;
 import com.comapi.chat.helpers.MockFoundationFactory;
 import com.comapi.chat.helpers.MockResult;
 import com.comapi.chat.helpers.TestChatStore;
+import com.comapi.chat.internal.AttachmentController;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
@@ -116,6 +117,7 @@ public class ControllerTest {
     private Database db;
     private PersistenceController persistenceController;
     private Logger logger;
+    private AttachmentController attachmentController;
 
 
     @Before
@@ -164,7 +166,9 @@ public class ControllerTest {
         db = Database.getInstance(RuntimeEnvironment.application, true, new Logger(logMgr, ""));
         persistenceController = new PersistenceController(db, modelAdapter, factory, logger);
 
-        chatController = new ChatController(mockedComapiClient, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, logger);
+        attachmentController = new AttachmentController(logger, 13333);
+
+        chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, chatConfig.getObservableExecutor(), modelAdapter, logger);
     }
 
     @Test
@@ -699,7 +703,7 @@ public class ControllerTest {
     @Test(expected = ComapiException.class)
     public void test_checkState() {
 
-        ChatController chatController = new ChatController(mockedComapiClient, persistenceController, new ObservableExecutor() {
+        ChatController chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, new ObservableExecutor() {
             @Override
             <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();
@@ -709,7 +713,7 @@ public class ControllerTest {
         RxComapiClient clientInstance = chatController.checkState().toBlocking().first();
         assertNotNull(clientInstance);
 
-        chatController = new ChatController(null, persistenceController, new ObservableExecutor() {
+        chatController = new ChatController(null, persistenceController, attachmentController, new ObservableExecutor() {
             @Override
             <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();
@@ -870,7 +874,7 @@ public class ControllerTest {
     @Test
     public void test_handleMessageSent_failed() {
 
-        ChatResult result = chatController.handleMessageSent(null, null, new MockResult<>(null, false, null, 500)).toBlocking().first();
+        ChatResult result = chatController.updateStoreWithSentMsg(attachmentController.createMessageProcessor(MessageToSend.builder().build(), null, "conversationId", "profileId"), new MockResult<>(null, false, null, 500)).toBlocking().first();
         assertNotNull(result);
         assertFalse(result.isSuccessful());
         assertEquals(500, result.getError().getCode());

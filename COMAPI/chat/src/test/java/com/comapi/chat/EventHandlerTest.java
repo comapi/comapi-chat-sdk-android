@@ -33,6 +33,7 @@ import com.comapi.chat.helpers.MockConversationDetails;
 import com.comapi.chat.helpers.MockFoundationFactory;
 import com.comapi.chat.helpers.MockResult;
 import com.comapi.chat.helpers.TestChatStore;
+import com.comapi.chat.internal.AttachmentController;
 import com.comapi.chat.internal.MissingEventsTracker;
 import com.comapi.chat.listeners.ParticipantsListener;
 import com.comapi.chat.listeners.ProfileListener;
@@ -102,6 +103,7 @@ public class EventHandlerTest {
     private boolean wasChecked = false;
 
     final List<Object> events = new ArrayList<>();
+    private AttachmentController attachmentController;
 
     @Before
     public void setUpChat() throws Exception {
@@ -177,7 +179,9 @@ public class EventHandlerTest {
         db = Database.getInstance(RuntimeEnvironment.application, true, new Logger(logMgr, ""));
         persistenceController = new PersistenceController(db, modelAdapter, factory, logger);
 
-        chatController = new ChatController(mockedComapiClient, persistenceController, new ObservableExecutor() {
+        attachmentController = new AttachmentController(logger, 13333);
+
+        chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, new ObservableExecutor() {
             @Override
             <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();

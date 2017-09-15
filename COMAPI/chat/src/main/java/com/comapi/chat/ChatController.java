@@ -21,9 +21,12 @@
 package com.comapi.chat;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import com.comapi.RxComapiClient;
+import com.comapi.chat.internal.AttachmentController;
+import com.comapi.chat.internal.MessageProcessor;
 import com.comapi.chat.model.Attachment;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
@@ -47,8 +50,6 @@ import com.comapi.internal.network.model.messaging.MessageSentResponse;
 import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
-import com.comapi.internal.network.model.messaging.Part;
-import com.comapi.internal.network.model.messaging.Sender;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -60,15 +61,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import rx.Observable;
 import rx.functions.Func1;
 import rx.functions.Func2;
-
-import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
 
 /**
  * Main controller for Chat Layer specific functionality.
@@ -84,7 +82,7 @@ class ChatController {
 
     private static final Integer UPDATE_FROM_EVENTS_LIMIT = 5;
 
-    private static final int MAX_PART_DATA_LENGTH = 13333;
+    private final AttachmentController attCon;
 
     private int QUERY_EVENTS_NUMBER_OF_CALLS_LIMIT = 1000;
 
@@ -117,7 +115,7 @@ class ChatController {
      * @param persistenceController Controller over implementation of local conversation and message store.
      * @param log                   Internal logger instance.
      */
-    ChatController(final RxComapiClient client, final PersistenceController persistenceController, final ObservableExecutor obsExec, final ModelAdapter adapter, final Logger log) {
+    ChatController(final RxComapiClient client, final PersistenceController persistenceController, final AttachmentController attachmentController, final ObservableExecutor obsExec, final ModelAdapter adapter, final Logger log) {
         this.clientReference = new WeakReference<>(client);
         this.adapter = adapter;
         this.log = log;
@@ -125,6 +123,7 @@ class ChatController {
         this.obsExec = obsExec;
         this.noConversationListener = conversationId -> obsExec.execute(handleNoLocalConversation(conversationId));
         this.orphanedEventsToRemoveListener = ids -> obsExec.execute(persistenceController.deleteOrphanedEvents(ids));
+        this.attCon = attachmentController;
     }
 
     /**
@@ -135,70 +134,28 @@ class ChatController {
      * @param attachments    List of attachments to send with a message.
      * @return Observable with Chat SDK result.
      */
-    Observable<ChatResult> sendMessageWithAttachments(@NonNull final String conversationId, @NonNull final MessageToSend message, @NonNull final List<Attachment> attachments) {
+    Observable<ChatResult> sendMessageWithAttachments(@NonNull final String conversationId, @NonNull final MessageToSend message, @Nullable final List<Attachment> attachments) {
 
-        //Generate temporary id for a message to be put into db before sending, allows seamless update of chat screen
-        final String tempId = UUID.randomUUID().toString();
-        message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
+        final MessageProcessor messageProcessor = attCon.createMessageProcessor(message, attachments, conversationId, getProfileId());
 
         return checkState()
                 .flatMap(client ->
-                        // convert fom too large message parts to attachments
-                        convTooLargeParts(message.getParts(), attachments)
-                                // create temporary message
-                                .flatMap(isOk -> handleMessageSending(conversationId, message, tempId, attachments))
-                                // upload attachments
-                                .flatMap(isOk -> sendAttachments(attachments))
-                                .flatMap(updated -> {
-                                    if (updated != null) {
-                                        // update message with attachments details like url
-                                        removePendingUploadsParts(message.getParts());
-                                        return handleMessageSending(conversationId, message, tempId, updated);
-                                    } else {
-                                        return Observable.fromCallable(() -> true);
-                                    }
-                                })
-                                // send message with attachments details as additional message parts
-                                .flatMap(isOk -> client.service().messaging().sendMessage(conversationId, message))
-                                // update temporary message with a new message id obtained from the response
-                                .flatMap((result) -> handleMessageSent(conversationId, message, result))
-                                // if error occurred update message status list adding error status
-                                .onErrorResumeNext(t -> handleMessageError(conversationId, tempId, t)));
-    }
-
-    /**
-     * Create observable to perform attachments upload.
-     *
-     * @param data List of Attachments to upload.
-     * @return Observable to perform attachments upload.
-     */
-    private Observable<List<Attachment>> sendAttachments(List<Attachment> data) {
-        if (data != null && !data.isEmpty()) {
-            return checkState().map(c -> upload(c, data)).flatMap(Observable::concatDelayError).toList();
-        } else {
-            return Observable.fromCallable(() -> null);
-        }
-    }
-
-    /**
-     * Upload list of attachments and update the details for the response.
-     */
-    private Collection<Observable<Attachment>> upload(RxComapiClient client, List<Attachment> data) {
-        Collection<Observable<Attachment>> obsList = new ArrayList<>();
-        for (Attachment a : data) {
-            obsList.add(upload(client, a));
-        }
-        return obsList;
-    }
-
-    /**
-     * Upload single attachment and update the details for the response.
-     */
-    private Observable<Attachment> upload(RxComapiClient client, Attachment a) {
-        return client.service().messaging().uploadContent(a.getFolder(), a.getData())
-                .map(response -> a.updateUploadDetails(response.getResult()))
-                .doOnError(t -> log.e("Error uploading attachment " + t.getLocalizedMessage()))
-                .onErrorReturn(t -> a);
+                {
+                    messageProcessor.preparePreUpload(); // convert fom too large message parts to attachments, adds temp upload parts for all attachments
+                    return upsertTempMessage(messageProcessor.createTempMessage()) // create temporary message
+                            .flatMap(isOk -> attCon.uploadAttachments(messageProcessor.getAttachments(), client)) // upload attachments
+                            .flatMap(uploaded -> {
+                                if (uploaded != null && !uploaded.isEmpty()) {
+                                    messageProcessor.preparePostUpload(uploaded); // remove temp upload parts, add parts with upload data
+                                    return upsertTempMessage(messageProcessor.createTempMessage()); // update message with attachments details like url
+                                } else {
+                                    return Observable.fromCallable(() -> true);
+                                }
+                            })
+                            .flatMap(isOk -> client.service().messaging().sendMessage(conversationId, messageProcessor.prepareMessageToSend()) // send message with attachments details as additional message parts
+                                    .flatMap((result) -> updateStoreWithSentMsg(messageProcessor, result)) // update temporary message with a new message id obtained from the response
+                                    .onErrorResumeNext(t -> handleMessageError(messageProcessor, t))); // if error occurred update message status list adding error status
+                });
     }
 
     /**
@@ -234,14 +191,13 @@ class ChatController {
     /**
      * Handle failure when sending message.
      *
-     * @param conversationId Unique conversation id.
-     * @param tempId         Identifier of an temporary message inserted to db when sending process begun.
-     * @param t      Thrown exception.
+     * @param mp Message processor holding message sending details.
+     * @param t  Thrown exception.
      * @return Observable with Chat SDK result.
      */
-    private Observable<ChatResult> handleMessageError(String conversationId, String tempId, Throwable t) {
-        return persistenceController.updateStoreForSentError(conversationId, tempId, getProfileId())
-                .map(success -> new ChatResult(false, new ChatResult.Error(1, t != null ? t.getLocalizedMessage() : "Error sending message.")));
+    private Observable<ChatResult> handleMessageError(MessageProcessor mp, Throwable t) {
+        return persistenceController.updateStoreForSentError(mp.getConversationId(), mp.getTempId(), mp.getSender())
+                .map(success -> new ChatResult(false, new ChatResult.Error(1, (t != null ? t.getLocalizedMessage() : "Error sending message."))));
     }
 
     /**
@@ -446,108 +402,30 @@ class ChatController {
         }
     }
 
-    private Observable<Boolean> convTooLargeParts(final List<Part> parts, @NonNull final List<Attachment> attachments) {
-
-        return Observable.fromCallable(() -> {
-
-            if (parts != null && !parts.isEmpty()) {
-                List<Part> toLarge = new ArrayList<>();
-
-                for (Part p : parts) {
-                    if (p.getData() != null && p.getData().length() > MAX_PART_DATA_LENGTH) {
-                        String type = p.getType() != null ? p.getType() : "application/octet-stream";
-                        attachments.add(Attachment.create(p.getData(), type, "AutoConverted"));
-                        toLarge.add(p);
-                        log.w("Message part "+p.getName()+" to large ("+p.getData().length()+">"+MAX_PART_DATA_LENGTH+") - converting to attachment.");
-                    }
-                }
-
-                parts.removeAll(toLarge);
-            }
-
-            return true;
-        });
-    }
-
     /**
      * Insert temporary message to the store for the ui to be responsive.
      *
-     * @param conversationId Unique conversation id.
      * @param message        Message to be send.
-     * @param tempId         Message id of an temporary message. This message will be removed when it will be successfully delivered to the server. Same message but with correct message id will be inserted instead.
-     * @param attachments    Attachments to the message.
-     * @return
+     * @return Observable emitting result of operations.
      */
-    private Observable<Boolean> handleMessageSending(String conversationId, MessageToSend message, String tempId, List<Attachment> attachments) {
-        addAttachmentParts(message.getParts(), attachments);
-        return updateStoreWithTempMessage(conversationId, message, tempId);
-    }
-
-    private void removePendingUploadsParts(List<Part> parts) {
-        List<Part> pendingUploads = new ArrayList<>();
-        for (Part p : parts) {
-            if (p.isPending()) {
-                pendingUploads.add(p);
-            }
-        }
-        parts.removeAll(pendingUploads);
-    }
-
-    private void addAttachmentParts(List<Part> parts, final List<Attachment> attachments) {
-        if (attachments != null && !attachments.isEmpty()) {
-            for (Attachment a : attachments) {
-                if (TextUtils.isEmpty(a.getUrl())) {
-                    parts.add(Part.builder().setType(a.getType()).setPending(true).build());
-                } else {
-                    parts.add(a.createPart());
-                }
-            }
-        }
-    }
-
-    private Observable<Boolean> updateStoreWithTempMessage(String conversationId, MessageToSend message, String tempId) {
-
-        String profileId = getProfileId();
-        ChatMessage chatMessage = ChatMessage.builder()
-                .setMessageId(tempId)
-                .setSentEventId(-1L) // temporary value, will be replaced by persistence controller
-                .setConversationId(conversationId)
-                .setSentBy(profileId)
-                .setFromWhom(new Sender(profileId, profileId))
-                .setSentOn(System.currentTimeMillis())
-                .setParts(message.getParts())
-                .setMetadata(message.getMetadata())
-                .build();
-
-        return persistenceController.updateStoreForNewMessage(chatMessage, noConversationListener);
+    private Observable<Boolean> upsertTempMessage(ChatMessage message) {
+        return persistenceController.updateStoreWithNewMessage(message, noConversationListener)
+                .doOnError(t -> log.e("Error saving temp message " + t.getLocalizedMessage()))
+                .onErrorReturn(t -> false);
     }
 
     /**
      * Handles message send service response. Will delete temporary message object. Same message but with correct message id will be inserted instead.
      *
-     * @param conversationId Unique identifier of an conversation.
-     * @param message        Service API request object.
-     * @param result         Service call response.
+     * @param mp Message processor holding message sending details.
+     * @param response       Service call response.
      * @return Observable emitting result of operations.
      */
-    Observable<ChatResult> handleMessageSent(String conversationId, MessageToSend message, ComapiResult<MessageSentResponse> result) {
-        if (result.isSuccessful()) {
-
-            String profileId = getProfileId();
-            ChatMessage chatMessage = ChatMessage.builder()
-                    .setMessageId(result.getResult().getId())
-                    .setSentEventId(result.getResult().getEventId())
-                    .setConversationId(conversationId)
-                    .setSentBy(profileId)
-                    .setFromWhom(new Sender(profileId, profileId))
-                    .setSentOn(System.currentTimeMillis())
-                    .setParts(message.getParts())
-                    .setMetadata(message.getMetadata()).build();
-
-            return persistenceController.updateStoreForNewMessage(chatMessage, noConversationListener).map(success -> adapter.adaptResult(result, success));
-
+    Observable<ChatResult> updateStoreWithSentMsg(MessageProcessor mp, ComapiResult<MessageSentResponse> response) {
+        if (response.isSuccessful()) {
+            return persistenceController.updateStoreWithNewMessage(mp.createFinalMessage(response.getResult()), noConversationListener).map(success -> adapter.adaptResult(response, success));
         } else {
-            return Observable.fromCallable(() -> adapter.adaptResult(result));
+            return Observable.fromCallable(() -> adapter.adaptResult(response));
         }
     }
 
@@ -732,7 +610,7 @@ class ChatController {
 
                 if (event instanceof MessageSentEvent) {
                     MessageSentEvent messageEvent = (MessageSentEvent) event;
-                    list.add(persistenceController.updateStoreForNewMessage(ChatMessage.builder().populate(messageEvent).build(), noConversationListener));
+                    list.add(persistenceController.updateStoreWithNewMessage(ChatMessage.builder().populate(messageEvent).build(), noConversationListener));
                 } else if (event instanceof MessageDeliveredEvent) {
                     list.add(persistenceController.upsertMessageStatus(ChatMessageStatus.builder().populate((MessageDeliveredEvent) event).build()));
                 } else if (event instanceof MessageReadEvent) {
@@ -794,7 +672,7 @@ class ChatController {
 
         String sender = message.getSentBy();
 
-        Observable<Boolean> replaceMessages = persistenceController.updateStoreForNewMessage(message, noConversationListener);
+        Observable<Boolean> replaceMessages = persistenceController.updateStoreWithNewMessage(message, noConversationListener);
 
         if (!TextUtils.isEmpty(sender) && !sender.equals(getProfileId())) {
 

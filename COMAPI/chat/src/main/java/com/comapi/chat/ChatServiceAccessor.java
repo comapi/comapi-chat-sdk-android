@@ -45,6 +45,7 @@ import java.util.Map;
  * @author Marcin Swierczek
  * @since 1.0.0
  */
+@SuppressWarnings("WeakerAccess")
 public class ChatServiceAccessor {
 
     private final CallbackAdapter callbackAdapter;

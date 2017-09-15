@@ -51,6 +51,7 @@ import rx.Observable;
  * @author Marcin Swierczek
  * @since 1.0.0
  */
+@SuppressWarnings("WeakerAccess")
 public class RxChatServiceAccessor {
 
     private final RxComapiClient foundation;
@@ -225,9 +226,6 @@ public class RxChatServiceAccessor {
          * @return Observable to subscribe to.
          */
         private Observable<ChatResult> doSendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message, @Nullable List<Attachment> attachments) {
-            if (attachments == null) {
-                attachments = new ArrayList<>();
-            }
             return controller.sendMessageWithAttachments(conversationId, message, attachments);
         }
 
