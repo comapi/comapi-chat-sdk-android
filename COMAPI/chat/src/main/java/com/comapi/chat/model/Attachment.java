@@ -58,7 +58,7 @@ public class Attachment {
      * @return Data object to send.
      */
     public static Attachment create(@NonNull File data, @NonNull String type, @Nullable String folder) {
-        return new Attachment(ContentData.create(data, type), folder);
+        return new Attachment(ContentData.create(data, type), folder, type);
     }
 
     /**
@@ -69,7 +69,7 @@ public class Attachment {
      * @return Data object to send.
      */
     public static Attachment create(@NonNull byte[] data, @NonNull String type, @Nullable String folder) {
-        return new Attachment(ContentData.create(data, type), folder);
+        return new Attachment(ContentData.create(data, type), folder, type);
     }
 
     /**
@@ -80,12 +80,13 @@ public class Attachment {
      * @return Data object to send.
      */
     public static Attachment create(@NonNull String data, @NonNull String type, @Nullable String folder) {
-        return new Attachment(ContentData.create(data, type), folder);
+        return new Attachment(ContentData.create(data, type), folder, type);
     }
 
-    private Attachment(ContentData data, String folder) {
+    private Attachment(ContentData data, String folder, String type) {
         this.data = data;
         this.folder = folder;
+        this.type = type;
     }
 
     /**
@@ -175,6 +176,4 @@ public class Attachment {
     public Throwable getError() {
         return error;
     }
-
-
 }

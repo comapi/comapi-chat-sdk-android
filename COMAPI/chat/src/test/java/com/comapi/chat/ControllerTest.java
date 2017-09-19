@@ -37,6 +37,7 @@ import com.comapi.chat.helpers.MockFoundationFactory;
 import com.comapi.chat.helpers.MockResult;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.internal.AttachmentController;
+import com.comapi.chat.model.Attachment;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
 import com.comapi.chat.model.ChatMessage;
@@ -57,6 +58,7 @@ import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
 import com.comapi.internal.network.model.messaging.ConversationEventsResponse;
+import com.comapi.internal.network.model.messaging.MessageSentResponse;
 import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
@@ -64,6 +66,7 @@ import com.comapi.internal.network.model.messaging.MessagesQueryResponse;
 import com.comapi.internal.network.model.messaging.OrphanedEvent;
 import com.comapi.internal.network.model.messaging.Part;
 import com.comapi.internal.network.model.messaging.Sender;
+import com.comapi.internal.network.model.messaging.UploadContentResponse;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -80,6 +83,7 @@ import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -169,6 +173,74 @@ public class ControllerTest {
         attachmentController = new AttachmentController(logger, 13333);
 
         chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, chatConfig.getObservableExecutor(), modelAdapter, logger);
+    }
+
+    @Test
+    public void test_sendMessageWithAttachments() throws IOException {
+
+        String conversationId = "conversationId";
+
+        ChatConversationBase conversationInStore = ChatConversationBase.baseBuilder()
+                .setConversationId(conversationId)
+                .setETag("eTag-0")
+                .setFirstLocalEventId(1L)
+                .setLastLocalEventId(2L)
+                .setLastRemoteEventId(2L)
+                .setUpdatedOn(0L)
+                .build();
+        store.getConversations().put(conversationId, conversationInStore);
+
+        String json = FileResHelper.readFromFile(this, "upload_content.json");
+        Parser parser = new Parser();
+        UploadContentResponse response1 = parser.parse(json, UploadContentResponse.class);
+        UploadContentResponse response2 = parser.parse(json, UploadContentResponse.class);
+        UploadContentResponse response3 = parser.parse(json, UploadContentResponse.class);
+
+        String json2 = FileResHelper.readFromFile(this, "rest_message_sent.json");
+        MessageSentResponse response4 = parser.parse(json2, MessageSentResponse.class);
+
+        mockedComapiClient.addMockedResult(new MockResult<>(response1, true, ChatTestConst.ETAG, 200));
+        mockedComapiClient.addMockedResult(new MockResult<>(response2, true, ChatTestConst.ETAG, 200));
+        mockedComapiClient.addMockedResult(new MockResult<>(response3, true, ChatTestConst.ETAG, 200));
+        mockedComapiClient.addMockedResult(new MockResult<>(response4, true, ChatTestConst.ETAG, 200));
+
+        MessageToSend messsage = MessageToSend.builder().addPart(Part.builder().setData("text").setType("text/plain").build()).build();
+        List<Attachment> list = createAttachments();
+
+        ChatResult result = chatController.sendMessageWithAttachments(conversationId, messsage, list).toBlocking().first();
+        assertNotNull(result);
+        assertTrue(result.isSuccessful());
+        assertEquals(null, result.getError());
+
+        Map<String, ChatMessage> saved = store.getMessages();
+        assertEquals(1, saved.size());
+        ChatMessage savedMessage = saved.get("someId");
+
+
+        assertEquals(4, savedMessage.getParts().size());
+        assertEquals(1L, savedMessage.getSentEventId().longValue());
+        assertEquals("someId", savedMessage.getMessageId());
+        assertEquals("conversationId", savedMessage.getConversationId());
+        assertEquals("profileId-123", savedMessage.getSentBy());
+        assertEquals("profileId-123", savedMessage.getFromWhom().getId());
+        assertEquals("profileId-123", savedMessage.getSentBy());
+        assertNotNull(savedMessage.getMetadata().get("tempIdAndroid"));
+        assertTrue(savedMessage.getSentOn() > 0);
+
+        List<Part> attachmentParts = new ArrayList<>();
+        for (int i=0; i< 4; i++) {
+            if (!TextUtils.equals(savedMessage.getParts().get(i).getType(), "text/plain")) {
+                attachmentParts.add(savedMessage.getParts().get(i));
+            }
+        }
+
+        for (int i=0; i< 3; i++) {
+            assertEquals("https://url", attachmentParts.get(i).getUrl());
+            assertEquals(2662193, attachmentParts.get(i).getSize());
+            assertEquals("image/jpeg", attachmentParts.get(i).getType());
+            assertEquals("152f860e6f5951a3afbcc42654daddd6a2863262", attachmentParts.get(i).getName());
+        }
+
     }
 
     @Test
@@ -979,5 +1051,13 @@ public class ControllerTest {
         mockedComapiClient.clean(RuntimeEnvironment.application);
         callback.reset();
         store.clearDatabase();
+    }
+
+    private List<Attachment> createAttachments() {
+        List<Attachment> list = new ArrayList<>();
+        list.add(Attachment.create("", "dataType", "test"));
+        list.add(Attachment.create(new File(""), "dataType", "test"));
+        list.add(Attachment.create(new byte[0], "dataType", "test"));
+        return list;
     }
 }

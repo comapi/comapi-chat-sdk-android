@@ -263,7 +263,14 @@ public class MockComapiClient extends RxComapiClient {
 
                     @Override
                     public Observable<ComapiResult<UploadContentResponse>> uploadContent(@NonNull String folder, @NonNull ContentData data) {
-                        return null;
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof UploadContentResponse)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<UploadContentResponse>) result;
+                            }
+                        });
                     }
 
                     @Override
