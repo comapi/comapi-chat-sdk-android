@@ -78,13 +78,15 @@ class ChatController {
 
     private static final int ETAG_NOT_VALID = 412;
 
-    private static final Integer PAGE_SIZE = 5;
+    private final Integer messagesPerQuery;
 
-    private static final Integer UPDATE_FROM_EVENTS_LIMIT = 5;
+    private final Integer eventsPerQuery;
 
     private final AttachmentController attCon;
 
-    private int QUERY_EVENTS_NUMBER_OF_CALLS_LIMIT = 1000;
+    private int maxEventQueries;
+
+    private int maxConversationsSynced;
 
     private final WeakReference<RxComapiClient> clientReference;
 
@@ -113,9 +115,10 @@ class ChatController {
      *
      * @param client                Comapi client.
      * @param persistenceController Controller over implementation of local conversation and message store.
+     * @param internal              Internal SDK configuration.
      * @param log                   Internal logger instance.
      */
-    ChatController(final RxComapiClient client, final PersistenceController persistenceController, final AttachmentController attachmentController, final ObservableExecutor obsExec, final ModelAdapter adapter, final Logger log) {
+    ChatController(final RxComapiClient client, final PersistenceController persistenceController, final AttachmentController attachmentController, InternalConfig internal, final ObservableExecutor obsExec, final ModelAdapter adapter, final Logger log) {
         this.clientReference = new WeakReference<>(client);
         this.adapter = adapter;
         this.log = log;
@@ -124,6 +127,11 @@ class ChatController {
         this.noConversationListener = conversationId -> obsExec.execute(handleNoLocalConversation(conversationId));
         this.orphanedEventsToRemoveListener = ids -> obsExec.execute(persistenceController.deleteOrphanedEvents(ids));
         this.attCon = attachmentController;
+
+        messagesPerQuery = internal.getMaxMessagesPerPage();
+        eventsPerQuery = internal.getMaxEventsPerQuery();
+        maxEventQueries = internal.getMaxEventQueries();
+        maxConversationsSynced = internal.getMaxConversationsSynced();
     }
 
     /**
@@ -292,7 +300,7 @@ class ChatController {
                             queryFrom = null;
                         }
 
-                        return checkState().flatMap(client -> client.service().messaging().queryMessages(conversationId, queryFrom, PAGE_SIZE))
+                        return checkState().flatMap(client -> client.service().messaging().queryMessages(conversationId, queryFrom, messagesPerQuery))
                                 .flatMap(result -> persistenceController.processMessageQueryResponse(conversationId, result))
                                 .flatMap(result -> persistenceController.processOrphanedEvents(result, orphanedEventsToRemoveListener))
                                 .map(result -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage())));
@@ -405,7 +413,7 @@ class ChatController {
     /**
      * Insert temporary message to the store for the ui to be responsive.
      *
-     * @param message        Message to be send.
+     * @param message Message to be send.
      * @return Observable emitting result of operations.
      */
     private Observable<Boolean> upsertTempMessage(ChatMessage message) {
@@ -417,8 +425,8 @@ class ChatController {
     /**
      * Handles message send service response. Will delete temporary message object. Same message but with correct message id will be inserted instead.
      *
-     * @param mp Message processor holding message sending details.
-     * @param response       Service call response.
+     * @param mp       Message processor holding message sending details.
+     * @param response Service call response.
      * @return Observable emitting result of operations.
      */
     Observable<ChatResult> updateStoreWithSentMsg(MessageProcessor mp, ComapiResult<MessageSentResponse> response) {
@@ -570,7 +578,7 @@ class ChatController {
      */
     private Observable<ComapiResult<ConversationEventsResponse>> queryEventsRecursively(final RxComapiClient client, final String conversationId, final long lastEventId, final int count, final List<Boolean> successes) {
 
-        return client.service().messaging().queryConversationEvents(conversationId, lastEventId, UPDATE_FROM_EVENTS_LIMIT)
+        return client.service().messaging().queryConversationEvents(conversationId, lastEventId, eventsPerQuery)
                 .flatMap(new Func1<ComapiResult<ConversationEventsResponse>, Observable<ComapiResult<ConversationEventsResponse>>>() {
                     @Override
                     public Observable<ComapiResult<ConversationEventsResponse>> call(ComapiResult<ConversationEventsResponse> result) {
@@ -580,7 +588,7 @@ class ChatController {
                 .flatMap(new Func1<ComapiResult<ConversationEventsResponse>, Observable<ComapiResult<ConversationEventsResponse>>>() {
                     @Override
                     public Observable<ComapiResult<ConversationEventsResponse>> call(ComapiResult<ConversationEventsResponse> result) {
-                        if (result.getResult() != null && result.getResult().getEventsInOrder().size() >= UPDATE_FROM_EVENTS_LIMIT && count < QUERY_EVENTS_NUMBER_OF_CALLS_LIMIT) {
+                        if (result.getResult() != null && result.getResult().getEventsInOrder().size() >= eventsPerQuery && count < maxEventQueries) {
                             return queryEventsRecursively(client, conversationId, lastEventId + result.getResult().getEventsInOrder().size(), count + 1, successes);
                         } else {
                             return Observable.just(result);
@@ -645,7 +653,7 @@ class ChatController {
 
         List<ChatConversation> limitedList;
 
-        if (noEmptyConversations.size() < 21) {
+        if (noEmptyConversations.size() <= maxConversationsSynced) {
             limitedList = noEmptyConversations;
         } else {
             SortedMap<Long, ChatConversation> sorted = new TreeMap<>();
@@ -654,7 +662,7 @@ class ChatController {
             }
             limitedList = new ArrayList<>();
             Object[] array = sorted.values().toArray();
-            for (int i = 0; i < 21; i++) {
+            for (int i = 0; i < maxConversationsSynced; i++) {
                 limitedList.add((ChatConversation) array[i]);
             }
         }

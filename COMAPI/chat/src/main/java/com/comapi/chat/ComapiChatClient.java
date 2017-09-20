@@ -90,7 +90,8 @@ public class ComapiChatClient {
         ModelAdapter modelAdapter = new ModelAdapter();
         Database db = Database.getInstance(app, false, log);
         PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory(), log);
-        controller = new ChatController(client, persistenceController, new AttachmentController(log, 13333), chatConfig.getObservableExecutor(), modelAdapter, log);
+        final InternalConfig internal = chatConfig.getInternalConfig();
+        controller = new ChatController(client, persistenceController, new AttachmentController(log, internal.getMaxPartDataSize()), internal, chatConfig.getObservableExecutor(), modelAdapter, log);
         rxServiceAccessor = new RxChatServiceAccessor(modelAdapter, client, controller);
         serviceAccessor = new ChatServiceAccessor(callbackAdapter, rxServiceAccessor);
         eventsHandler.init(persistenceController, controller, new MissingEventsTracker(), chatConfig);
@@ -105,7 +106,8 @@ public class ComapiChatClient {
         addListener(chatConfig.getProfileListener());
         addListener(chatConfig.getTypingListener());
 
-        log.i("Comapi Chat Client ver."+VERSION);
+        log.i("Comapi Chat Client ver. "+VERSION);
+        log.d(internal.toString());
     }
 
     /**

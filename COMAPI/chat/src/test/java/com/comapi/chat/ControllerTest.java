@@ -170,9 +170,11 @@ public class ControllerTest {
         db = Database.getInstance(RuntimeEnvironment.application, true, new Logger(logMgr, ""));
         persistenceController = new PersistenceController(db, modelAdapter, factory, logger);
 
-        attachmentController = new AttachmentController(logger, 13333);
+        InternalConfig internal = new InternalConfig();
 
-        chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, chatConfig.getObservableExecutor(), modelAdapter, logger);
+        attachmentController = new AttachmentController(logger, internal.getMaxPartDataSize());
+
+        chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, internal, chatConfig.getObservableExecutor(), modelAdapter, logger);
     }
 
     @Test
@@ -602,7 +604,7 @@ public class ControllerTest {
         method.setAccessible(true);
         List result = (List) method.invoke(chatController, list);
 
-        assertEquals(21, result.size());
+        assertEquals(20, result.size());
     }
 
     @Test
@@ -775,7 +777,7 @@ public class ControllerTest {
     @Test(expected = ComapiException.class)
     public void test_checkState() {
 
-        ChatController chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, new ObservableExecutor() {
+        ChatController chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, new InternalConfig(), new ObservableExecutor() {
             @Override
             <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();
@@ -785,7 +787,7 @@ public class ControllerTest {
         RxComapiClient clientInstance = chatController.checkState().toBlocking().first();
         assertNotNull(clientInstance);
 
-        chatController = new ChatController(null, persistenceController, attachmentController, new ObservableExecutor() {
+        chatController = new ChatController(null, persistenceController, attachmentController, new InternalConfig(), new ObservableExecutor() {
             @Override
             <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();

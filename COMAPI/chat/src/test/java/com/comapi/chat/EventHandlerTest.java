@@ -179,9 +179,11 @@ public class EventHandlerTest {
         db = Database.getInstance(RuntimeEnvironment.application, true, new Logger(logMgr, ""));
         persistenceController = new PersistenceController(db, modelAdapter, factory, logger);
 
-        attachmentController = new AttachmentController(logger, 13333);
+        InternalConfig internal = new InternalConfig();
 
-        chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, new ObservableExecutor() {
+        attachmentController = new AttachmentController(logger, internal.getMaxPartDataSize());
+
+        chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, internal, new ObservableExecutor() {
             @Override
             <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();
