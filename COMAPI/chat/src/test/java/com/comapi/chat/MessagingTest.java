@@ -218,7 +218,7 @@ public class MessagingTest {
         }
 
         for (int i=0; i< 3; i++) {
-            assertEquals("dataType", attachmentParts.get(i).getType());
+            assertEquals(Attachment.LOCAL_PART_TYPE_UPLOADING, attachmentParts.get(i).getType());
         }
     }
 
@@ -311,6 +311,9 @@ public class MessagingTest {
         mockedComapiClient.addMockedResult(new MockResult<>(null, true, ChatTestConst.ETAG, 500));
 
         List<Attachment> list = createAttachments();
+        int one = list.get(0).hashCode();
+        int two = list.get(1).hashCode();
+        int three = list.get(2).hashCode();
 
         List<Attachment> result = attachmentController.uploadAttachments(list, foundationFactory.getMockedClient()).toBlocking().first();
         assertNotNull(result);
@@ -345,7 +348,7 @@ public class MessagingTest {
         }
 
         for (int i=0; i< 3; i++) {
-            assertEquals("comapi/error", attachmentParts.get(i).getName());
+            assertEquals(Attachment.LOCAL_PART_TYPE_ERROR, attachmentParts.get(i).getType());
         }
     }
 

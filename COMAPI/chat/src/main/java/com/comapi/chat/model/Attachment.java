@@ -36,6 +36,10 @@ import java.io.File;
  */
 public class Attachment {
 
+    public static final String LOCAL_PART_TYPE_ERROR = "comapi/error";
+
+    public static final String LOCAL_PART_TYPE_UPLOADING = "comapi/uploading";
+
     private ContentData data;
 
     private String folder;

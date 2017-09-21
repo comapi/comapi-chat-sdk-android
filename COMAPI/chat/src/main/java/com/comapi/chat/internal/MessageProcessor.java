@@ -45,8 +45,6 @@ import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
  */
 public class MessageProcessor {
 
-    private static final String ERROR_PART_NAME = "comapi/error";
-
     private final int maxPartSize;
 
     private final Logger log;
@@ -108,7 +106,7 @@ public class MessageProcessor {
     public void preparePreUpload() {
         convertLargeParts();
         for (Attachment a : attachments) {
-            tempParts.add(Part.builder().setType(a.getType()).build());
+            tempParts.add(createTempPart(a));
         }
     }
 
@@ -136,7 +134,16 @@ public class MessageProcessor {
      * @return Message part.
      */
     private Part createErrorPart(Attachment a) {
-        return Part.builder().setName(ERROR_PART_NAME).setSize(0).setType(a.getType()).setUrl(null).setData(a.getError().getLocalizedMessage()).build();
+        return Part.builder().setName(String.valueOf(a.hashCode())).setSize(0).setType(Attachment.LOCAL_PART_TYPE_ERROR).setUrl(null).setData(a.getError().getLocalizedMessage()).build();
+    }
+
+    /**
+     * Create message part based on attachment upload. This is a temporary message to indicate that one of the attachments for this message is being uploaded.
+     *
+     * @return Message part.
+     */
+    private Part createTempPart(Attachment a) {
+        return Part.builder().setName(String.valueOf(a.hashCode())).setSize(0).setType(Attachment.LOCAL_PART_TYPE_UPLOADING).setUrl(null).setData("Uploading attachment.").build();
     }
 
     /**
