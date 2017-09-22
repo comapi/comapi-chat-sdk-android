@@ -169,7 +169,7 @@ public class MessageProcessor {
                 for (Part p : publicParts) {
                     if (p.getData() != null && p.getData().length() > maxPartSize) {
                         String type = p.getType() != null ? p.getType() : "application/octet-stream";
-                        newAttachments.add(Attachment.create(p.getData(), type, "AutoConverted"));
+                        newAttachments.add(Attachment.create(p.getData(), type, Attachment.LOCAL_AUTO_CONVERTED_FOLDER, p.getName()));
                         toLarge.add(p);
                         log.w("Message part " + p.getName() + " to large (" + p.getData().length() + ">" + maxPartSize + ") - converting to attachment.");
                     }

@@ -1057,9 +1057,9 @@ public class ControllerTest {
 
     private List<Attachment> createAttachments() {
         List<Attachment> list = new ArrayList<>();
-        list.add(Attachment.create("", "dataType", "test"));
-        list.add(Attachment.create(new File(""), "dataType", "test"));
-        list.add(Attachment.create(new byte[0], "dataType", "test"));
+        list.add(Attachment.create("", "dataType", "test", "name"));
+        list.add(Attachment.create(new File(""), "dataType", "test", "name"));
+        list.add(Attachment.create(new byte[0], "dataType", "test", "name"));
         return list;
     }
 }

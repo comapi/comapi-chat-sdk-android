@@ -22,6 +22,7 @@ package com.comapi.chat.model;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 
 import com.comapi.internal.network.ContentData;
 import com.comapi.internal.network.model.messaging.UploadContentResponse;
@@ -39,6 +40,8 @@ public class Attachment {
     public static final String LOCAL_PART_TYPE_ERROR = "comapi/error";
 
     public static final String LOCAL_PART_TYPE_UPLOADING = "comapi/uploading";
+
+    public static final String LOCAL_AUTO_CONVERTED_FOLDER = "AutoConverted";
 
     private ContentData data;
 
@@ -61,8 +64,8 @@ public class Attachment {
      * @param type Mime type of the data.
      * @return Data object to send.
      */
-    public static Attachment create(@NonNull File data, @NonNull String type, @Nullable String folder) {
-        return new Attachment(ContentData.create(data, type), folder, type);
+    public static Attachment create(@NonNull File data, @NonNull String type, @Nullable String folder, @Nullable String name) {
+        return new Attachment(ContentData.create(data, type, TextUtils.isEmpty(name) ? data.getName() : name), folder, type);
     }
 
     /**
@@ -72,8 +75,8 @@ public class Attachment {
      * @param type Mime type of the data.
      * @return Data object to send.
      */
-    public static Attachment create(@NonNull byte[] data, @NonNull String type, @Nullable String folder) {
-        return new Attachment(ContentData.create(data, type), folder, type);
+    public static Attachment create(@NonNull byte[] data, @NonNull String type, @Nullable String folder, @Nullable String name) {
+        return new Attachment(ContentData.create(data, type, name), folder, type);
     }
 
     /**
@@ -83,8 +86,8 @@ public class Attachment {
      * @param type Mime type of the data.
      * @return Data object to send.
      */
-    public static Attachment create(@NonNull String data, @NonNull String type, @Nullable String folder) {
-        return new Attachment(ContentData.create(data, type), folder, type);
+    public static Attachment create(@NonNull String data, @NonNull String type, @Nullable String folder, @Nullable String name) {
+        return new Attachment(ContentData.create(data, type, name), folder, type);
     }
 
     private Attachment(ContentData data, String folder, String type) {
@@ -145,6 +148,15 @@ public class Attachment {
      */
     public long getSize() {
         return size;
+    }
+
+    /**
+     * Get assigned file name.
+     *
+     * @return File name.
+     */
+    public String getName() {
+        return data.getName();
     }
 
     /**
