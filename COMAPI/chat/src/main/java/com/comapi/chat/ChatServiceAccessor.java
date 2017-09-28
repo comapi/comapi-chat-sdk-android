@@ -24,9 +24,9 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.comapi.Callback;
-import com.comapi.QueryBuilder;
 import com.comapi.ServiceAccessor;
 import com.comapi.Session;
+import com.comapi.chat.model.Attachment;
 import com.comapi.chat.model.ChatParticipant;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.network.ComapiResult;
@@ -38,9 +38,6 @@ import com.comapi.internal.network.model.messaging.MessageToSend;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-
-import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
 
 /**
  * Separates access to subsets of service APIs.
@@ -48,6 +45,7 @@ import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
  * @author Marcin Swierczek
  * @since 1.0.0
  */
+@SuppressWarnings("WeakerAccess")
 public class ChatServiceAccessor {
 
     private final CallbackAdapter callbackAdapter;
@@ -172,9 +170,7 @@ public class ChatServiceAccessor {
          * @param callback       Callback with the result.
          */
         public void sendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message, @Nullable Callback<ChatResult> callback) {
-            final String tempId = UUID.randomUUID().toString();
-            message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
-            callbackAdapter.adapt(rxMessaging.sendMessage(conversationId, message), callback);
+            callbackAdapter.adapt(rxMessaging.sendMessage(conversationId, message, null), callback);
         }
 
         /**
@@ -185,7 +181,31 @@ public class ChatServiceAccessor {
          * @param callback       Callback with the result.
          */
         public void sendMessage(@NonNull final String conversationId, @NonNull final String body, @Nullable Callback<ChatResult> callback) {
-            callbackAdapter.adapt(rxMessaging.sendMessage(conversationId, body), callback);
+            callbackAdapter.adapt(rxMessaging.sendMessage(conversationId, body, null), callback);
+        }
+
+        /**
+         * Send message to the conversation.
+         *
+         * @param conversationId ID of a conversation to send a message to.
+         * @param message        Message to be send.
+         * @param data           Attachments to the message.
+         * @param callback       Callback with the result.
+         */
+        public void sendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message, @Nullable List<Attachment> data, @Nullable Callback<ChatResult> callback) {
+            callbackAdapter.adapt(rxMessaging.sendMessage(conversationId, message, data), callback);
+        }
+
+        /**
+         * Send message to the chanel.
+         *
+         * @param conversationId ID of a conversation to send a message to.
+         * @param body           Message body to be send.
+         * @param data           Attachments to the message.
+         * @param callback       Callback with the result.
+         */
+        public void sendMessage(@NonNull final String conversationId, @NonNull final String body, @Nullable List<Attachment> data, @Nullable Callback<ChatResult> callback) {
+            callbackAdapter.adapt(rxMessaging.sendMessage(conversationId, body, data), callback);
         }
 
         /**

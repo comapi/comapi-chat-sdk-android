@@ -48,6 +48,8 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
 
     private ObservableExecutor observableExecutor;
 
+    private InternalConfig internalConfig;
+
     /**
      * Sets builder for {@link ChatStore} db interface that can handle single db transactions.
      *
@@ -107,6 +109,29 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
      */
     public ChatConfig profileListener(ProfileListener profileListener) {
         this.profileListener = profileListener;
+        return this;
+    }
+
+    /**
+     * Gets internal configuration.
+     *
+     * @return Internal configuration.
+     */
+    InternalConfig getInternalConfig() {
+        if (internalConfig == null) {
+            internalConfig = new InternalConfig();
+        }
+        return internalConfig;
+    }
+
+    /**
+     * Sets SDKs new internal configuration. Overrides a default setup.
+     *
+     * @param config Internal configuration.
+     * @return Builder instance with new value set.
+     */
+    public ChatConfig internalConfig(InternalConfig config) {
+        this.internalConfig = config;
         return this;
     }
 
@@ -204,4 +229,5 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
     protected ChatConfig getThis() {
         return this;
     }
+
 }

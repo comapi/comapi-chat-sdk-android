@@ -81,6 +81,7 @@ public class InitTest {
         ChatConfig chatConfig = new ChatConfig()
                 .setFoundationFactory(foundationFactory)
                 .apiSpaceId("ApiSpaceId")
+                .internalConfig(new InternalConfig().limitConversationSynced(1).limitEventQueries(1).limitEventsPerQuery(10).limitMessagesPerPage(1).limitPartDataSize(1000))
                 .authenticator(new ComapiAuthenticator() {
                     @Override
                     public void onAuthenticationChallenge(AuthClient authClient, ChallengeOptions challengeOptions) {

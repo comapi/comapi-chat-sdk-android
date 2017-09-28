@@ -24,10 +24,12 @@ import android.app.Application;
 import android.content.Context;
 
 import com.comapi.ClientHelper;
+import com.comapi.GlobalState;
 import com.comapi.MessagingListener;
 import com.comapi.RxComapiClient;
 import com.comapi.Session;
 import com.comapi.chat.database.Database;
+import com.comapi.chat.internal.AttachmentController;
 import com.comapi.chat.internal.MissingEventsTracker;
 import com.comapi.chat.listeners.ParticipantsListener;
 import com.comapi.chat.listeners.ProfileListener;
@@ -54,7 +56,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ComapiChatClient {
 
-    private final static String VERSION = "1.0.0";
+    private final static String VERSION = "1.0.1";
 
     private final RxComapiClient client;
 
@@ -88,7 +90,8 @@ public class ComapiChatClient {
         ModelAdapter modelAdapter = new ModelAdapter();
         Database db = Database.getInstance(app, false, log);
         PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory(), log);
-        controller = new ChatController(client, persistenceController, chatConfig.getObservableExecutor(), modelAdapter, log);
+        final InternalConfig internal = chatConfig.getInternalConfig();
+        controller = new ChatController(client, persistenceController, new AttachmentController(log, internal.getMaxPartDataSize()), internal, chatConfig.getObservableExecutor(), modelAdapter, log);
         rxServiceAccessor = new RxChatServiceAccessor(modelAdapter, client, controller);
         serviceAccessor = new ChatServiceAccessor(callbackAdapter, rxServiceAccessor);
         eventsHandler.init(persistenceController, controller, new MissingEventsTracker(), chatConfig);
@@ -103,7 +106,8 @@ public class ComapiChatClient {
         addListener(chatConfig.getProfileListener());
         addListener(chatConfig.getTypingListener());
 
-        log.i("Comapi Chat Client ver."+VERSION);
+        log.i("Comapi Chat Client ver. "+VERSION);
+        log.d(internal.toString());
     }
 
     /**
@@ -160,6 +164,15 @@ public class ComapiChatClient {
 
             }
         };
+    }
+
+    /**
+     * Gets the internal state of the SDK. Possible values in {@link GlobalState}.
+     *
+     * @return State of the ComapiImpl SDK. Compare with values in {@link GlobalState}.
+     */
+    public int getState() {
+        return client.getState();
     }
 
     void clean(Application application) {
