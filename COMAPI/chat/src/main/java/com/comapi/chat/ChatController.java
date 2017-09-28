@@ -279,7 +279,7 @@ class ChatController {
      */
     Observable<ChatResult> getPreviousMessages(final String conversationId) {
 
-        return persistenceController.loadConversation(conversationId)
+        return persistenceController.getConversation(conversationId)
                 .map(conversation -> conversation != null ? conversation.getFirstLocalEventId() : null)
                 .flatMap(new Func1<Long, Observable<ChatResult>>() {
                     @Override
@@ -490,7 +490,7 @@ class ChatController {
                     }
                     return -1L;
                 })
-                .flatMap(result -> persistenceController.loadConversation(conversationId).map(loaded -> compare(result, loaded)))
+                .flatMap(result -> persistenceController.getConversation(conversationId).map(loaded -> compare(result, loaded)))
                 .flatMap(this::updateLocalConversationList)
                 .flatMap(result -> lookForMissingEvents(client, result))
                 .map(result -> result.isSuccessful));

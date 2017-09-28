@@ -22,6 +22,7 @@ package com.comapi.chat;
 
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.comapi.chat.database.Database;
 import com.comapi.chat.model.ChatConversation;
@@ -83,7 +84,9 @@ class PersistenceController {
         return Observable.create(emitter -> storeFactory.execute(new StoreTransaction<ChatStore>() {
             @Override
             protected void execute(ChatStore store) {
+                store.beginTransaction();
                 List<ChatConversationBase> conversations = store.getAllConversations();
+                store.endTransaction();
                 emitter.onNext(conversations);
                 emitter.onCompleted();
             }
@@ -91,19 +94,22 @@ class PersistenceController {
     }
 
     /**
-     * Wraps loading single conversations from store implementation into an Observable.
+     * Get single conversations from store implementation as an Observable.
      *
      * @return Observable returning single conversation from store.
      */
-    Observable<ChatConversationBase> loadConversation(@NonNull String conversationId) {
+    Observable<ChatConversationBase> getConversation(@NonNull String conversationId) {
 
         return Observable.create(emitter -> storeFactory.execute(new StoreTransaction<ChatStore>() {
             @Override
             protected void execute(ChatStore store) {
-                emitter.onNext(store.getConversation(conversationId));
+                store.beginTransaction();
+                ChatConversationBase c = store.getConversation(conversationId);
+                store.endTransaction();
+                emitter.onNext(c);
                 emitter.onCompleted();
             }
-        }), Emitter.BackpressureMode.LATEST);
+        }), Emitter.BackpressureMode.BUFFER);
     }
 
     /**
@@ -302,7 +308,7 @@ class PersistenceController {
     }
 
     /**
-     * Update conversation state with received event details.
+     * Update conversation state with received event details. This should be called only inside transaction.
      *
      * @param store          Chat Store instance.
      * @param conversationId Unique conversation id.
@@ -396,23 +402,6 @@ class PersistenceController {
                 store.endTransaction();
 
                 emitter.onNext(isSuccess);
-                emitter.onCompleted();
-            }
-        });
-    }
-
-    /**
-     * Get conversation from the store.
-     *
-     * @param conversationId Unique conversation id.
-     * @return Observable emitting conversation object from the store.
-     */
-    public Observable<ChatConversationBase> getConversation(String conversationId) {
-
-        return asObservable(new Executor<ChatConversationBase>() {
-            @Override
-            void execute(ChatStore store, Emitter<ChatConversationBase> emitter) {
-                emitter.onNext(store.getConversation(conversationId));
                 emitter.onCompleted();
             }
         });
