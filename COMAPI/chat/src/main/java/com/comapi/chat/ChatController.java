@@ -63,6 +63,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import rx.Observable;
 import rx.functions.Func1;
@@ -110,6 +111,8 @@ class ChatController {
         void remove(String[] ids);
     }
 
+    private final AtomicBoolean isSynchronising;
+
     /**
      * Recommended constructor.
      *
@@ -119,6 +122,7 @@ class ChatController {
      * @param log                   Internal logger instance.
      */
     ChatController(final RxComapiClient client, final PersistenceController persistenceController, final AttachmentController attachmentController, InternalConfig internal, final ObservableExecutor obsExec, final ModelAdapter adapter, final Logger log) {
+        this.isSynchronising = new AtomicBoolean(false);
         this.clientReference = new WeakReference<>(client);
         this.adapter = adapter;
         this.log = log;
@@ -324,7 +328,18 @@ class ChatController {
      * @return Result of synchronisation process.
      */
     Observable<Boolean> synchroniseStore() {
-        return synchroniseConversations();
+        if (isSynchronising.getAndSet(true)) {
+            log.i("Synchronisation in progress.");
+            return Observable.fromCallable(() -> true);
+        }
+        log.i("Synchronising store.");
+        return synchroniseConversations().doOnError(t -> {
+            log.i("Synchronisation finished with error. " + t.getLocalizedMessage());
+            isSynchronising.compareAndSet(true, false);
+        }).doOnNext(i -> {
+            log.i("Synchronisation successfully finished.");
+            isSynchronising.compareAndSet(true, false);
+        });
     }
 
     /**

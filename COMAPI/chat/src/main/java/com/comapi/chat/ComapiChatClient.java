@@ -45,6 +45,7 @@ import com.comapi.internal.network.model.events.conversation.ParticipantTypingEv
 import com.comapi.internal.network.model.events.conversation.ParticipantTypingOffEvent;
 import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedEvent;
 
+import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -140,9 +141,11 @@ public class ComapiChatClient {
     /**
      * Creates listener for Application visibility.
      *
-     * @return
+     * @return Listener to app lifecycle changes.
+     * @param ref Weak reference to comapi client used to trigger synchronisation in response to app being foregrounded.
      */
-    LifecycleListener createLifecycleListener() {
+    LifecycleListener createLifecycleListener(final WeakReference<ComapiChatClient> ref) {
+
         return new LifecycleListener() {
 
             /**
@@ -151,8 +154,10 @@ public class ComapiChatClient {
              * @param context Application context
              */
             public void onForegrounded(Context context) {
-                //
-                service().messaging().synchroniseStore(null);
+                ComapiChatClient client = ref.get();
+                if (client != null) {
+                    client.service().messaging().synchroniseStore(null);
+                }
             }
 
             /**
