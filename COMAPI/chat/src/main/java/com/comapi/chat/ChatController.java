@@ -165,20 +165,9 @@ class ChatController {
                                 }
                             })
                             .flatMap(isOk -> client.service().messaging().sendMessage(conversationId, messageProcessor.prepareMessageToSend()) // send message with attachments details as additional message parts
-                                    .flatMap((result) -> updateStoreWithSentMsg(messageProcessor, result)) // update temporary message with a new message id obtained from the response
+                                    .flatMap(result -> updateStoreWithSentMsg(messageProcessor, result)) // update temporary message with a new message id obtained from the response
                                     .onErrorResumeNext(t -> handleMessageError(messageProcessor, t))); // if error occurred update message status list adding error status
                 });
-    }
-
-    /**
-     * Handle participant added to a conversation Foundation SDK event.
-     *
-     * @param conversationId Unique conversation id.
-     * @param result         Foundation API result to process.
-     * @return Observable with a same result.
-     */
-    public Observable<ComapiResult<Void>> handleParticipantsAdded(final String conversationId, final ComapiResult<Void> result) {
-        return handleParticipantsAdded(conversationId).map(conversation -> result);
     }
 
     /**
@@ -209,7 +198,7 @@ class ChatController {
      */
     private Observable<ChatResult> handleMessageError(MessageProcessor mp, Throwable t) {
         return persistenceController.updateStoreForSentError(mp.getConversationId(), mp.getTempId(), mp.getSender())
-                .map(success -> new ChatResult(false, new ChatResult.Error(1, (t != null ? t.getLocalizedMessage() : "Error sending message."))));
+                .map(success -> new ChatResult(false, new ChatResult.Error(0, t)));
     }
 
     /**
@@ -241,7 +230,7 @@ class ChatController {
                     public Observable<ChatResult> call(ComapiResult<ConversationDetails> result) {
                         if (result.isSuccessful() && result.getResult() != null) {
                             return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult(), result.getETag()).build())
-                                    .map(success -> new ChatResult(success, success ? null : new ChatResult.Error(1500, "External store reported failure.")));
+                                    .map(success -> new ChatResult(success, success ? null : new ChatResult.Error(0, "External store reported failure.", "Error when inserting conversation "+conversationId)));
                         } else {
                             return Observable.fromCallable(() -> adapter.adaptResult(result));
                         }
@@ -307,7 +296,7 @@ class ChatController {
                         return checkState().flatMap(client -> client.service().messaging().queryMessages(conversationId, queryFrom, messagesPerQuery))
                                 .flatMap(result -> persistenceController.processMessageQueryResponse(conversationId, result))
                                 .flatMap(result -> persistenceController.processOrphanedEvents(result, orphanedEventsToRemoveListener))
-                                .map(result -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage())));
+                                .map(result -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result)));
                     }
                 });
     }
@@ -327,19 +316,22 @@ class ChatController {
      *
      * @return Result of synchronisation process.
      */
-    Observable<Boolean> synchroniseStore() {
+    Observable<ChatResult> synchroniseStore() {
         if (isSynchronising.getAndSet(true)) {
             log.i("Synchronisation in progress.");
-            return Observable.fromCallable(() -> true);
+            return Observable.fromCallable(() -> new ChatResult(true, null));
         }
         log.i("Synchronising store.");
-        return synchroniseConversations().doOnError(t -> {
-            log.i("Synchronisation finished with error. " + t.getLocalizedMessage());
-            isSynchronising.compareAndSet(true, false);
-        }).doOnNext(i -> {
-            log.i("Synchronisation successfully finished.");
-            isSynchronising.compareAndSet(true, false);
-        });
+        return synchroniseConversations()
+                .onErrorReturn(t -> new ChatResult(false, new ChatResult.Error(0, t)))
+                .doOnNext(i -> {
+                    if (i.isSuccessful()) {
+                        log.i("Synchronisation successfully finished.");
+                    } else {
+                        log.e("Synchronisation finished with error. " + (i.getError() != null ? i.getError().getMessage() : ""));
+                    }
+                    isSynchronising.compareAndSet(true, false);
+                });
     }
 
     /**
@@ -371,7 +363,7 @@ class ChatController {
                     .flatMap(newResult -> {
                         if (newResult.isSuccessful()) {
                             return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult(), newResult.getETag()).build())
-                                    .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(ETAG_NOT_VALID, "Conversation updated, try delete again.") : new ChatResult.Error(1500, "Error updating in custom store."))));
+                                    .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(ETAG_NOT_VALID, "Conversation updated, try delete again.", "Conversation "+conversationId+" updated in response to  wrong eTag error when deleting.") : new ChatResult.Error(0, "Error updating custom store.", null))));
                         } else {
                             return Observable.fromCallable(() -> adapter.adaptResult(newResult));
                         }
@@ -399,7 +391,7 @@ class ChatController {
                         if (newResult.isSuccessful()) {
 
                             return persistenceController.upsertConversation(ChatConversation.builder().populate(newResult.getResult(), newResult.getETag()).build())
-                                    .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(ETAG_NOT_VALID, "Conversation updated, try delete again.") : new ChatResult.Error(1500, "Error updating in custom store."))));
+                                    .flatMap(success -> Observable.fromCallable(() -> new ChatResult(false, success ? new ChatResult.Error(ETAG_NOT_VALID, "Conversation updated, try delete again.", "Conversation "+request.getId()+" updated in response to  wrong eTag error when updating."): new ChatResult.Error(1500, "Error updating custom store.", null))));
                         } else {
                             return Observable.fromCallable(() -> adapter.adaptResult(newResult));
                         }
@@ -457,26 +449,27 @@ class ChatController {
      *
      * @return Result of synchronisation with services.
      */
-    private Observable<Boolean> synchroniseConversations() {
+    private Observable<ChatResult> synchroniseConversations() {
 
         return checkState().flatMap(client -> client.service().messaging()
                 .getConversations(false)
                 .flatMap(result -> persistenceController.loadAllConversations()
-                        .map(chatConversationBases -> compare(result.getResult(), chatConversationBases)))
+                        .map(chatConversationBases -> compare(result.isSuccessful(), result.getResult(), chatConversationBases)))
                 .flatMap(this::updateLocalConversationList)
                 .flatMap(result -> lookForMissingEvents(client, result))
-                .map(result -> result.isSuccessful));
+                .map(result -> new ChatResult(result.isSuccessful, null)));
     }
 
     /**
      * Compares remote and local conversation lists.
      *
-     * @param remote Conversation list obtained from the server.
-     * @param local  Conversation list obtained from local store.
+     * @param successful True if the service call was successful.
+     * @param remote     Conversation list obtained from the server.
+     * @param local      Conversation list obtained from local store.
      * @return Comparison object.
      */
-    ConversationComparison compare(List<Conversation> remote, List<ChatConversationBase> local) {
-        return new ConversationComparison(makeMapFromDownloadedConversations(remote), makeMapFromSavedConversations(local));
+    ConversationComparison compare(boolean successful, List<Conversation> remote, List<ChatConversationBase> local) {
+        return new ConversationComparison(successful, makeMapFromDownloadedConversations(remote), makeMapFromSavedConversations(local));
     }
 
     /**
@@ -495,7 +488,7 @@ class ChatController {
      *
      * @return Result of synchronisation with services.
      */
-    Observable<Boolean> synchroniseConversation(String conversationId) {
+    Observable<ChatResult> synchroniseConversation(String conversationId) {
 
         return checkState().flatMap(client -> client.service().messaging()
                 .queryMessages(conversationId, null, 1)
@@ -508,7 +501,7 @@ class ChatController {
                 .flatMap(result -> persistenceController.getConversation(conversationId).map(loaded -> compare(result, loaded)))
                 .flatMap(this::updateLocalConversationList)
                 .flatMap(result -> lookForMissingEvents(client, result))
-                .map(result -> result.isSuccessful));
+                .map(result -> new ChatResult(result.isSuccessful, null)));
     }
 
     /**
@@ -527,7 +520,7 @@ class ChatController {
         return synchroniseEvents(client, conversationComparison.conversationsToUpdate, new ArrayList<>())
                 .map(result -> {
                     if (conversationComparison.isSuccessful && !result) {
-                        conversationComparison.setSuccessful(false);
+                        conversationComparison.addSuccess(false);
                     }
                     return conversationComparison;
                 });
@@ -546,7 +539,7 @@ class ChatController {
                 persistenceController.updateConversations(conversationComparison.conversationsToUpdate),
                 (success1, success2, success3) -> success1 && success2 && success3)
                 .map(result -> {
-                    conversationComparison.setSuccessful(result);
+                    conversationComparison.addSuccess(result);
                     return conversationComparison;
                 });
     }
@@ -559,7 +552,7 @@ class ChatController {
      * @param successes             List of partial successes.
      * @return Observable with the merged result of operations.
      */
-    private Observable<Boolean> synchroniseEvents(final RxComapiClient client, final List<ChatConversation> conversationsToUpdate, final List<Boolean> successes) {
+    private Observable<Boolean> synchroniseEvents(final RxComapiClient client, @NonNull final List<ChatConversation> conversationsToUpdate, @NonNull final List<Boolean> successes) {
 
         final List<ChatConversation> limited = limitNumberOfConversations(conversationsToUpdate);
 
@@ -762,6 +755,7 @@ class ChatController {
 
     class ConversationComparison {
 
+        boolean remoteCallSuccessful = true;
         boolean isSuccessful = false;
 
         List<ChatConversation> conversationsToAdd;
@@ -771,11 +765,13 @@ class ChatController {
         /**
          * Creates remote and local conversation list comparison.
          *
+         * @param successful     Was remote service call successful.
          * @param downloadedList Remote list.
          * @param savedList      Local list.
          */
-        ConversationComparison(Map<String, Conversation> downloadedList, Map<String, ChatConversationBase> savedList) {
+        ConversationComparison(boolean successful, Map<String, Conversation> downloadedList, Map<String, ChatConversationBase> savedList) {
 
+            remoteCallSuccessful = successful;
             conversationsToDelete = new ArrayList<>();
             conversationsToUpdate = new ArrayList<>();
             conversationsToAdd = new ArrayList<>();
@@ -822,6 +818,10 @@ class ChatController {
                     conversationsToUpdate.add(ChatConversation.builder().populate(conversation).setLastRemoteEventId(remoteLastEventId).build());
                 }
             }
+
+            if (remoteLastEventId == null || remoteLastEventId == -1L) {
+                remoteCallSuccessful = false;
+            }
         }
 
         /**
@@ -829,8 +829,8 @@ class ChatController {
          *
          * @param isSuccessful TRue if processing of conversations was successful.
          */
-        void setSuccessful(boolean isSuccessful) {
-            this.isSuccessful = isSuccessful;
+        void addSuccess(boolean isSuccessful) {
+            this.isSuccessful = isSuccessful && remoteCallSuccessful;
         }
     }
 }

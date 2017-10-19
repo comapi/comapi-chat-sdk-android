@@ -196,7 +196,7 @@ public class MessageProcessor {
     }
 
     /**
-     * Get message. Call {@link this#prepareMessageToSend()} before sending to the server.
+     * Get message. Call {@link MessageProcessor#prepareMessageToSend()} before sending to the server.
      *
      * @return Message.
      */
@@ -224,7 +224,7 @@ public class MessageProcessor {
     }
 
     /**
-     * Create a temporary message to be displayed while the message is being send. to be replaced later on with a final message constructed with {@link this#createFinalMessage(MessageSentResponse)}
+     * Create a temporary message to be displayed while the message is being send. to be replaced later on with a final message constructed with MessageProcessor#createFinalMessage(MessageSentResponse).
      *
      * @return Temporary message to be saved in persistance store.
      */

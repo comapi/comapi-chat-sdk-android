@@ -23,7 +23,6 @@ package com.comapi.chat;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import com.comapi.QueryBuilder;
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
@@ -166,7 +165,9 @@ public class RxChatServiceAccessor {
          * @return Observable to subscribe to.
          */
         public Observable<ChatResult> addParticipants(@NonNull final String conversationId, @NonNull final List<Participant> participants) {
-            return foundation.service().messaging().addParticipants(conversationId, participants).flatMap(result -> controller.handleParticipantsAdded(conversationId, result)).map(modelAdapter::adaptResult);
+            return foundation.service().messaging().addParticipants(conversationId, participants)
+                    .flatMap(result -> controller.handleParticipantsAdded(conversationId).map(conversation -> result))
+                    .map(modelAdapter::adaptResult);
         }
 
         /**
@@ -264,7 +265,7 @@ public class RxChatServiceAccessor {
          *
          * @return Observable to subscribe to.
          */
-        public Observable<Boolean> synchroniseStore() {
+        public Observable<ChatResult> synchroniseStore() {
             return controller.synchroniseStore();
         }
 
@@ -274,7 +275,7 @@ public class RxChatServiceAccessor {
          * @param conversationId Unique conversationId.
          * @return Observable to subscribe to.
          */
-        public Observable<Boolean> synchroniseConversation(@NonNull final String conversationId) {
+        public Observable<ChatResult> synchroniseConversation(@NonNull final String conversationId) {
             return controller.synchroniseConversation(conversationId);
         }
 
@@ -310,7 +311,7 @@ public class RxChatServiceAccessor {
         /**
          * Query user profiles.
          *
-         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use {@link QueryBuilder} helper class to construct valid query string.
+         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use com.comapi.QueryBuilder helper class to construct valid query string.
          * @return List of maps of custom profile data.
          */
         @Override

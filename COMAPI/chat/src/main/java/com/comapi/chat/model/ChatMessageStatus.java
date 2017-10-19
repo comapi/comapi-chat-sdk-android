@@ -25,7 +25,6 @@ import android.support.annotation.NonNull;
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.model.events.conversation.message.MessageDeliveredEvent;
 import com.comapi.internal.network.model.events.conversation.message.MessageReadEvent;
-import com.comapi.internal.network.model.messaging.MessageStatus;
 
 /**
  * Message status model for db storage.

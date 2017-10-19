@@ -22,9 +22,10 @@ package com.comapi.chat;
 
 import android.app.Application;
 import android.content.Context;
+import android.os.Looper;
+import android.support.annotation.NonNull;
 
 import com.comapi.ClientHelper;
-import com.comapi.GlobalState;
 import com.comapi.MessagingListener;
 import com.comapi.RxComapiClient;
 import com.comapi.Session;
@@ -45,9 +46,12 @@ import com.comapi.internal.network.model.events.conversation.ParticipantTypingEv
 import com.comapi.internal.network.model.events.conversation.ParticipantTypingOffEvent;
 import com.comapi.internal.network.model.events.conversation.ParticipantUpdatedEvent;
 
+import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import rx.Observable;
 
 /**
  * Client implementation for chat layer SDK. Handles initialisation and stores all internal objects.
@@ -87,7 +91,7 @@ public class ComapiChatClient {
     ComapiChatClient(Application app, final RxComapiClient client, final ChatConfig chatConfig, final EventsHandler eventsHandler, CallbackAdapter callbackAdapter) {
         this.client = client;
         this.eventsHandler = eventsHandler;
-        Logger log = ClientHelper.getLogger(client);
+        final Logger log = ClientHelper.getLogger(client).clone("Chat_" + VERSION);
         ModelAdapter modelAdapter = new ModelAdapter();
         Database db = Database.getInstance(app, false, log);
         PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory(), log);
@@ -107,7 +111,7 @@ public class ComapiChatClient {
         addListener(chatConfig.getProfileListener());
         addListener(chatConfig.getTypingListener());
 
-        log.i("Comapi Chat Client ver. "+VERSION);
+        log.i("Comapi Chat SDK " + VERSION + " client " + this.hashCode() + " initialising on " + (Thread.currentThread() == Looper.getMainLooper().getThread() ? "main thread." : "background thread."));
         log.d(internal.toString());
     }
 
@@ -141,8 +145,8 @@ public class ComapiChatClient {
     /**
      * Creates listener for Application visibility.
      *
-     * @return Listener to app lifecycle changes.
      * @param ref Weak reference to comapi client used to trigger synchronisation in response to app being foregrounded.
+     * @return Listener to app lifecycle changes.
      */
     LifecycleListener createLifecycleListener(final WeakReference<ComapiChatClient> ref) {
 
@@ -172,12 +176,31 @@ public class ComapiChatClient {
     }
 
     /**
-     * Gets the internal state of the SDK. Possible values in {@link GlobalState}.
+     * Gets the internal state of the SDK. Possible values in com.comapi.GlobalState.
      *
-     * @return State of the ComapiImpl SDK. Compare with values in {@link GlobalState}.
+     * @return State of the ComapiImpl SDK. Compare with values in com.comapi.GlobalState.
      */
     public int getState() {
         return client.getState();
+    }
+
+    /**
+     * Gets the content of internal log files merged into provided file.
+     *
+     * @param file File to merge internal logs into.
+     * @return Observable emitting the same file but this time containing all the internal logs merged into.
+     */
+    public Observable<File> copyLogs(@NonNull File file) {
+        return client.copyLogs(file);
+    }
+
+    /**
+     * Returns the content of internal log files in a single String. For large limits of internal files consider using {@link ComapiChatClient#copyLogs(File)} and loading the content line by line.
+     *
+     * @return Observable emitting internal log files content as a single string.
+     */
+    public Observable<String> getLogs() {
+        return client.getLogs();
     }
 
     void clean(Application application) {

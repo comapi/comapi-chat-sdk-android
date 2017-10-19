@@ -481,7 +481,7 @@ public class MockComapiClient extends RxComapiClient {
     @Override
     protected Logger getLogger() {
         return new Logger(new LogManager() {
-            public void log(final String clazz, final int logLevel, final String msg, final Throwable exception) {
+            public void log(final String tag, final int logLevel, final String msg, final Throwable exception) {
                 // do nothing
             }
         }, "");

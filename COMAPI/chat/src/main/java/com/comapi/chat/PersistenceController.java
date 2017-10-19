@@ -22,7 +22,6 @@ package com.comapi.chat;
 
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.comapi.chat.database.Database;
 import com.comapi.chat.model.ChatConversation;
@@ -150,9 +149,9 @@ class PersistenceController {
                             ChatConversationBase updateConversation = ChatConversationBase.baseBuilder()
                                     .setConversationId(savedConversation.getConversationId())
                                     .setETag(savedConversation.getETag())
-                                    .setFirstLocalEventId(savedConversation.getFirstLocalEventId() < 0 ? response.getEarliestEventId() : Math.min(savedConversation.getFirstLocalEventId(), response.getEarliestEventId()))
-                                    .setLastLocalEventId(savedConversation.getLastLocalEventId() < 0 ? response.getLatestEventId() : Math.max(savedConversation.getLastLocalEventId(), response.getLatestEventId()))
-                                    .setLastRemoteEventId(savedConversation.getLastRemoteEventId() < 0 ? response.getLatestEventId() : Math.max(savedConversation.getLastRemoteEventId(), response.getLatestEventId()))
+                                    .setFirstLocalEventId(nullOrNegative(savedConversation.getFirstLocalEventId()) ? response.getEarliestEventId() : Math.min(savedConversation.getFirstLocalEventId(), response.getEarliestEventId()))
+                                    .setLastLocalEventId(nullOrNegative(savedConversation.getLastLocalEventId()) ? response.getLatestEventId() : Math.max(savedConversation.getLastLocalEventId(), response.getLatestEventId()))
+                                    .setLastRemoteEventId(nullOrNegative(savedConversation.getLastRemoteEventId()) ? response.getLatestEventId() : Math.max(savedConversation.getLastRemoteEventId(), response.getLatestEventId()))
                                     .setUpdatedOn(Math.max(savedConversation.getUpdatedOn(), updatedOn))
                                     .build();
 
@@ -165,6 +164,16 @@ class PersistenceController {
                         emitter.onCompleted();
                     }
                 }), Emitter.BackpressureMode.BUFFER) : Observable.fromCallable(() -> result);
+    }
+
+    /**
+     * Checks if value is non-null and non-negative.
+     *
+     * @param n Long number to check.
+     * @return True if parameter is non-null and non-negative.
+     */
+    private boolean nullOrNegative(Long n) {
+        return (n == null || n < 0);
     }
 
     /**

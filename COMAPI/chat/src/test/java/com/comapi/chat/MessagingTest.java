@@ -39,6 +39,7 @@ import com.comapi.chat.internal.AttachmentController;
 import com.comapi.chat.internal.MessageProcessor;
 import com.comapi.chat.model.Attachment;
 import com.comapi.chat.model.ChatMessage;
+import com.comapi.chat.model.ChatParticipant;
 import com.comapi.chat.model.ChatStore;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.Parser;
@@ -47,11 +48,15 @@ import com.comapi.internal.log.LogManager;
 import com.comapi.internal.log.Logger;
 import com.comapi.internal.network.AuthClient;
 import com.comapi.internal.network.ChallengeOptions;
+import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.messaging.MessageSentResponse;
 import com.comapi.internal.network.model.messaging.MessageToSend;
 import com.comapi.internal.network.model.messaging.Part;
 import com.comapi.internal.network.model.messaging.UploadContentResponse;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,7 +87,7 @@ public class MessagingTest {
     private StoreFactory<ChatStore> factory;
     private ComapiChatClient client;
     private MockComapiClient mockedComapiClient;
-    private final MockCallback<Boolean> callback = new MockCallback<>();
+    private final MockCallback<?> callback = new MockCallback<>();
     private TestChatStore store;
     private Logger logger;
     private AttachmentController attachmentController;
@@ -183,6 +188,119 @@ public class MessagingTest {
             assertEquals("test", result.get(i).getFolder());
             assertEquals("152f860e6f5951a3afbcc42654daddd6a2863262", result.get(i).getId());
         }
+    }
+
+    @Test
+    public void test_getParticipants() throws IOException, JSONException, InterruptedException {
+
+        Parser parser = new Parser();
+
+        List<Participant> participants = new ArrayList<>();
+        String json = FileResHelper.readFromFile(this, "rest_participants_get.json");
+        JSONArray jsonarray = new JSONArray(json);
+        for (int i = 0; i < jsonarray.length(); i++) {
+            JSONObject jsonobject = jsonarray.getJSONObject(i);
+            Participant p = parser.parse(jsonobject.toString(), Participant.class);
+            participants.add(p);
+        }
+
+        final MockCallback<List<ChatParticipant>> c = new MockCallback<>();
+
+        mockedComapiClient.addMockedResult(new MockResult<>(participants, true, ChatTestConst.ETAG, 200));
+
+        client.service().messaging().getParticipants(ChatTestConst.CONVERSATION_ID1, c);
+
+        synchronized (c) {
+            c.wait(TIME_OUT);
+            c.notifyAll();
+        }
+
+        assertTrue(c.getResult().size() == 3);
+    }
+
+    @Test
+    public void test_removeParticipants() throws IOException, JSONException, InterruptedException {
+
+        mockedComapiClient.addMockedResult(new MockResult<>(null, true, ChatTestConst.ETAG, 200));
+
+        final MockCallback<ChatResult> c = new MockCallback<>();
+
+        client.service().messaging().removeParticipants(ChatTestConst.CONVERSATION_ID1, new ArrayList<>(), c);
+
+        synchronized (c) {
+            c.wait(TIME_OUT);
+            c.notifyAll();
+        }
+
+        assertTrue(c.getResult().isSuccessful());
+    }
+
+    @Test
+    public void test_addParticipants() throws IOException, JSONException, InterruptedException {
+
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, 0, 0, 0, 0, ChatTestConst.ETAG);
+        mockedComapiClient.addMockedResult(new MockResult<>(null, true, ChatTestConst.ETAG, 200));
+
+        final MockCallback<ChatResult> c = new MockCallback<>();
+
+        ArrayList<Participant> participants = new ArrayList<>();
+        participants.add(Participant.builder().setId("id").build());
+
+        client.service().messaging().addParticipants(ChatTestConst.CONVERSATION_ID1, participants, c);
+
+        synchronized (c) {
+            c.wait(TIME_OUT);
+            c.notifyAll();
+        }
+
+        assertTrue(c.getResult().isSuccessful());
+    }
+
+    @Test
+    public void test_sendMessage_msgObj() throws IOException, JSONException, InterruptedException {
+
+        Parser parser = new Parser();
+        String json = FileResHelper.readFromFile(this, "rest_message_sent.json");
+        MessageSentResponse response = parser.parse(json, MessageSentResponse.class);
+
+        final MockCallback<ChatResult> c = new MockCallback<>();
+
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, 0, 0, 0, 0, ChatTestConst.ETAG);
+        mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
+
+        MessageToSend messsage = MessageToSend.builder().addPart(Part.builder().setData("text").setType("text/plain").build()).build();
+        client.service().messaging().sendMessage(ChatTestConst.CONVERSATION_ID1, messsage, null, c);
+
+        synchronized (c) {
+            c.wait(TIME_OUT);
+            c.notifyAll();
+        }
+
+        assertTrue(c.getResult().isSuccessful());
+        assertEquals(1, store.getMessages().size());
+    }
+
+    @Test
+    public void test_sendMessage_body() throws IOException, JSONException, InterruptedException {
+
+        Parser parser = new Parser();
+        String json = FileResHelper.readFromFile(this, "rest_message_sent.json");
+        MessageSentResponse response = parser.parse(json, MessageSentResponse.class);
+
+        final MockCallback<ChatResult> c = new MockCallback<>();
+
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, 0, 0, 0, 0, ChatTestConst.ETAG);
+        mockedComapiClient.addMockedResult(new MockResult<>(response, true, ChatTestConst.ETAG, 200));
+
+        client.service().messaging().sendMessage(ChatTestConst.CONVERSATION_ID1, "body", null, c);
+
+        synchronized (c) {
+            c.wait(TIME_OUT);
+            c.notifyAll();
+        }
+
+        assertTrue(c.getResult().isSuccessful());
+        assertEquals(1, store.getMessages().size());
     }
 
     @Test
@@ -352,10 +470,9 @@ public class MessagingTest {
         }
     }
 
-
-
     @After
     public void tearDown() throws Exception {
+        store.clearDatabase();
         mockedComapiClient.clearResults();
         mockedComapiClient.clean(RuntimeEnvironment.application);
         callback.reset();

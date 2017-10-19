@@ -234,7 +234,7 @@ public class ChatServiceAccessor {
          *
          * @param callback Callback with the result.
          */
-        public void synchroniseStore(@Nullable Callback<Boolean> callback) {
+        public void synchroniseStore(@Nullable Callback<ChatResult> callback) {
             callbackAdapter.adapt(rxMessaging.synchroniseStore(), callback);
         }
 
@@ -244,7 +244,7 @@ public class ChatServiceAccessor {
          * @param conversationId Unique conversationId.
          * @param callback       Callback with the result.
          */
-        public void synchroniseConversation(@NonNull final String conversationId, @Nullable Callback<Boolean> callback) {
+        public void synchroniseConversation(@NonNull final String conversationId, @Nullable Callback<ChatResult> callback) {
             callbackAdapter.adapt(rxMessaging.synchroniseConversation(conversationId), callback);
         }
 

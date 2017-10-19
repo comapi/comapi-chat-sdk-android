@@ -1,0 +1,14 @@
+[
+  {
+    "id": "A",
+    "role": "owner"
+  },
+  {
+    "id": "B",
+    "role": "owner"
+  },
+  {
+    "id": "C",
+    "role": "owner"
+  }
+]
