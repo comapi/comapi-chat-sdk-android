@@ -37,6 +37,7 @@ import com.comapi.chat.helpers.MockFoundationFactory;
 import com.comapi.chat.helpers.MockResult;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.internal.AttachmentController;
+import com.comapi.chat.internal.CallLimiter;
 import com.comapi.chat.model.Attachment;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatConversationBase;
@@ -79,7 +80,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
@@ -90,24 +91,27 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import rx.Observable;
 import rx.schedulers.Schedulers;
 
 import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
+import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(manifest = "chat/src/main/AndroidManifest.xml", sdk = Build.VERSION_CODES.M, constants = BuildConfig.class, packageName = "com.comapi.chat")
 public class ControllerTest {
 
@@ -1234,6 +1238,29 @@ public class ControllerTest {
         mockedComapiClient.addMockedResult(new MockResult<>(null, false, ChatTestConst.ETAG, 500));
         assertFalse(((ChatResult) ((Observable) method.invoke(chatController)).toBlocking().first()).isSuccessful());
     }
+
+    @Test
+    public void test_callLimiter() {
+
+        CallLimiter limiter = new CallLimiter(10, 3, TimeUnit.SECONDS, 1, 1, TimeUnit.SECONDS, 1);
+        assertTrue(limiter.checkAndIncrease());
+        assertFalse(limiter.checkAndIncrease());
+
+        limiter = new CallLimiter(1, 1, TimeUnit.MINUTES, 1, 10, TimeUnit.MINUTES, 1);
+        assertTrue(limiter.checkAndIncrease());
+        assertFalse(limiter.checkAndIncrease());
+
+        limiter = new CallLimiter(1, 1, TimeUnit.MINUTES, 1, 10, TimeUnit.MINUTES, 0);
+        assertTrue(limiter.checkAndIncrease());
+        assertFalse(limiter.checkAndIncrease());
+        try {
+            sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        assertTrue(limiter.checkAndIncrease());
+    }
+
 
     @After
     public void tearDown() throws Exception {

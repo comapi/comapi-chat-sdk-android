@@ -26,6 +26,7 @@ import android.text.TextUtils;
 
 import com.comapi.RxComapiClient;
 import com.comapi.chat.internal.AttachmentController;
+import com.comapi.chat.internal.CallLimiter;
 import com.comapi.chat.internal.MessageProcessor;
 import com.comapi.chat.model.Attachment;
 import com.comapi.chat.model.ChatConversation;
@@ -113,6 +114,9 @@ class ChatController {
 
     private final AtomicBoolean isSynchronising;
 
+    private final AtomicBoolean socketWasDisconnected;
+    private final CallLimiter syncCallsLimiter;
+
     /**
      * Recommended constructor.
      *
@@ -136,6 +140,24 @@ class ChatController {
         eventsPerQuery = internal.getMaxEventsPerQuery();
         maxEventQueries = internal.getMaxEventQueries();
         maxConversationsSynced = internal.getMaxConversationsSynced();
+
+        this.socketWasDisconnected = new AtomicBoolean(false);
+        this.syncCallsLimiter = new CallLimiter(30, 50, TimeUnit.MINUTES, 5, 15, TimeUnit.MINUTES, 60);
+    }
+
+    void handleSocketConnected() {
+        System.out.println("handleSocketConnected");
+        if (socketWasDisconnected.compareAndSet(true, false)) {
+            if (syncCallsLimiter.checkAndIncrease()) {
+                System.out.println("auto synchroniseStore");
+                obsExec.execute(synchroniseStore());
+            }
+        }
+    }
+
+    void handleSocketDisconnected() {
+        System.out.println("handleSocketConnected");
+        socketWasDisconnected.compareAndSet(false, true);
     }
 
     /**

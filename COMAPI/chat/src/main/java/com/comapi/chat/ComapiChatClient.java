@@ -102,7 +102,7 @@ public class ComapiChatClient {
         eventsHandler.init(persistenceController, controller, new MissingEventsTracker(), chatConfig);
 
         client.addListener(eventsHandler.getMessagingListenerAdapter());
-        client.addListener(eventsHandler.getProfileListenerAdapter());
+        client.addListener(eventsHandler.getStateListenerAdapter());
 
         participantsListeners = new ConcurrentHashMap<>();
         profileListeners = new ConcurrentHashMap<>();

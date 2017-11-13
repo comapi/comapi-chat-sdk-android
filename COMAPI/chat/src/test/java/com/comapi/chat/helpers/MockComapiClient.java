@@ -33,6 +33,7 @@ import com.comapi.Session;
 import com.comapi.chat.ChatConfig;
 import com.comapi.chat.listeners.ParticipantsListener;
 import com.comapi.chat.listeners.TypingListener;
+import com.comapi.internal.ListenerListAdapter;
 import com.comapi.internal.data.SessionData;
 import com.comapi.internal.log.LogManager;
 import com.comapi.internal.log.Logger;
@@ -98,6 +99,8 @@ public class MockComapiClient extends RxComapiClient {
             method = config.getClass().getDeclaredMethod("getTypingListener");
             method.setAccessible(true);
             configTypingListener = (TypingListener) (method.invoke(config));
+
+            listenerListAdapter = new ListenerListAdapter(null);
 
         } catch (Exception e) {
             e.printStackTrace();

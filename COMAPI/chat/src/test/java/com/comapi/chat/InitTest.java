@@ -40,7 +40,7 @@ import com.comapi.internal.network.ChallengeOptions;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
@@ -54,7 +54,7 @@ import static com.comapi.chat.helpers.ChatTestConst.TOKEN;
 import static org.junit.Assert.assertNotNull;
 
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(manifest = "chat/src/main/AndroidManifest.xml", sdk = Build.VERSION_CODES.M, constants = BuildConfig.class, packageName = "com.comapi.chat")
 public class InitTest {
 
