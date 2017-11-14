@@ -23,10 +23,10 @@ package com.comapi.chat;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import com.comapi.QueryBuilder;
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
+import com.comapi.chat.model.Attachment;
 import com.comapi.chat.model.ChatParticipant;
 import com.comapi.chat.model.ModelAdapter;
 import com.comapi.internal.helpers.APIHelper;
@@ -42,17 +42,16 @@ import com.comapi.internal.network.model.messaging.MessageToSend;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import rx.Observable;
 
-import static com.comapi.chat.EventsHandler.MESSAGE_METADATA_TEMP_ID;
 
 /**
  * @author Marcin Swierczek
  * @since 1.0.0
  */
-class RxChatServiceAccessor {
+@SuppressWarnings("WeakerAccess")
+public class RxChatServiceAccessor {
 
     private final RxComapiClient foundation;
 
@@ -64,7 +63,7 @@ class RxChatServiceAccessor {
 
     private final ChatController controller;
 
-    public RxChatServiceAccessor(ModelAdapter modelAdapter, RxComapiClient foundation, ChatController controller) {
+    RxChatServiceAccessor(ModelAdapter modelAdapter, RxComapiClient foundation, ChatController controller) {
         this.modelAdapter = modelAdapter;
         this.foundation = foundation;
         this.controller = controller;
@@ -166,7 +165,9 @@ class RxChatServiceAccessor {
          * @return Observable to subscribe to.
          */
         public Observable<ChatResult> addParticipants(@NonNull final String conversationId, @NonNull final List<Participant> participants) {
-            return foundation.service().messaging().addParticipants(conversationId, participants).flatMap(result -> controller.handleParticipantsAdded(conversationId, result)).map(modelAdapter::adaptResult);
+            return foundation.service().messaging().addParticipants(conversationId, participants)
+                    .flatMap(result -> controller.handleParticipantsAdded(conversationId).map(conversation -> result))
+                    .map(modelAdapter::adaptResult);
         }
 
         /**
@@ -177,11 +178,7 @@ class RxChatServiceAccessor {
          * @return Observable to subscribe to.
          */
         public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message) {
-            final String tempId = UUID.randomUUID().toString();
-            message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
-            return controller.handleMessageSending(conversationId, message, tempId)
-                    .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, message))
-                    .flatMap(result -> controller.handleMessageSent(conversationId, message, result));
+            return doSendMessage(conversationId, message, null);
         }
 
         /**
@@ -193,12 +190,44 @@ class RxChatServiceAccessor {
          */
         public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final String body) {
             final MessageToSend message = APIHelper.createMessage(conversationId, body, controller.getProfileId());
-            final String tempId = UUID.randomUUID().toString();
-            message.addMetadata(MESSAGE_METADATA_TEMP_ID, tempId);
-            return controller.handleMessageSending(conversationId, message, tempId)
-                    .flatMap(initResult -> foundation.service().messaging().sendMessage(conversationId, body))
-                    .flatMap((result) -> controller.handleMessageSent(conversationId, message, result))
-                    .onErrorResumeNext(controller.handleMessageError(conversationId, tempId, null));
+            return doSendMessage(conversationId, message, null);
+        }
+
+        /**
+         * Send message to the conversation.
+         *
+         * @param conversationId ID of a conversation to send a message to.
+         * @param message        Message to be send.
+         * @param data           Attachments to the message.
+         * @return Observable to subscribe to.
+         */
+        public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message, @Nullable List<Attachment> data) {
+            return doSendMessage(conversationId, message, data);
+        }
+
+        /**
+         * Send message to the chanel.
+         *
+         * @param conversationId ID of a conversation to send a message to.
+         * @param body           Message body to be send.
+         * @param data           Attachments to the message.
+         * @return Observable to subscribe to.
+         */
+        public Observable<ChatResult> sendMessage(@NonNull final String conversationId, @NonNull final String body, @Nullable List<Attachment> data) {
+            final MessageToSend message = APIHelper.createMessage(conversationId, body, controller.getProfileId());
+            return doSendMessage(conversationId, message, data);
+        }
+
+        /**
+         * Send message to the chanel.
+         *
+         * @param conversationId ID of a conversation to send a message to.
+         * @param message        Message to be send.
+         * @param attachments    Attachments to the message.
+         * @return Observable to subscribe to.
+         */
+        private Observable<ChatResult> doSendMessage(@NonNull final String conversationId, @NonNull final MessageToSend message, @Nullable List<Attachment> attachments) {
+            return controller.sendMessageWithAttachments(conversationId, message, attachments);
         }
 
         /**
@@ -236,7 +265,7 @@ class RxChatServiceAccessor {
          *
          * @return Observable to subscribe to.
          */
-        public Observable<Boolean> synchroniseStore() {
+        public Observable<ChatResult> synchroniseStore() {
             return controller.synchroniseStore();
         }
 
@@ -246,7 +275,7 @@ class RxChatServiceAccessor {
          * @param conversationId Unique conversationId.
          * @return Observable to subscribe to.
          */
-        public Observable<Boolean> synchroniseConversation(@NonNull final String conversationId) {
+        public Observable<ChatResult> synchroniseConversation(@NonNull final String conversationId) {
             return controller.synchroniseConversation(conversationId);
         }
 
@@ -282,7 +311,7 @@ class RxChatServiceAccessor {
         /**
          * Query user profiles.
          *
-         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use {@link QueryBuilder} helper class to construct valid query string.
+         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use com.comapi.QueryBuilder helper class to construct valid query string.
          * @return List of maps of custom profile data.
          */
         @Override

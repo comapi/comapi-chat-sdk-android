@@ -20,6 +20,7 @@
 
 package com.comapi.chat.model;
 
+import android.annotation.SuppressLint;
 import android.support.annotation.NonNull;
 
 import com.comapi.internal.helpers.DateHelper;
@@ -172,8 +173,12 @@ public class ChatMessage implements Comparable<ChatMessage> {
      *
      * @param status New message status details.
      */
+    @SuppressLint("UseSparseArrays")
     public void addStatusUpdate(ChatMessageStatus status) {
         int unique = (status.getMessageId() + status.getProfileId() + status.getMessageStatus().name()).hashCode();
+        if (statusUpdates == null) {
+            statusUpdates = new HashMap<>();
+        }
         statusUpdates.put(unique, status);
     }
 

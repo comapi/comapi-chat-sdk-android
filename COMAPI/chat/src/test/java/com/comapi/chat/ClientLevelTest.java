@@ -64,7 +64,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
@@ -88,7 +88,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(manifest = "chat/src/main/AndroidManifest.xml", sdk = Build.VERSION_CODES.M, constants = BuildConfig.class, packageName = "com.comapi.chat")
 public class ClientLevelTest {
 
@@ -427,7 +427,7 @@ public class ClientLevelTest {
 
         // Test
 
-        Boolean synchroniseSuccess = client.rxService().messaging().synchroniseStore().toBlocking().first();
+        Boolean synchroniseSuccess = client.rxService().messaging().synchroniseStore().toBlocking().first().isSuccessful();
 
         assertTrue(synchroniseSuccess);
 
@@ -442,6 +442,75 @@ public class ClientLevelTest {
         assertEquals(3, loadedConversation.getLastRemoteEventId().longValue());
         assertTrue(loadedConversation.getUpdatedOn() > 0);
         assertEquals("eTag", loadedConversation.getETag());
+
+        // Check message
+
+        assertTrue(store.getMessages().size() == 1);
+        ChatMessage loadedMessage = store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b");
+        assertNotNull(loadedMessage);
+        assertTrue(loadedMessage.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
+        assertEquals("p1", loadedMessage.getFromWhom().getId());
+        assertEquals("p1", loadedMessage.getFromWhom().getName());
+        assertEquals("p1", loadedMessage.getSentBy());
+        assertEquals(1, loadedMessage.getSentEventId().longValue());
+        assertNotNull(loadedMessage.getParts().get(0));
+        assertEquals("body", loadedMessage.getParts().get(0).getName());
+        assertEquals("non", loadedMessage.getParts().get(0).getData());
+        assertEquals(3, loadedMessage.getParts().get(0).getSize());
+        assertEquals("text/plain", loadedMessage.getParts().get(0).getType());
+
+        // Check message status
+
+        Collection<ChatMessageStatus> statuses = store.getMessages().get("60526ba0-76b3-4f33-9e2e-20f4a8bb548b").getStatusUpdates();
+        assertNotNull(statuses);
+        ChatMessageStatus status = (ChatMessageStatus) statuses.toArray()[0];
+        assertNotNull(status);
+        assertEquals("60526ba0-76b3-4f33-9e2e-20f4a8bb548b", status.getMessageId());
+        assertEquals("p1", status.getProfileId());
+        assertEquals(LocalMessageStatus.read, status.getMessageStatus());
+        assertTrue(status.getUpdatedOn() > 0);
+    }
+
+    @Test
+    public void test_synchroniseConversation() throws IOException, InterruptedException {
+
+        // local event != -1  and remote event larger than local so update will be triggered,
+        store.addConversationToStore(ChatTestConst.CONVERSATION_ID1, 2, 2, 3, 0, ChatTestConst.ETAG);
+
+        String json = FileResHelper.readFromFile(this, "rest_message_query_no_orphans.json");
+        Parser parser = new Parser();
+        mockedComapiClient.addMockedResult(new MockResult<>(parser.parse(json, MessagesQueryResponse.class), true, ChatTestConst.ETAG, 200));
+
+        // Events setup
+        // 3 events with ids 1,2,3
+        json = FileResHelper.readFromFile(this, "rest_events_query.json");
+
+        Type listType = new TypeToken<ArrayList<JsonObject>>() {
+        }.getType();
+        List<JsonObject> list = new Gson().fromJson(json, listType);
+
+        mockedComapiClient.addMockedResult(new MockResult<>(new ConversationEventsResponse(list, parser), true, null, 200));
+
+        // Test
+        final MockCallback<ChatResult> c = new MockCallback<>();
+        client.service().messaging().synchroniseConversation(ChatTestConst.CONVERSATION_ID1, c);
+        synchronized (c) {
+            c.wait(TIME_OUT);
+            c.notifyAll();
+        }
+
+        assertTrue(c.getResult().isSuccessful());
+
+        // Check conversation
+
+        assertTrue(store.getAllConversations().size() == 1);
+        ChatConversationBase loadedConversation = store.getConversations().get(ChatTestConst.CONVERSATION_ID1);
+        assertNotNull(loadedConversation);
+        assertTrue(loadedConversation.getConversationId().equals(ChatTestConst.CONVERSATION_ID1));
+        assertEquals(2, loadedConversation.getFirstLocalEventId().longValue()); // event query or socket events don't change first known id unless it's -1 (empty conversation)
+        assertEquals(3, loadedConversation.getLastLocalEventId().longValue()); // was increased
+        assertEquals(164, loadedConversation.getLastRemoteEventId().longValue());
+        assertTrue(loadedConversation.getUpdatedOn() > 0);
 
         // Check message
 
@@ -503,10 +572,10 @@ public class ClientLevelTest {
         mockedComapiClient.addMockedResult(new MockResult<>(response, true, null, 200));
 
         // Test
-        final MockCallback<Boolean> callback = new MockCallback<>();
+        final MockCallback<ChatResult> callback = new MockCallback<>();
         client.service().messaging().synchroniseStore(callback);
 
-        assertTrue(callback.getResult());
+        assertTrue(callback.getResult().isSuccessful());
 
         // Check conversation
 
@@ -762,6 +831,29 @@ public class ClientLevelTest {
         final MockCallback<ComapiResult<Map<String, Object>>> callback3 = new MockCallback<>();
         client.service().profile().updateProfile(new HashMap<>(), "eTag", callback3);
         assertNotNull(callback3.getResult());
+    }
+
+    @Test
+    public void test_patchProfile_callback() throws InterruptedException {
+
+        final MockCallback<ComapiResult<Map<String, Object>>> c = new MockCallback<>();
+
+        mockedComapiClient.addMockedResult(new MockResult<>(new HashMap<>(), true, ChatTestConst.ETAG, 200));
+        client.service().profile().patchProfile("id", new HashMap<>(), "eTag", c);
+        synchronized (c) {
+            c.wait(TIME_OUT);
+            c.notifyAll();
+        }
+        assertTrue(c.getResult().isSuccessful());
+        c.reset();
+
+        mockedComapiClient.addMockedResult(new MockResult<>(new HashMap(), true, ChatTestConst.ETAG, 200));
+        client.service().profile().patchMyProfile(new HashMap<>(), "eTag", c);
+        synchronized (c) {
+            c.wait(TIME_OUT);
+            c.notifyAll();
+        }
+        assertTrue(c.getResult().isSuccessful());
     }
 
     @Test

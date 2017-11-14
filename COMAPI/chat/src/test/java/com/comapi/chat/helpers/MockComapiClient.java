@@ -33,10 +33,12 @@ import com.comapi.Session;
 import com.comapi.chat.ChatConfig;
 import com.comapi.chat.listeners.ParticipantsListener;
 import com.comapi.chat.listeners.TypingListener;
+import com.comapi.internal.ListenerListAdapter;
 import com.comapi.internal.data.SessionData;
 import com.comapi.internal.log.LogManager;
 import com.comapi.internal.log.Logger;
 import com.comapi.internal.network.ComapiResult;
+import com.comapi.internal.network.ContentData;
 import com.comapi.internal.network.api.RxComapiService;
 import com.comapi.internal.network.model.conversation.Conversation;
 import com.comapi.internal.network.model.conversation.ConversationCreate;
@@ -57,6 +59,7 @@ import com.comapi.internal.network.model.messaging.MessageSentResponse;
 import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
 import com.comapi.internal.network.model.messaging.MessagesQueryResponse;
+import com.comapi.internal.network.model.messaging.UploadContentResponse;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -96,6 +99,8 @@ public class MockComapiClient extends RxComapiClient {
             method = config.getClass().getDeclaredMethod("getTypingListener");
             method.setAccessible(true);
             configTypingListener = (TypingListener) (method.invoke(config));
+
+            listenerListAdapter = new ListenerListAdapter(null);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -255,6 +260,18 @@ public class MockComapiClient extends RxComapiClient {
                                 throw new Exception("Mocking response error in MockFoundationFactory class");
                             } else {
                                 return (ComapiResult<MessageSentResponse>) result;
+                            }
+                        });
+                    }
+
+                    @Override
+                    public Observable<ComapiResult<UploadContentResponse>> uploadContent(@NonNull String folder, @NonNull ContentData data) {
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof UploadContentResponse)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<UploadContentResponse>) result;
                             }
                         });
                     }
@@ -467,7 +484,7 @@ public class MockComapiClient extends RxComapiClient {
     @Override
     protected Logger getLogger() {
         return new Logger(new LogManager() {
-            public void log(final String clazz, final int logLevel, final String msg, final Throwable exception) {
+            public void log(final String tag, final int logLevel, final String msg, final Throwable exception) {
                 // do nothing
             }
         }, "");

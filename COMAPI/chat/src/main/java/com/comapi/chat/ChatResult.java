@@ -20,6 +20,14 @@
 
 package com.comapi.chat;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+
+import com.comapi.internal.network.ComapiResult;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 /**
  * Chat SDK result.
  *
@@ -60,13 +68,54 @@ public class ChatResult {
      */
     public static class Error {
 
-        private int code;
+        private final int code;
 
-        private String message;
+        private final String message;
 
-        public Error(int code, String message) {
+        private final String details;
+
+        /**
+         * Recommended constructor.
+         *
+         * @param code    Error code. For service call errors this will be http error code.
+         * @param message Error description.
+         * @param details Error details.
+         */
+        public Error(int code, @NonNull String message, @Nullable String details) {
             this.code = code;
             this.message = message;
+            this.details = details;
+        }
+
+        /**
+         * Recommended constructor.
+         *
+         * @param code    Error code. For service call errors this will be http error code.
+         * @param e Error details.
+         */
+        public Error(int code, @Nullable Throwable e) {
+            this.code = code;
+            if (e != null) {
+                this.message = e.getLocalizedMessage();
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                e.printStackTrace(pw);
+                this.details = sw.toString();
+            } else {
+                this.message = null;
+                this.details = null;
+            }
+        }
+
+        /**
+         * Recommended constructor.
+         *
+         * @param e Error details.
+         */
+        public Error(@NonNull ComapiResult e) {
+            this.code = e.getCode();
+            this.message = e.getMessage();
+            this.details = e.getErrorBody();
         }
 
         /**
@@ -85,6 +134,10 @@ public class ChatResult {
          */
         public String getMessage() {
             return message;
+        }
+
+        public String getDetails() {
+            return details;
         }
     }
 }

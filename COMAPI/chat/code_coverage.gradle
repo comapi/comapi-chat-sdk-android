@@ -9,9 +9,9 @@ apply plugin: "com.github.kt3k.coveralls"
 
 ext {
     limits = [
-            'instruction': 75,
-            'branch'     : 75,
-            'line'       : 85,
+            'instruction': 85,
+            'branch'     : 70,
+            'line'       : 90,
             'complexity' : 75,
             'method'     : 80,
             'class'      : 85

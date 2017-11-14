@@ -20,11 +20,11 @@
 package com.comapi.chat;
 
 import com.comapi.MessagingListener;
+import com.comapi.StateListener;
 import com.comapi.chat.internal.MissingEventsTracker;
 import com.comapi.chat.model.ChatConversation;
 import com.comapi.chat.model.ChatMessage;
 import com.comapi.chat.model.ChatMessageStatus;
-import com.comapi.internal.network.model.events.conversation.ConversationCreateEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationDeleteEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationUndeleteEvent;
 import com.comapi.internal.network.model.events.conversation.ConversationUpdateEvent;
@@ -43,9 +43,9 @@ public class EventsHandler {
 
     public final static String MESSAGE_METADATA_TEMP_ID = "tempIdAndroid";
 
-    private ProfileListenerAdapter profileListenerAdapter;
-
     private MessagingListenerAdapter messagingListenerAdapter;
+
+    private StateListenerAdapter stateListenerAdapter;
 
     private ChatController controller;
 
@@ -60,20 +60,11 @@ public class EventsHandler {
     void init(PersistenceController store, ChatController controller, MissingEventsTracker tracker, ChatConfig config) {
         this.persistenceController = store;
         this.controller = controller;
-        this.profileListenerAdapter = new ProfileListenerAdapter();
         this.messagingListenerAdapter = new MessagingListenerAdapter();
+        this.stateListenerAdapter = new StateListenerAdapter();
         this.tracker = tracker;
         this.observableExecutor = config.getObservableExecutor();
         this.missingEventsListener = controller::queryMissingEvents;
-    }
-
-    /**
-     * Listener for profile changes that can be registered in Foundation library.
-     *
-     * @return Listener for profile changes.
-     */
-    ProfileListenerAdapter getProfileListenerAdapter() {
-        return profileListenerAdapter;
     }
 
     /**
@@ -85,8 +76,21 @@ public class EventsHandler {
         return messagingListenerAdapter;
     }
 
-    class ProfileListenerAdapter extends com.comapi.ProfileListener {
+    StateListener getStateListenerAdapter() {
+        return stateListenerAdapter;
+    }
 
+    class StateListenerAdapter extends StateListener {
+
+        @Override
+        public void onSocketConnected() {
+            controller.handleSocketConnected();
+        }
+
+        @Override
+        public void onSocketDisconnected() {
+            controller.handleSocketDisconnected();
+        }
     }
 
     class MessagingListenerAdapter extends MessagingListener {
@@ -127,16 +131,6 @@ public class EventsHandler {
         @Override
         public void onParticipantAdded(ParticipantAddedEvent event) {
             observableExecutor.execute(controller.handleParticipantsAdded(event.getConversationId()));
-        }
-
-        /**
-         * Dispatch conversation created event.
-         *
-         * @param event Event to dispatch.
-         */
-        @Override
-        public void onConversationCreated(ConversationCreateEvent event) {
-            observableExecutor.execute(persistenceController.upsertConversation(ChatConversation.builder().populate(event).build()));
         }
 
         /**

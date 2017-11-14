@@ -158,7 +158,7 @@ public class Database {
                     items = new ArrayList<>(0);
                 }
 
-                log.d("Orphaned events query result for message with ids " + ids);
+                log.d("Applying "+items.size()+" orphaned events");
 
                 return items;
 

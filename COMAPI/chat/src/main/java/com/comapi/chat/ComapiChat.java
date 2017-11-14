@@ -28,6 +28,8 @@ import com.comapi.ClientHelper;
 import com.comapi.RxComapiClient;
 import com.comapi.internal.CallbackAdapter;
 
+import java.lang.ref.WeakReference;
+
 import rx.Observable;
 
 /**
@@ -54,13 +56,8 @@ public class ComapiChat {
         return factory.getClientInstance(app, chatConfig)
                 .map(client -> {
                     ComapiChatClient chatClient = new ComapiChatClient(app, client, chatConfig, eventsHandler, adapter);
-                    ClientHelper.addLifecycleListener(client, chatClient.createLifecycleListener());
+                    ClientHelper.addLifecycleListener(client, chatClient.createLifecycleListener(new WeakReference<>(chatClient)));
                     return chatClient;
-                })
-                .doOnNext(chatClient -> {
-                    if (chatClient.getSession().isSuccessfullyCreated()) {
-                        chatConfig.getObservableExecutor().execute(chatClient.rxService().messaging().synchroniseStore());
-                    }
                 });
     }
 
@@ -76,13 +73,8 @@ public class ComapiChat {
         return factory.getClientInstance(app, chatConfig)
                 .map(client -> {
                     ComapiChatClient chatClient = createShared(app, client, chatConfig, eventsHandler, adapter);
-                    ClientHelper.addLifecycleListener(client, (chatClient.createLifecycleListener()));
+                    ClientHelper.addLifecycleListener(client, (chatClient.createLifecycleListener(new WeakReference<>(chatClient))));
                     return chatClient;
-                })
-                .doOnNext(chatClient -> {
-                    if (chatClient.getSession().isSuccessfullyCreated()) {
-                        chatConfig.getObservableExecutor().execute(chatClient.rxService().messaging().synchroniseStore());
-                    }
                 });
     }
 

@@ -113,7 +113,7 @@ public class ModelAdapter {
      */
     public ChatResult adaptResult(ComapiResult<?> result) {
 
-        return new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage() + " " + result.getErrorBody()));
+        return new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result));
     }
 
     /**
@@ -125,7 +125,7 @@ public class ModelAdapter {
      */
     public ChatResult adaptResult(ComapiResult<?> result, Boolean success) {
 
-        return new ChatResult(result.isSuccessful() && success, result.isSuccessful() ? null : new ChatResult.Error(result.getCode(), result.getMessage() + " " + result.getErrorBody()));
+        return new ChatResult(result.isSuccessful() && success, result.isSuccessful() ? null : new ChatResult.Error(result));
     }
 
     /**

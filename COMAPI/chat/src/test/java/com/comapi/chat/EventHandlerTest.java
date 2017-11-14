@@ -33,6 +33,7 @@ import com.comapi.chat.helpers.MockConversationDetails;
 import com.comapi.chat.helpers.MockFoundationFactory;
 import com.comapi.chat.helpers.MockResult;
 import com.comapi.chat.helpers.TestChatStore;
+import com.comapi.chat.internal.AttachmentController;
 import com.comapi.chat.internal.MissingEventsTracker;
 import com.comapi.chat.listeners.ParticipantsListener;
 import com.comapi.chat.listeners.ProfileListener;
@@ -67,7 +68,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
@@ -82,7 +83,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(RobolectricGradleTestRunner.class)
+@RunWith(RobolectricTestRunner.class)
 @Config(manifest = "chat/src/main/AndroidManifest.xml", sdk = Build.VERSION_CODES.M, constants = BuildConfig.class, packageName = "com.comapi.chat")
 public class EventHandlerTest {
 
@@ -102,6 +103,7 @@ public class EventHandlerTest {
     private boolean wasChecked = false;
 
     final List<Object> events = new ArrayList<>();
+    private AttachmentController attachmentController;
 
     @Before
     public void setUpChat() throws Exception {
@@ -177,7 +179,11 @@ public class EventHandlerTest {
         db = Database.getInstance(RuntimeEnvironment.application, true, new Logger(logMgr, ""));
         persistenceController = new PersistenceController(db, modelAdapter, factory, logger);
 
-        chatController = new ChatController(mockedComapiClient, persistenceController, new ObservableExecutor() {
+        InternalConfig internal = new InternalConfig();
+
+        attachmentController = new AttachmentController(logger, internal.getMaxPartDataSize());
+
+        chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, internal, new ObservableExecutor() {
             @Override
             <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();

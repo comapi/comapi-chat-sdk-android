@@ -83,7 +83,9 @@ class PersistenceController {
         return Observable.create(emitter -> storeFactory.execute(new StoreTransaction<ChatStore>() {
             @Override
             protected void execute(ChatStore store) {
+                store.beginTransaction();
                 List<ChatConversationBase> conversations = store.getAllConversations();
+                store.endTransaction();
                 emitter.onNext(conversations);
                 emitter.onCompleted();
             }
@@ -91,19 +93,22 @@ class PersistenceController {
     }
 
     /**
-     * Wraps loading single conversations from store implementation into an Observable.
+     * Get single conversations from store implementation as an Observable.
      *
      * @return Observable returning single conversation from store.
      */
-    Observable<ChatConversationBase> loadConversation(@NonNull String conversationId) {
+    Observable<ChatConversationBase> getConversation(@NonNull String conversationId) {
 
         return Observable.create(emitter -> storeFactory.execute(new StoreTransaction<ChatStore>() {
             @Override
             protected void execute(ChatStore store) {
-                emitter.onNext(store.getConversation(conversationId));
+                store.beginTransaction();
+                ChatConversationBase c = store.getConversation(conversationId);
+                store.endTransaction();
+                emitter.onNext(c);
                 emitter.onCompleted();
             }
-        }), Emitter.BackpressureMode.LATEST);
+        }), Emitter.BackpressureMode.BUFFER);
     }
 
     /**
@@ -144,9 +149,9 @@ class PersistenceController {
                             ChatConversationBase updateConversation = ChatConversationBase.baseBuilder()
                                     .setConversationId(savedConversation.getConversationId())
                                     .setETag(savedConversation.getETag())
-                                    .setFirstLocalEventId(savedConversation.getFirstLocalEventId() < 0 ? response.getEarliestEventId() : Math.min(savedConversation.getFirstLocalEventId(), response.getEarliestEventId()))
-                                    .setLastLocalEventId(savedConversation.getLastLocalEventId() < 0 ? response.getLatestEventId() : Math.max(savedConversation.getLastLocalEventId(), response.getLatestEventId()))
-                                    .setLastRemoteEventId(savedConversation.getLastRemoteEventId() < 0 ? response.getLatestEventId() : Math.max(savedConversation.getLastRemoteEventId(), response.getLatestEventId()))
+                                    .setFirstLocalEventId(nullOrNegative(savedConversation.getFirstLocalEventId()) ? response.getEarliestEventId() : Math.min(savedConversation.getFirstLocalEventId(), response.getEarliestEventId()))
+                                    .setLastLocalEventId(nullOrNegative(savedConversation.getLastLocalEventId()) ? response.getLatestEventId() : Math.max(savedConversation.getLastLocalEventId(), response.getLatestEventId()))
+                                    .setLastRemoteEventId(nullOrNegative(savedConversation.getLastRemoteEventId()) ? response.getLatestEventId() : Math.max(savedConversation.getLastRemoteEventId(), response.getLatestEventId()))
                                     .setUpdatedOn(Math.max(savedConversation.getUpdatedOn(), updatedOn))
                                     .build();
 
@@ -159,6 +164,16 @@ class PersistenceController {
                         emitter.onCompleted();
                     }
                 }), Emitter.BackpressureMode.BUFFER) : Observable.fromCallable(() -> result);
+    }
+
+    /**
+     * Checks if value is non-null and non-negative.
+     *
+     * @param n Long number to check.
+     * @return True if parameter is non-null and non-negative.
+     */
+    private boolean nullOrNegative(Long n) {
+        return (n == null || n < 0);
     }
 
     /**
@@ -236,7 +251,7 @@ class PersistenceController {
      * @param noConversationListener Listener for the chat controller to get conversation if no local copy is present.
      * @return Observable emitting result.
      */
-    public Observable<Boolean> updateStoreForNewMessage(final ChatMessage message, final ChatController.NoConversationListener noConversationListener) {
+    public Observable<Boolean> updateStoreWithNewMessage(final ChatMessage message, final ChatController.NoConversationListener noConversationListener) {
 
         return asObservable(new Executor<Boolean>() {
             @Override
@@ -302,7 +317,7 @@ class PersistenceController {
     }
 
     /**
-     * Update conversation state with received event details.
+     * Update conversation state with received event details. This should be called only inside transaction.
      *
      * @param store          Chat Store instance.
      * @param conversationId Unique conversation id.
@@ -396,23 +411,6 @@ class PersistenceController {
                 store.endTransaction();
 
                 emitter.onNext(isSuccess);
-                emitter.onCompleted();
-            }
-        });
-    }
-
-    /**
-     * Get conversation from the store.
-     *
-     * @param conversationId Unique conversation id.
-     * @return Observable emitting conversation object from the store.
-     */
-    public Observable<ChatConversationBase> getConversation(String conversationId) {
-
-        return asObservable(new Executor<ChatConversationBase>() {
-            @Override
-            void execute(ChatStore store, Emitter<ChatConversationBase> emitter) {
-                emitter.onNext(store.getConversation(conversationId));
                 emitter.onCompleted();
             }
         });

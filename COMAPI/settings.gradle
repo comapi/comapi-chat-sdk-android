@@ -1,1 +1,2 @@
-include ':chat'
+include ':chat'//, ':foundation'
+//project(':foundation').projectDir = new File('/Users/marcinswierczek/GitHub/comapi-sdk-android/COMAPI/foundation')
