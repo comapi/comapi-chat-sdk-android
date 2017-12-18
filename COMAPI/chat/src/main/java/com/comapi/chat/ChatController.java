@@ -199,14 +199,11 @@ class ChatController {
      * @return Observable with Chat SDK result.
      */
     public Observable<ChatResult> handleParticipantsAdded(final String conversationId) {
-        return persistenceController.getConversation(conversationId).flatMap(new Func1<ChatConversationBase, Observable<ChatResult>>() {
-            @Override
-            public Observable<ChatResult> call(ChatConversationBase conversation) {
-                if (conversation == null) {
-                    return handleNoLocalConversation(conversationId);
-                } else {
-                    return Observable.fromCallable(() -> new ChatResult(true, null));
-                }
+        return persistenceController.getConversation(conversationId).flatMap(conversation -> {
+            if (conversation == null) {
+                return handleNoLocalConversation(conversationId);
+            } else {
+                return Observable.fromCallable(() -> new ChatResult(true, null));
             }
         });
     }
@@ -247,15 +244,12 @@ class ChatController {
     Observable<ChatResult> handleNoLocalConversation(String conversationId) {
 
         return checkState().flatMap(client -> client.service().messaging().getConversation(conversationId)
-                .flatMap(new Func1<ComapiResult<ConversationDetails>, Observable<ChatResult>>() {
-                    @Override
-                    public Observable<ChatResult> call(ComapiResult<ConversationDetails> result) {
-                        if (result.isSuccessful() && result.getResult() != null) {
-                            return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult(), result.getETag()).build())
-                                    .map(success -> new ChatResult(success, success ? null : new ChatResult.Error(0, "External store reported failure.", "Error when inserting conversation "+conversationId)));
-                        } else {
-                            return Observable.fromCallable(() -> adapter.adaptResult(result));
-                        }
+                .flatMap(result -> {
+                    if (result.isSuccessful() && result.getResult() != null) {
+                        return persistenceController.upsertConversation(ChatConversation.builder().populate(result.getResult(), result.getETag()).build())
+                                .map(success -> new ChatResult(success, success ? null : new ChatResult.Error(0, "External store reported failure.", "Error when inserting conversation "+conversationId)));
+                    } else {
+                        return Observable.fromCallable(() -> adapter.adaptResult(result));
                     }
                 }));
     }
@@ -272,17 +266,14 @@ class ChatController {
         updates.add(MessageStatusUpdate.builder().setMessagesIds(ids).setStatus(MessageStatus.delivered).setTimestamp(DateHelper.getCurrentUTC()).build());
 
         return checkState().flatMap(client -> client.service().messaging().updateMessageStatus(conversationId, updates)
-                .retryWhen(new Func1<Observable<? extends Throwable>, Observable<Long>>() {
-                               @Override
-                               public Observable<Long> call(Observable<? extends Throwable> observable) {
-                                   return observable.zipWith(Observable.range(1, 3), (Func2<Throwable, Integer, Integer>) (throwable, integer) -> integer).flatMap(new Func1<Integer, Observable<Long>>() {
-                                       @Override
-                                       public Observable<Long> call(Integer retryCount) {
-                                           return Observable.timer((long) Math.pow(1, retryCount), TimeUnit.SECONDS);
-                                       }
-                                   });
-                               }
-                           }
+                .retryWhen(observable -> {
+                    return observable.zipWith(Observable.range(1, 3), (Func2<Throwable, Integer, Integer>) (throwable, integer) -> integer).flatMap(new Func1<Integer, Observable<Long>>() {
+                        @Override
+                        public Observable<Long> call(Integer retryCount) {
+                            return Observable.timer((long) Math.pow(1, retryCount), TimeUnit.SECONDS);
+                        }
+                    });
+                }
                 ));
     }
 
@@ -296,30 +287,27 @@ class ChatController {
 
         return persistenceController.getConversation(conversationId)
                 .map(conversation -> conversation != null ? conversation.getFirstLocalEventId() : null)
-                .flatMap(new Func1<Long, Observable<ChatResult>>() {
-                    @Override
-                    public Observable<ChatResult> call(Long from) {
+                .flatMap(from -> {
 
-                        final Long queryFrom;
+                    final Long queryFrom;
 
-                        if (from != null) {
+                    if (from != null) {
 
-                            if (from == 0) {
-                                return Observable.fromCallable(() -> new ChatResult(true, null));
-                            } else if (from > 0) {
-                                queryFrom = from - 1;
-                            } else {
-                                queryFrom = null;
-                            }
+                        if (from == 0) {
+                            return Observable.fromCallable(() -> new ChatResult(true, null));
+                        } else if (from > 0) {
+                            queryFrom = from - 1;
                         } else {
                             queryFrom = null;
                         }
-
-                        return checkState().flatMap(client -> client.service().messaging().queryMessages(conversationId, queryFrom, messagesPerQuery))
-                                .flatMap(result -> persistenceController.processMessageQueryResponse(conversationId, result))
-                                .flatMap(result -> persistenceController.processOrphanedEvents(result, orphanedEventsToRemoveListener))
-                                .map(result -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result)));
+                    } else {
+                        queryFrom = null;
                     }
+
+                    return checkState().flatMap(client -> client.service().messaging().queryMessages(conversationId, queryFrom, messagesPerQuery))
+                            .flatMap(result -> persistenceController.processMessageQueryResponse(conversationId, result))
+                            .flatMap(result -> persistenceController.processOrphanedEvents(result, orphanedEventsToRemoveListener))
+                            .map(result -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result)));
                 });
     }
 
@@ -609,20 +597,12 @@ class ChatController {
     private Observable<ComapiResult<ConversationEventsResponse>> queryEventsRecursively(final RxComapiClient client, final String conversationId, final long lastEventId, final int count, final List<Boolean> successes) {
 
         return client.service().messaging().queryConversationEvents(conversationId, lastEventId, eventsPerQuery)
-                .flatMap(new Func1<ComapiResult<ConversationEventsResponse>, Observable<ComapiResult<ConversationEventsResponse>>>() {
-                    @Override
-                    public Observable<ComapiResult<ConversationEventsResponse>> call(ComapiResult<ConversationEventsResponse> result) {
-                        return processEventsQueryResponse(result, successes);
-                    }
-                })
-                .flatMap(new Func1<ComapiResult<ConversationEventsResponse>, Observable<ComapiResult<ConversationEventsResponse>>>() {
-                    @Override
-                    public Observable<ComapiResult<ConversationEventsResponse>> call(ComapiResult<ConversationEventsResponse> result) {
-                        if (result.getResult() != null && result.getResult().getEventsInOrder().size() >= eventsPerQuery && count < maxEventQueries) {
-                            return queryEventsRecursively(client, conversationId, lastEventId + result.getResult().getEventsInOrder().size(), count + 1, successes);
-                        } else {
-                            return Observable.just(result);
-                        }
+                .flatMap(result -> processEventsQueryResponse(result, successes))
+                .flatMap(result -> {
+                    if (result.getResult() != null && result.getResult().getEventsInOrder().size() >= eventsPerQuery && count < maxEventQueries) {
+                        return queryEventsRecursively(client, conversationId, lastEventId + result.getResult().getEventsInOrder().size(), count + 1, successes);
+                    } else {
+                        return Observable.just(result);
                     }
                 });
     }
