@@ -54,7 +54,7 @@ dependencies {
     androidTestCompile 'com.android.support.test:rules:1.0.1'
     testCompile 'com.squareup.okhttp3:mockwebserver:3.9.0'
 
-    compile 'com.github.comapi:comapi-sdk-android:dev-SNAPSHOT'
+    compile 'com.comapi:foundation:1.2.0'
 }
 
 
