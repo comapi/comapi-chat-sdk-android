@@ -92,7 +92,7 @@ public class InitTest {
                 .store(factory)
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.toBlocking().firstOrDefault(null);
                     }
                 })
@@ -159,7 +159,7 @@ public class InitTest {
                 .store(factory)
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.toBlocking().first();
                     }
                 })
@@ -227,7 +227,7 @@ public class InitTest {
                 .store(factory)
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.toBlocking().firstOrDefault(null);
                     }
                 })
@@ -295,7 +295,7 @@ public class InitTest {
                 .store(factory)
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.toBlocking().firstOrDefault(null);
                     }
                 })
@@ -361,7 +361,7 @@ public class InitTest {
                 .store(factory)
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.toBlocking().firstOrDefault(null);
                     }
                 })

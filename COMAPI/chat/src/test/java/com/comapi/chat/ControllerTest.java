@@ -159,7 +159,7 @@ public class ControllerTest {
                 .store(factory)
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.observeOn(Schedulers.test()).subscribeOn(Schedulers.immediate()).subscribe();
                     }
                 });
@@ -920,7 +920,7 @@ public class ControllerTest {
 
         ChatController chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, new InternalConfig(), new ObservableExecutor() {
             @Override
-            <T> void execute(Observable<T> obs) {
+            public <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();
             }
         }, new ModelAdapter(), logger);
@@ -930,7 +930,7 @@ public class ControllerTest {
 
         chatController = new ChatController(null, persistenceController, attachmentController, new InternalConfig(), new ObservableExecutor() {
             @Override
-            <T> void execute(Observable<T> obs) {
+            public <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();
             }
         }, new ModelAdapter(), logger);

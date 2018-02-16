@@ -29,7 +29,7 @@ import rx.Subscriber;
  * @author Marcin Swierczek
  * @since 1.0.0
  */
-abstract class ObservableExecutor {
+public abstract class ObservableExecutor {
 
     /**
      * Subscribe to observable.
@@ -37,7 +37,7 @@ abstract class ObservableExecutor {
      * @param obs Observable to execute.
      * @param <T> Type of result emited by the observable.
      */
-    abstract <T> void execute(final Observable<T> obs);
+    public abstract <T> void execute(final Observable<T> obs);
 
     /**
      * New instance.
@@ -49,7 +49,7 @@ abstract class ObservableExecutor {
         return new ObservableExecutor() {
 
             @Override
-            <T> void execute(final Observable<T> obs) {
+            public <T> void execute(final Observable<T> obs) {
 
                 obs.subscribe(new Subscriber<T>() {
                     @Override

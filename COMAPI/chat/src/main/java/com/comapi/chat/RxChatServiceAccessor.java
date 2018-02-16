@@ -361,7 +361,7 @@ public class RxChatServiceAccessor {
         }
 
         /**
-         * Create and start new ComapiImpl session.
+         * Create and start new Comapi session.
          *
          * @return Observable to subscribe to. Returns Session details.
          */

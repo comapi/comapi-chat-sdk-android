@@ -316,4 +316,15 @@ public class ComapiChatClient {
             typingListeners.remove(typingListener);
         }
     }
+
+    Logger getLogger(String tagSuffix) {
+        return ClientHelper.getLogger(client).clone(tagSuffix);
+    }
+
+    public static class ExtHelper {
+
+        public static Logger getLogger(@NonNull final ComapiChatClient client, final String tagSuffix) {
+            return client.getLogger(tagSuffix);
+        }
+    }
 }
