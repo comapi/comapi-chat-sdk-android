@@ -33,6 +33,7 @@ import com.comapi.internal.helpers.APIHelper;
 import com.comapi.internal.helpers.DateHelper;
 import com.comapi.internal.network.ComapiResult;
 import com.comapi.internal.network.model.conversation.ConversationCreate;
+import com.comapi.internal.network.model.conversation.ConversationDetails;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
 import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.messaging.MessageStatus;
@@ -112,7 +113,18 @@ public class RxChatServiceAccessor {
          * @return Observable to subscribe to.
          */
         public Observable<ChatResult> createConversation(@NonNull final ConversationCreate request) {
-            return foundation.service().messaging().createConversation(request).flatMap(controller::handleConversationCreated);
+            return foundation.service().messaging().getConversation(request.getId())
+                    .flatMap(result -> {
+                        if (result.isSuccessful() && result.getResult() != null) {
+                            return Observable.fromCallable(() -> new ChatResult(false, new ChatResult.Error(409, "Conversation already exist.", null)));
+                        } else {
+                            return foundation.service().messaging().createConversation(request).flatMap(controller::handleConversationCreated);
+                        }
+                    });
+        }
+
+        public Observable<ComapiResult<ConversationDetails>> getConversation(@NonNull final String conversationId) {
+            return foundation.service().messaging().getConversation(conversationId);
         }
 
         /**

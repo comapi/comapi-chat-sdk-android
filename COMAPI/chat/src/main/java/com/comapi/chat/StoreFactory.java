@@ -45,7 +45,7 @@ public abstract class StoreFactory<T extends ChatStore> {
             build(transaction::execute);
         } catch (Exception e) {
             if (log != null) {
-                log.w("Error executing external store transaction : " + e.getLocalizedMessage());
+                log.f("Error executing external store transaction : " + e.getLocalizedMessage(), e);
             }
         }
     }

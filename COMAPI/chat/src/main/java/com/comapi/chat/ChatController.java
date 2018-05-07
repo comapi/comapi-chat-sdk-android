@@ -187,7 +187,7 @@ class ChatController {
                                 }
                             })
                             .flatMap(isOk -> client.service().messaging().sendMessage(conversationId, messageProcessor.prepareMessageToSend()) // send message with attachments details as additional message parts
-                                    .flatMap(result -> updateStoreWithSentMsg(messageProcessor, result)) // update temporary message with a new message id obtained from the response
+                                    .flatMap(result -> result.isSuccessful() ? updateStoreWithSentMsg(messageProcessor, result) : handleMessageError(messageProcessor, new ComapiException(result.getErrorBody()))) // update temporary message with a new message id obtained from the response
                                     .onErrorResumeNext(t -> handleMessageError(messageProcessor, t))); // if error occurred update message status list adding error status
                 });
     }
@@ -209,9 +209,9 @@ class ChatController {
     }
 
     /**
-     * Handle failure when sending message.
+     * Handle failure when sent message.
      *
-     * @param mp Message processor holding message sending details.
+     * @param mp Message processor holding message sent details.
      * @param t  Thrown exception.
      * @return Observable with Chat SDK result.
      */
@@ -338,7 +338,7 @@ class ChatController {
                     if (i.isSuccessful()) {
                         log.i("Synchronisation successfully finished.");
                     } else {
-                        log.e("Synchronisation finished with error. " + (i.getError() != null ? i.getError().getMessage() : ""));
+                        log.e("Synchronisation finished with error. " + (i.getError() != null ? i.getError().getDetails() : ""));
                     }
                     isSynchronising.compareAndSet(true, false);
                 });
@@ -442,7 +442,7 @@ class ChatController {
     /**
      * Handles message send service response. Will delete temporary message object. Same message but with correct message id will be inserted instead.
      *
-     * @param mp       Message processor holding message sending details.
+     * @param mp       Message processor holding message sent details.
      * @param response Service call response.
      * @return Observable emitting result of operations.
      */
@@ -668,11 +668,14 @@ class ChatController {
         } else {
             SortedMap<Long, ChatConversation> sorted = new TreeMap<>();
             for (ChatConversation conversation : noEmptyConversations) {
-                sorted.put(conversation.getUpdatedOn(), conversation);
+                Long updatedOn = conversation.getUpdatedOn();
+                if (updatedOn != null) {
+                    sorted.put(updatedOn, conversation);
+                }
             }
             limitedList = new ArrayList<>();
             Object[] array = sorted.values().toArray();
-            for (int i = 0; i < maxConversationsSynced; i++) {
+            for (int i = 0; i < Math.min(maxConversationsSynced, array.length); i++) {
                 limitedList.add((ChatConversation) array[i]);
             }
         }

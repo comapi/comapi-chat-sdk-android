@@ -276,7 +276,7 @@ class PersistenceController {
                     if (conversation != null && conversation.getLastLocalEventId() != -1L) {
                         message.setSentEventId(conversation.getLastLocalEventId() + 1);
                     }
-                    message.addStatusUpdate(ChatMessageStatus.builder().populate(message.getConversationId(), message.getMessageId(), message.getFromWhom().getId(), LocalMessageStatus.sending, System.currentTimeMillis(), null).build());
+                    message.addStatusUpdate(ChatMessageStatus.builder().populate(message.getConversationId(), message.getMessageId(), message.getFromWhom().getId(), LocalMessageStatus.sent, System.currentTimeMillis(), null).build());
                     isSuccessful = isSuccessful && store.upsert(message);
                 } else {
                     isSuccessful = isSuccessful && store.upsert(message);
