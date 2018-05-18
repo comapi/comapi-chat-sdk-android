@@ -65,4 +65,32 @@ public abstract class StoreFactory<T extends ChatStore> {
     void injectLogger(final Logger log) {
         this.log = log;
     }
+
+    /**
+     * Converts the generic store factory object to specific one needed by chat SDK.
+     *
+     * @return Non generic store factory.
+     */
+    StoreFactory<ChatStore> asChatStoreFactory() {
+        return new ChatStoreFactory<>(this);
+    }
+
+    /**
+     * Store factory class to build non generic persistance store objects.
+     *
+     * @param <T> Generic type of persistance store parent class.
+     */
+    public static class ChatStoreFactory<T extends ChatStore> extends StoreFactory<ChatStore> {
+
+        private final StoreFactory<T> factory;
+
+        ChatStoreFactory(StoreFactory<T> factory) {
+            this.factory = factory;
+        }
+
+        @Override
+        protected void build(StoreCallback<ChatStore> callback) {
+            factory.build(callback::created);
+        }
+    }
 }
