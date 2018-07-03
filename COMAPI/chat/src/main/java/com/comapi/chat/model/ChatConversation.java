@@ -147,6 +147,11 @@ public class ChatConversation extends ChatConversationBase {
             return this;
         }
 
+        public Builder setName(String name) {
+            conversation.name = name;
+            return this;
+        }
+
         public ChatConversation build() {
             return conversation;
         }

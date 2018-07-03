@@ -623,7 +623,7 @@ public class ClientLevelTest {
         String conversationId = "someId";
         String messageId = "60526ba0-76b3-4f33-9e2e-20f4a8bb548b";
 
-        String json = FileResHelper.readFromFile(this, "rest_message_query_no_orphans.json");
+        String json = FileResHelper.readFromFile(this, "rest_message_query_orphaned.json");
         Parser parser = new Parser();
         MessagesQueryResponse response = parser.parse(json, MessagesQueryResponse.class);
 
