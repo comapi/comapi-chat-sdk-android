@@ -83,9 +83,9 @@ class PersistenceController {
         return Observable.create(emitter -> storeFactory.execute(new StoreTransaction<ChatStore>() {
             @Override
             protected void execute(ChatStore store) {
-                store.beginTransaction();
+                store.open();
                 List<ChatConversationBase> conversations = store.getAllConversations();
-                store.endTransaction();
+                store.close();
                 emitter.onNext(conversations);
                 emitter.onCompleted();
             }
@@ -102,9 +102,9 @@ class PersistenceController {
         return Observable.create(emitter -> storeFactory.execute(new StoreTransaction<ChatStore>() {
             @Override
             protected void execute(ChatStore store) {
-                store.beginTransaction();
+                store.open();
                 ChatConversationBase c = store.getConversation(conversationId);
-                store.endTransaction();
+                store.close();
                 emitter.onNext(c);
                 emitter.onCompleted();
             }
@@ -129,11 +129,11 @@ class PersistenceController {
                     @Override
                     protected void execute(ChatStore store) {
 
-                        store.beginTransaction();
-
                         List<ChatMessage> messages = modelAdapter.adaptMessages(response.getMessages());
 
                         long updatedOn = 0;
+
+                        store.beginTransaction();
 
                         if (messages != null && !messages.isEmpty()) {
                             for (ChatMessage msg : messages) {
@@ -211,9 +211,9 @@ class PersistenceController {
                                             @Override
                                             protected void execute(ChatStore store) {
 
-                                                store.beginTransaction();
-
                                                 List<ChatMessageStatus> statuses = modelAdapter.adaptEvents(toDelete);
+
+                                                store.beginTransaction();
 
                                                 if (!statuses.isEmpty()) {
                                                     for (ChatMessageStatus status : statuses) {
@@ -277,9 +277,9 @@ class PersistenceController {
                         message.setSentEventId(conversation.getLastLocalEventId() + 1);
                     }
                     message.addStatusUpdate(ChatMessageStatus.builder().populate(message.getConversationId(), message.getMessageId(), message.getFromWhom().getId(), LocalMessageStatus.sent, System.currentTimeMillis(), null).build());
-                    isSuccessful = isSuccessful && store.upsert(message);
+                    isSuccessful = store.upsert(message);
                 } else {
-                    isSuccessful = isSuccessful && store.upsert(message);
+                    isSuccessful = store.upsert(message);
                 }
 
                 if (!doUpdateConversationFromEvent(store, message.getConversationId(), message.getSentEventId(), message.getSentOn()) && noConversationListener != null) {
@@ -433,7 +433,7 @@ class PersistenceController {
      * Insert or update a list of conversations.
      *
      * @param conversationsToAdd List of conversations to insert or apply an update.
-     * @return bservable emitting result.
+     * @return Observable emitting result.
      */
     public Observable<Boolean> upsertConversations(List<ChatConversation> conversationsToAdd) {
 

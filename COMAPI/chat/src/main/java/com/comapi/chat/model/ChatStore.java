@@ -118,4 +118,14 @@ public abstract class ChatStore {
      * End transaction. Execute queued store updates and inserts.
      */
     public abstract void endTransaction();
+
+    /**
+     * Open/prepare database.
+     */
+    public abstract void open();
+
+    /**
+     * Close database.
+     */
+    public abstract void close();
 }
