@@ -192,8 +192,9 @@ public class ClientLevelTest {
         ConversationCreate conversationCreate = ConversationCreate.builder().setId(conversationId).setName(name1).build();
         ConversationDetails details1 = new MockConversationDetails(conversationId).setName(name1);
 
-        // Create
-
+        // get conversation returns null response
+        mockedComapiClient.addMockedResult(new MockResult<>(null, true, etag1, 200));
+        // create conversation response
         mockedComapiClient.addMockedResult(new MockResult<>(details1, true, etag1, 200));
 
         ChatResult result1 = client.rxService().messaging().createConversation(conversationCreate).toBlocking().first();
@@ -251,8 +252,9 @@ public class ClientLevelTest {
         ConversationCreate conversationCreate = ConversationCreate.builder().setId(conversationId).setName(name1).build();
         ConversationDetails details1 = new MockConversationDetails(conversationId).setName(name1);
 
-        // Create
-
+        // get conversation returns null response
+        mockedComapiClient.addMockedResult(new MockResult<>(null, true, etag1, 200));
+        // create conversation response
         mockedComapiClient.addMockedResult(new MockResult<>(details1, true, etag1, 200));
 
         final MockCallback<ChatResult> callback = new MockCallback<>();
