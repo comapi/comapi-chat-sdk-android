@@ -148,7 +148,7 @@ class ChatController {
     void handleSocketConnected() {
         System.out.println("handleSocketConnected");
         if (socketWasDisconnected.compareAndSet(true, false)) {
-            if (syncCallsLimiter.checkAndIncrease()) {
+            if (syncCallsLimiter.checkAndIncrease() && !TextUtils.isEmpty(getProfileId())) {
                 System.out.println("auto synchroniseStore");
                 obsExec.execute(synchroniseStore());
             }

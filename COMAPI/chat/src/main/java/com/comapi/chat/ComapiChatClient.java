@@ -88,7 +88,7 @@ public class ComapiChatClient {
      * @param eventsHandler   Socket events handler.
      * @param callbackAdapter Adapts Observables to callback APIs.
      */
-    ComapiChatClient(Application app, final RxComapiClient client, final ChatConfig chatConfig, final EventsHandler eventsHandler, CallbackAdapter callbackAdapter) {
+    protected ComapiChatClient(Application app, final RxComapiClient client, final ChatConfig chatConfig, final EventsHandler eventsHandler, CallbackAdapter callbackAdapter) {
         this.client = client;
         this.eventsHandler = eventsHandler;
         final Logger log = ClientHelper.getLogger(client).clone("Chat_" + VERSION);
@@ -197,8 +197,10 @@ public class ComapiChatClient {
     /**
      * Returns the content of internal log files in a single String. For large limits of internal files consider using {@link ComapiChatClient#copyLogs(File)} and loading the content line by line.
      *
+     * @deprecated Use safer version - {@link this#copyLogs(File)} instead.
      * @return Observable emitting internal log files content as a single string.
      */
+    @Deprecated
     public Observable<String> getLogs() {
         return client.getLogs();
     }
