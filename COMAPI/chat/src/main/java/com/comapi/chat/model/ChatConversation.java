@@ -156,15 +156,6 @@ public class ChatConversation extends ChatConversationBase {
             return conversation;
         }
 
-        public Builder populate(ConversationCreateEvent event) {
-            conversation.conversationId = event.getConversation().getId();
-            conversation.name = event.getConversation().getName();
-            conversation.description = event.getConversation().getDescription();
-            conversation.ownerRoles = event.getConversation().getRoles().getOwner();
-            conversation.participantRoles = event.getConversation().getRoles().getParticipant();
-            return this;
-        }
-
         public Builder populate(ConversationUpdateEvent event) {
             conversation.conversationId = event.getConversationId();
             conversation.name = event.getConversationName();

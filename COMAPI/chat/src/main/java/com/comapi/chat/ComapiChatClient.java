@@ -79,6 +79,8 @@ public class ComapiChatClient {
     private final Map<ProfileListener, com.comapi.ProfileListener> profileListeners;
     private final Map<TypingListener, MessagingListener> typingListeners;
 
+    private final Database db;
+
     /**
      * Recommended constructor.
      *
@@ -93,7 +95,7 @@ public class ComapiChatClient {
         this.eventsHandler = eventsHandler;
         final Logger log = ClientHelper.getLogger(client).clone("Chat_" + VERSION);
         ModelAdapter modelAdapter = new ModelAdapter();
-        Database db = Database.getInstance(app, false, log);
+        db = Database.getInstance(app, false, log);
         PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory(), log);
         final InternalConfig internal = chatConfig.getInternalConfig();
         controller = new ChatController(client, persistenceController, new AttachmentController(log, internal.getMaxPartDataSize()), internal, chatConfig.getObservableExecutor(), modelAdapter, log);
@@ -205,8 +207,16 @@ public class ComapiChatClient {
         return client.getLogs();
     }
 
-    void clean(Application application) {
-        client.clean(application.getApplicationContext());
+    /**
+     * Method to close the client state, won't be usable anymore. Useful e.g. for unit testing.
+     *
+     * @param context Context.
+     */
+    public void close(Context context) {
+        client.clean(context.getApplicationContext());
+        if (db != null) {
+            db.closeDatabase();
+        }
     }
 
     /**

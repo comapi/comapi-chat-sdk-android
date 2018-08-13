@@ -412,7 +412,7 @@ public class InitTest {
     @After
     public void tearDown() throws Exception {
         if (client != null) {
-            client.clean(RuntimeEnvironment.application);
+            client.close(RuntimeEnvironment.application);
         }
         DataTestHelper.clearDeviceData();
         DataTestHelper.clearSessionData();
