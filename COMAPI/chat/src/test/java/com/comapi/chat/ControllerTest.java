@@ -291,9 +291,9 @@ public class ControllerTest {
         assertEquals(2, savedMessage.getStatusUpdates().size());
         Object[] statuses = savedMessage.getStatusUpdates().toArray();
 
-        if (((ChatMessageStatus)statuses[0]).getMessageStatus().name().equals("sending")) {
+        if (((ChatMessageStatus)statuses[0]).getMessageStatus().name().equals("sent")) {
             assertTrue(((ChatMessageStatus)statuses[1]).getMessageStatus().name().equals("error"));
-        } else if (((ChatMessageStatus)statuses[1]).getMessageStatus().name().equals("sending")) {
+        } else if (((ChatMessageStatus)statuses[1]).getMessageStatus().name().equals("sent")) {
             assertTrue(((ChatMessageStatus)statuses[0]).getMessageStatus().name().equals("error"));
         } else {
             throw new Exception("Wrong statuses");

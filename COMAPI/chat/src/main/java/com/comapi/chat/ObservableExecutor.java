@@ -22,6 +22,7 @@ package com.comapi.chat;
 
 import rx.Observable;
 import rx.Subscriber;
+import rx.schedulers.Schedulers;
 
 /**
  * Subscribes to an observable
@@ -50,23 +51,24 @@ public abstract class ObservableExecutor {
 
             @Override
             public <T> void execute(final Observable<T> obs) {
+                obs.subscribeOn(Schedulers.io())
+                        .observeOn(Schedulers.io())
+                        .subscribe(new Subscriber<T>() {
+                            @Override
+                            public void onCompleted() {
+                                // Completed, will unsubscribe automatically
+                            }
 
-                obs.subscribe(new Subscriber<T>() {
-                    @Override
-                    public void onCompleted() {
-                        // Completed, will unsubscribe automatically
-                    }
+                            @Override
+                            public void onError(Throwable e) {
+                                // Report errors in doOnError
+                            }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        // Report errors in doOnError
-                    }
-
-                    @Override
-                    public void onNext(T t) {
-                        // Ignore result
-                    }
-                });
+                            @Override
+                            public void onNext(T t) {
+                                // Ignore result
+                            }
+                        });
             }
         };
     }

@@ -192,8 +192,9 @@ public class ClientLevelTest {
         ConversationCreate conversationCreate = ConversationCreate.builder().setId(conversationId).setName(name1).build();
         ConversationDetails details1 = new MockConversationDetails(conversationId).setName(name1);
 
-        // Create
-
+        // get conversation returns null response
+        mockedComapiClient.addMockedResult(new MockResult<>(null, true, etag1, 200));
+        // create conversation response
         mockedComapiClient.addMockedResult(new MockResult<>(details1, true, etag1, 200));
 
         ChatResult result1 = client.rxService().messaging().createConversation(conversationCreate).toBlocking().first();
@@ -251,8 +252,9 @@ public class ClientLevelTest {
         ConversationCreate conversationCreate = ConversationCreate.builder().setId(conversationId).setName(name1).build();
         ConversationDetails details1 = new MockConversationDetails(conversationId).setName(name1);
 
-        // Create
-
+        // get conversation returns null response
+        mockedComapiClient.addMockedResult(new MockResult<>(null, true, etag1, 200));
+        // create conversation response
         mockedComapiClient.addMockedResult(new MockResult<>(details1, true, etag1, 200));
 
         final MockCallback<ChatResult> callback = new MockCallback<>();
@@ -623,7 +625,7 @@ public class ClientLevelTest {
         String conversationId = "someId";
         String messageId = "60526ba0-76b3-4f33-9e2e-20f4a8bb548b";
 
-        String json = FileResHelper.readFromFile(this, "rest_message_query_no_orphans.json");
+        String json = FileResHelper.readFromFile(this, "rest_message_query_orphaned.json");
         Parser parser = new Parser();
         MessagesQueryResponse response = parser.parse(json, MessagesQueryResponse.class);
 

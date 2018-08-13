@@ -56,10 +56,11 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
      * Sets builder for {@link ChatStore} db interface that can handle single db transactions.
      *
      * @param builder Factory class to create {@link ChatStore}.
+     * @param <T> Generic type of persistance store parent class.
      * @return Builder instance with new value set.
      */
-    public ChatConfig store(StoreFactory<ChatStore> builder) {
-        this.storeFactory = builder;
+    public <T extends ChatStore> ChatConfig store(StoreFactory<T> builder) {
+        this.storeFactory = builder.asChatStoreFactory();
         return this;
     }
 

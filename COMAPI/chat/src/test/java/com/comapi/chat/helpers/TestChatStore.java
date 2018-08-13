@@ -101,6 +101,16 @@ public class TestChatStore extends ChatStore {
     }
 
     @Override
+    public void open() {
+
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+    @Override
     public boolean deleteAllMessages(String conversationId) {
 
         List<String> idsToRemove = new ArrayList<>();

@@ -147,17 +147,13 @@ public class ChatConversation extends ChatConversationBase {
             return this;
         }
 
-        public ChatConversation build() {
-            return conversation;
+        public Builder setName(String name) {
+            conversation.name = name;
+            return this;
         }
 
-        public Builder populate(ConversationCreateEvent event) {
-            conversation.conversationId = event.getConversation().getId();
-            conversation.name = event.getConversation().getName();
-            conversation.description = event.getConversation().getDescription();
-            conversation.ownerRoles = event.getConversation().getRoles().getOwner();
-            conversation.participantRoles = event.getConversation().getRoles().getParticipant();
-            return this;
+        public ChatConversation build() {
+            return conversation;
         }
 
         public Builder populate(ConversationUpdateEvent event) {
