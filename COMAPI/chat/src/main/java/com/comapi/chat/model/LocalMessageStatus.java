@@ -11,7 +11,7 @@ public enum LocalMessageStatus {
     /**
      * Status set locally when the request to send the message has been sent.
      */
-    sending(0),
+    sent(0),
 
     /**
      * Message status set when the 'delivered' event has been delivered from another device.

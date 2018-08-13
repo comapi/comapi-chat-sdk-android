@@ -123,7 +123,7 @@ public class MessagingTest {
                 .store(factory)
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.toBlocking().firstOrDefault(null);
                     }
                 })

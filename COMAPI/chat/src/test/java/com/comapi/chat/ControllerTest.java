@@ -159,7 +159,7 @@ public class ControllerTest {
                 .store(factory)
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.observeOn(Schedulers.test()).subscribeOn(Schedulers.immediate()).subscribe();
                     }
                 });
@@ -291,9 +291,9 @@ public class ControllerTest {
         assertEquals(2, savedMessage.getStatusUpdates().size());
         Object[] statuses = savedMessage.getStatusUpdates().toArray();
 
-        if (((ChatMessageStatus)statuses[0]).getMessageStatus().name().equals("sending")) {
+        if (((ChatMessageStatus)statuses[0]).getMessageStatus().name().equals("sent")) {
             assertTrue(((ChatMessageStatus)statuses[1]).getMessageStatus().name().equals("error"));
-        } else if (((ChatMessageStatus)statuses[1]).getMessageStatus().name().equals("sending")) {
+        } else if (((ChatMessageStatus)statuses[1]).getMessageStatus().name().equals("sent")) {
             assertTrue(((ChatMessageStatus)statuses[0]).getMessageStatus().name().equals("error"));
         } else {
             throw new Exception("Wrong statuses");
@@ -920,7 +920,7 @@ public class ControllerTest {
 
         ChatController chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, new InternalConfig(), new ObservableExecutor() {
             @Override
-            <T> void execute(Observable<T> obs) {
+            public <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();
             }
         }, new ModelAdapter(), logger);
@@ -930,7 +930,7 @@ public class ControllerTest {
 
         chatController = new ChatController(null, persistenceController, attachmentController, new InternalConfig(), new ObservableExecutor() {
             @Override
-            <T> void execute(Observable<T> obs) {
+            public <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();
             }
         }, new ModelAdapter(), logger);

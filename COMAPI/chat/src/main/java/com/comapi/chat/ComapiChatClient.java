@@ -79,6 +79,8 @@ public class ComapiChatClient {
     private final Map<ProfileListener, com.comapi.ProfileListener> profileListeners;
     private final Map<TypingListener, MessagingListener> typingListeners;
 
+    private final Database db;
+
     /**
      * Recommended constructor.
      *
@@ -88,12 +90,12 @@ public class ComapiChatClient {
      * @param eventsHandler   Socket events handler.
      * @param callbackAdapter Adapts Observables to callback APIs.
      */
-    ComapiChatClient(Application app, final RxComapiClient client, final ChatConfig chatConfig, final EventsHandler eventsHandler, CallbackAdapter callbackAdapter) {
+    protected ComapiChatClient(Application app, final RxComapiClient client, final ChatConfig chatConfig, final EventsHandler eventsHandler, CallbackAdapter callbackAdapter) {
         this.client = client;
         this.eventsHandler = eventsHandler;
         final Logger log = ClientHelper.getLogger(client).clone("Chat_" + VERSION);
         ModelAdapter modelAdapter = new ModelAdapter();
-        Database db = Database.getInstance(app, false, log);
+        db = Database.getInstance(app, false, log);
         PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory(), log);
         final InternalConfig internal = chatConfig.getInternalConfig();
         controller = new ChatController(client, persistenceController, new AttachmentController(log, internal.getMaxPartDataSize()), internal, chatConfig.getObservableExecutor(), modelAdapter, log);
@@ -197,14 +199,24 @@ public class ComapiChatClient {
     /**
      * Returns the content of internal log files in a single String. For large limits of internal files consider using {@link ComapiChatClient#copyLogs(File)} and loading the content line by line.
      *
+     * @deprecated Use safer version - {@link this#copyLogs(File)} instead.
      * @return Observable emitting internal log files content as a single string.
      */
+    @Deprecated
     public Observable<String> getLogs() {
         return client.getLogs();
     }
 
-    void clean(Application application) {
-        client.clean(application.getApplicationContext());
+    /**
+     * Method to close the client state, won't be usable anymore. Useful e.g. for unit testing.
+     *
+     * @param context Context.
+     */
+    public void close(Context context) {
+        client.clean(context.getApplicationContext());
+        if (db != null) {
+            db.closeDatabase();
+        }
     }
 
     /**
@@ -314,6 +326,17 @@ public class ComapiChatClient {
         if (messagingListener != null) {
             client.removeListener(messagingListener);
             typingListeners.remove(typingListener);
+        }
+    }
+
+    Logger getLogger(String tagSuffix) {
+        return ClientHelper.getLogger(client).clone(tagSuffix);
+    }
+
+    public static class ExtHelper {
+
+        public static Logger getLogger(@NonNull final ComapiChatClient client, final String tagSuffix) {
+            return client.getLogger(tagSuffix);
         }
     }
 }
