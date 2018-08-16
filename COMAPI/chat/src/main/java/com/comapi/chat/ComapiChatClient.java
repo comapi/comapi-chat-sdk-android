@@ -61,7 +61,7 @@ import rx.Observable;
  */
 public class ComapiChatClient {
 
-    private final static String VERSION = "1.0.1";
+    private final static String VERSION = "1.1.0";
 
     private final RxComapiClient client;
 
