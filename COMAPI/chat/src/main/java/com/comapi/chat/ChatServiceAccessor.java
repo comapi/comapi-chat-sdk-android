@@ -24,6 +24,8 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import com.comapi.Callback;
+import com.comapi.QueryBuilder;
+import com.comapi.RxServiceAccessor;
 import com.comapi.ServiceAccessor;
 import com.comapi.Session;
 import com.comapi.chat.model.Attachment;
@@ -34,6 +36,7 @@ import com.comapi.internal.network.model.conversation.ConversationCreate;
 import com.comapi.internal.network.model.conversation.ConversationUpdate;
 import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.messaging.MessageToSend;
+import com.comapi.internal.network.model.profile.ComapiProfile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,12 +54,14 @@ public class ChatServiceAccessor {
     private final CallbackAdapter callbackAdapter;
     private final MessagingService messagingService;
     private final ServiceAccessor.ProfileService profileService;
+    private final ProfileServiceWithDefaults profileWithDefaultsService;
     private final SessionService sessionService;
 
     ChatServiceAccessor(CallbackAdapter callbackAdapter, RxChatServiceAccessor rxChatServiceAccessor) {
         this.callbackAdapter = callbackAdapter;
         this.messagingService = new MessagingService(rxChatServiceAccessor.messaging());
         this.profileService = new ProfileService(rxChatServiceAccessor.profile());
+        this.profileWithDefaultsService = new ProfileServiceWithDefaults(rxChatServiceAccessor.profileWithDefaults());
         this.sessionService = new SessionService(rxChatServiceAccessor.session());
     }
 
@@ -71,11 +76,23 @@ public class ChatServiceAccessor {
 
     /**
      * Access COMAPI Service profile APIs.
+     * This APIs version operates with the raw map of profile key-value pairs.
+     * @see this#profileWithDefaults
      *
      * @return COMAPI Service profile APIs.
      */
     public ServiceAccessor.ProfileService profile() {
         return profileService;
+    }
+
+    /**
+     * Access COMAPI Service profile APIs.
+     * This APIs version wraps the raw map of profile key-value pairs in ComapiProfile objects that introduces default keys that can be understood by the Comapi Portal.
+     *
+     * @return COMAPI Service profile APIs.
+     */
+    public ServiceAccessor.ProfileServiceWithDefaults profileWithDefaults() {
+        return profileWithDefaultsService;
     }
 
     /**
@@ -322,6 +339,66 @@ public class ChatServiceAccessor {
         @Override
         public void patchMyProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag, @Nullable Callback<ComapiResult<Map<String, Object>>> callback) {
             callbackAdapter.adapt(rxProfile.updateProfile(profileDetails, eTag), callback);
+        }
+    }
+
+    public class ProfileServiceWithDefaults implements ServiceAccessor.ProfileServiceWithDefaults {
+
+        private final RxServiceAccessor.ProfileServiceWithDefaults service;
+
+        public ProfileServiceWithDefaults(RxServiceAccessor.ProfileServiceWithDefaults service) {
+            this.service = service;
+        }
+
+        /**
+         * Get profile details from the service.
+         *
+         * @param profileId Profile Id of the user.
+         * @param callback  Callback with the result.
+         */
+        public void getProfile(@NonNull final String profileId, @Nullable Callback<ComapiResult<ComapiProfile>> callback) {
+            callbackAdapter.adapt(service.getProfile(profileId), callback);
+        }
+
+        /**
+         * Query user profiles on the services.
+         *
+         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use {@link QueryBuilder} helper class to construct valid query string.
+         * @param callback    Callback with the result.
+         */
+        public void queryProfiles(@NonNull final String queryString, @Nullable Callback<ComapiResult<List<ComapiProfile>>> callback) {
+            callbackAdapter.adapt(service.queryProfiles(queryString), callback);
+        }
+
+        /**
+         * Updates profile for an active session.
+         *
+         * @param profileDetails Profile details.
+         * @param callback       Callback with the result.
+         */
+        public void updateProfile(@NonNull final ComapiProfile profileDetails, final String eTag, @Nullable Callback<ComapiResult<ComapiProfile>> callback) {
+            callbackAdapter.adapt(service.updateProfile(profileDetails, eTag), callback);
+        }
+
+        /**
+         * Applies given profile patch if required permission is granted.
+         *
+         * @param profileId      Id of an profile to patch.
+         * @param profileDetails Profile details.
+         * @param callback       Callback with the result.
+         */
+        public void patchProfile(@NonNull final String profileId, @NonNull final ComapiProfile profileDetails, final String eTag, @Nullable Callback<ComapiResult<ComapiProfile>> callback){
+            callbackAdapter.adapt(service.patchProfile(profileId, profileDetails, eTag), callback);
+        }
+
+        /**
+         * Applies profile patch for an active session.
+         *
+         * @param profileDetails Profile details.
+         * @param callback       Callback with the result.
+         */
+        public void patchMyProfile(@NonNull final ComapiProfile profileDetails, final String eTag, @Nullable Callback<ComapiResult<ComapiProfile>> callback){
+            callbackAdapter.adapt(service.patchMyProfile(profileDetails, eTag), callback);
         }
     }
 

@@ -887,5 +887,6 @@ public class ClientLevelTest {
         mockedComapiClient.clearResults();
         mockedComapiClient.clean(RuntimeEnvironment.application);
         store.clearDatabase();
+        client.close(RuntimeEnvironment.application);
     }
 }

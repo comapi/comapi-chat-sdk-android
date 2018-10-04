@@ -23,6 +23,7 @@ package com.comapi.chat;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.comapi.QueryBuilder;
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
@@ -39,6 +40,7 @@ import com.comapi.internal.network.model.conversation.Participant;
 import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
+import com.comapi.internal.network.model.profile.ComapiProfile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +62,7 @@ public class RxChatServiceAccessor {
 
     private final MessagingService messagingService;
     private final ProfileService profileService;
+    private final ProfileServiceWithDefaults profileServiceWithDefaults;
     private final SessionService sessionService;
 
     private final ChatController controller;
@@ -70,6 +73,7 @@ public class RxChatServiceAccessor {
         this.controller = controller;
         this.messagingService = new MessagingService();
         this.profileService = new ProfileService();
+        this.profileServiceWithDefaults = new ProfileServiceWithDefaults();
         this.sessionService = new SessionService();
     }
 
@@ -84,11 +88,23 @@ public class RxChatServiceAccessor {
 
     /**
      * Access COMAPI Service profile APIs.
+     * This APIs version operates with the raw map of profile key-value pairs.
+     * @see this#profileWithDefaults
      *
      * @return COMAPI Service profile APIs.
      */
     public ProfileService profile() {
         return profileService;
+    }
+
+    /**
+     * Access COMAPI Service profile APIs.
+     * This APIs version wraps the raw map of profile key-value pairs in ComapiProfile objects that introduces default keys that can be understood by the Comapi Portal.
+     *
+     * @return COMAPI Service profile APIs.
+     */
+    public ProfileServiceWithDefaults profileWithDefaults() {
+        return profileServiceWithDefaults;
     }
 
     /**
@@ -363,6 +379,59 @@ public class RxChatServiceAccessor {
         @Override
         public Observable<ComapiResult<Map<String, Object>>> patchMyProfile(@NonNull Map<String, Object> profileDetails, @Nullable String eTag) {
             return foundation.service().profile().patchMyProfile(profileDetails, eTag);
+        }
+    }
+
+    public class ProfileServiceWithDefaults implements  com.comapi.RxServiceAccessor.ProfileServiceWithDefaults {
+
+        /**
+         * Get profile details from the service.
+         *
+         * @param profileId Profile Id of the user.
+         * @return Profile details from the service.
+         */
+        public Observable<ComapiResult<ComapiProfile>> getProfile(@NonNull final String profileId) {
+            return foundation.service().profileWithDefaults().getProfile(profileId);
+        }
+
+        /**
+         * Query user profiles on the services.
+         *
+         * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use {@link QueryBuilder} helper class to construct valid query string.
+         * @return Profiles detail from the service.
+         */
+        public Observable<ComapiResult<List<ComapiProfile>>> queryProfiles(@NonNull final String queryString) {
+            return foundation.service().profileWithDefaults().queryProfiles(queryString);
+        }
+
+        /**
+         * Updates profile for an active session.
+         *
+         * @param profileDetails Profile details.
+         * @return Observable with to perform update profile for current session.
+         */
+        public Observable<ComapiResult<ComapiProfile>> updateProfile(@NonNull final ComapiProfile profileDetails, final String eTag) {
+            return foundation.service().profileWithDefaults().updateProfile(profileDetails, eTag);
+        }
+
+        /**
+         * Applies given profile patch if required permission is granted.
+         *
+         * @param profileDetails Profile details.
+         * @return Observable with to perform patch profile for current session.
+         */
+        public Observable<ComapiResult<ComapiProfile>> patchProfile(@NonNull String profileId, @NonNull final ComapiProfile profileDetails, final String eTag) {
+            return foundation.service().profileWithDefaults().patchProfile(profileId, profileDetails, eTag);
+        }
+
+        /**
+         * Applies profile patch for an active session.
+         *
+         * @param profileDetails Profile details.
+         * @return Observable with to perform patch profile for current session.
+         */
+        public Observable<ComapiResult<ComapiProfile>> patchMyProfile(@NonNull final ComapiProfile profileDetails, final String eTag) {
+            return foundation.service().profileWithDefaults().patchMyProfile(profileDetails, eTag);
         }
     }
 
