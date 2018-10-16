@@ -33,4 +33,8 @@ public class MockResult<T> extends ComapiResult<T> {
     public MockResult(T result, boolean isSuccessful, String eTag, int code) {
         super(result, isSuccessful, eTag, code, null, null);
     }
+
+    public MockResult(T result, boolean isSuccessful, String eTag, int code, String errorBody) {
+        super(result, isSuccessful, eTag, code, null, errorBody);
+    }
 }

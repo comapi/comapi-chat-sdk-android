@@ -36,6 +36,7 @@ import com.comapi.chat.listeners.ParticipantsListener;
 import com.comapi.chat.listeners.ProfileListener;
 import com.comapi.chat.listeners.TypingListener;
 import com.comapi.chat.model.ModelAdapter;
+import com.comapi.chat.profile.ProfileManager;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.lifecycle.LifecycleListener;
 import com.comapi.internal.log.Logger;
@@ -52,6 +53,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import rx.Observable;
+import rx.Subscriber;
+import rx.schedulers.Schedulers;
 
 /**
  * Client implementation for chat layer SDK. Handles initialisation and stores all internal objects.
@@ -199,8 +202,8 @@ public class ComapiChatClient {
     /**
      * Returns the content of internal log files in a single String. For large limits of internal files consider using {@link ComapiChatClient#copyLogs(File)} and loading the content line by line.
      *
-     * @deprecated Use safer version - {@link this#copyLogs(File)} instead.
      * @return Observable emitting internal log files content as a single string.
+     * @deprecated Use safer version - {@link this#copyLogs(File)} instead.
      */
     @Deprecated
     public Observable<String> getLogs() {
@@ -327,6 +330,31 @@ public class ComapiChatClient {
             client.removeListener(messagingListener);
             typingListeners.remove(typingListener);
         }
+    }
+
+    public ProfileManager createProfileManager(Context context) {
+        return new ProfileManager(context, client, new ObservableExecutor() {
+
+            @Override
+            public <T> void execute(final Observable<T> obs) {
+                obs.subscribe(new Subscriber<T>() {
+                            @Override
+                            public void onCompleted() {
+                                // Completed, will unsubscribe automatically
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                // Report errors in doOnError
+                            }
+
+                            @Override
+                            public void onNext(T t) {
+                                // Ignore result
+                            }
+                        });
+            }
+        });
     }
 
     Logger getLogger(String tagSuffix) {

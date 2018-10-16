@@ -444,8 +444,6 @@ public class EventHandlerTest {
         mockedComapiClient.dispatchTestEvent(event1);
 
         assertTrue(events.isEmpty());
-
-        assertTrue(this.events.size() == 1); // only one event type was dispatched.
     }
 
     @Test

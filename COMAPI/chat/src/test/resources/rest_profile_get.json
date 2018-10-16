@@ -1,0 +1,11 @@
+{
+  "id" : "id",
+  "firstName" : "firstName",
+  "lastName" : "lastName",
+  "email" : "email",
+  "gender" : "gender",
+  "phoneNumber" : "phoneNumber",
+  "phoneNumberCountryCode" : "phoneNumberCountryCode",
+  "profilePicture" : "profilePicture",
+  "custom" : "custom"
+}

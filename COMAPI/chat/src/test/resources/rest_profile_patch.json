@@ -1,0 +1,12 @@
+{
+  "id": "p1",
+  "key": "value",
+  "firstName" : "firstName",
+  "lastName" : "lastName",
+  "email" : "email",
+  "gender" : "gender",
+  "phoneNumber" : "phoneNumber",
+  "phoneNumberCountryCode" : "phoneNumberCountryCode",
+  "profilePicture" : "profilePicture",
+  "custom" : "custom"
+}
