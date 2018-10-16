@@ -28,9 +28,8 @@ import android.support.annotation.Nullable;
 import com.comapi.APIConfig;
 import com.comapi.Callback;
 import com.comapi.ComapiAuthenticator;
-import com.comapi.MessagingListener;
-import com.comapi.ProfileListener;
 import com.comapi.chat.helpers.ChatTestConst;
+import com.comapi.chat.helpers.DataTestHelper;
 import com.comapi.chat.helpers.FileResHelper;
 import com.comapi.chat.helpers.MockCallback;
 import com.comapi.chat.helpers.MockComapiClient;
@@ -40,15 +39,11 @@ import com.comapi.chat.helpers.MockResult;
 import com.comapi.chat.helpers.TestChatStore;
 import com.comapi.chat.model.ChatStore;
 import com.comapi.chat.profile.ProfileManager;
-import com.comapi.chat.helpers.DataTestHelper;
-import com.comapi.chat.helpers.ResponseTestHelper;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.Parser;
 import com.comapi.internal.network.AuthClient;
 import com.comapi.internal.network.ChallengeOptions;
-import com.comapi.internal.network.ComapiResult;
 import com.comapi.internal.network.model.events.ProfileUpdateEvent;
-import com.comapi.internal.network.model.messaging.MessagesQueryResponse;
 import com.comapi.internal.network.model.profile.ComapiProfile;
 
 import org.junit.After;
@@ -58,7 +53,6 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
-
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -75,7 +69,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = "chat/src/main/AndroidManifest.xml", sdk = Build.VERSION_CODES.M, constants = BuildConfig.class, packageName = "com.comapi.chat")
@@ -201,6 +194,54 @@ public class ProfileControllerTest {
         p.add("b", "c");
 
         profileManager.patchProfile(p);
+
+        assertEquals(2, sub.getState());
+
+        profileManager.pause();
+    }
+
+    @Test
+    public void updateProfile() {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("firstName", "X");
+        mockedComapiClient.addMockedResult(new MockResult<>(new ComapiProfile(response), true, ChatTestConst.ETAG, 200));
+        mockedComapiClient.addMockedResult(new MockResult<>(new ComapiProfile(response), true, ChatTestConst.ETAG, 200));
+
+        ProfileManager profileManager = new ProfileManager(RuntimeEnvironment.application, mockedComapiClient, new ObservableExecutor() {
+
+            @Override
+            public <T> void execute(final Observable<T> obs) {
+                obs.toBlocking().subscribe(new Subscriber<T>() {
+                    @Override
+                    public void onCompleted() {
+                        // Completed, will unsubscribe automatically
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        // Report errors in doOnError
+                    }
+
+                    @SuppressWarnings("unchecked")
+                    @Override
+                    public void onNext(T t) {
+                        assertTrue(( ((MockResult<ComapiProfile>) t).isSuccessful()));
+                        assertTrue(( ((MockResult<ComapiProfile>) t).getResult().getFirstName().equals("X")));
+                    }
+                });
+            }
+        });
+
+
+        MockProfileManagerSubscriber sub = new MockProfileManagerSubscriber();
+        profileManager.resume(sub);
+
+        ComapiProfile p = new ComapiProfile();
+        p.setFirstName("a");
+        p.add("b", "c");
+
+        profileManager.updateProfile(p);
 
         assertEquals(2, sub.getState());
 

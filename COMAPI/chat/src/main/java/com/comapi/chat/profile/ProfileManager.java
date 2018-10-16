@@ -23,6 +23,7 @@ package com.comapi.chat.profile;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import com.comapi.ProfileListener;
 import com.comapi.RxComapiClient;
@@ -57,7 +58,7 @@ public class ProfileManager {
     private static final int ETAG_NOT_VALID = 412;
 
     final private ProfileChecker profileChecker;
-    final private ProfileUpdater profileUpdater;
+    final private ProfileModifier profileModifier;
 
     /**
      * Internal usage constructor. To obtain ProfileManager instance use ComapiChatClient#createProfileManager method.
@@ -69,7 +70,7 @@ public class ProfileManager {
         String fileName = PREF_PREFIX + client.getSession().getProfileId();
         VersionController versionController = new VersionController(context.getSharedPreferences(fileName, MODE_PRIVATE));
         WeakReference<RxComapiClient> ref = new WeakReference<>(client);
-        profileUpdater = new ProfileUpdater(ref, versionController, executor);
+        profileModifier = new ProfileModifier(ref, versionController, executor, new ObsFactory());
         profileChecker = new ProfileChecker(ref, versionController, executor);
     }
 
@@ -78,8 +79,8 @@ public class ProfileManager {
      *
      * @param subscriber Subscriber for callbacks relevant for UI updates.
      */
-    public void resume(ProfileManagerSubscriber subscriber) {
-        profileUpdater.resume(subscriber);
+    public void resume(@NonNull ProfileManagerSubscriber subscriber) {
+        profileModifier.resume(subscriber);
         profileChecker.resume(subscriber);
     }
 
@@ -87,18 +88,26 @@ public class ProfileManager {
      * Stop managing user profile data. Call this method in onPause method of your profile Activity.
      */
     public void pause() {
-        profileUpdater.pause();
+        profileModifier.pause();
         profileChecker.pause();
     }
 
     /**
      * Applies profile patch for an active session. Changes are applied only for the specified properties leaving other unchanged.
-     * This method will
      *
      * @param profile Profile details patch.
      */
-    public void patchProfile(ComapiProfile profile) {
-        profileUpdater.patchProfile(profile);
+    public void patchProfile(@NonNull ComapiProfile profile) {
+        profileModifier.modify(profile, true);
+    }
+
+    /**
+     * Applies profile update for an active session. Changes are applied for all properties, erasing the ones that are not specified in the request.
+     *
+     * @param profile Profile details update.
+     */
+    public void updateProfile(@NonNull ComapiProfile profile) {
+        profileModifier.modify(profile, false);
     }
 
     /**
@@ -128,16 +137,18 @@ public class ProfileManager {
 
         private final ComapiProfile requested;
         private final ComapiProfile actual;
-        WeakReference<ProfileUpdater> updRef;
+        WeakReference<ProfileModifier> updRef;
         private WeakReference<VersionController> vCRef;
+        private boolean isPatch;
         String newETag;
 
-        ConflictResolver(ComapiProfile requestedPatch, ComapiResult<ComapiProfile> actualProfileResponse, ProfileUpdater updater, VersionController versionController) {
+        ConflictResolver(ComapiProfile requestedPatch, ComapiResult<ComapiProfile> actualProfileResponse, ProfileModifier updater, VersionController versionController, boolean isPatch) {
             this.requested = requestedPatch;
             this.actual = actualProfileResponse.getResult();
             this.newETag = actualProfileResponse.getETag();
             this.updRef = new WeakReference<>(updater);
             this.vCRef = new WeakReference<>(versionController);
+            this.isPatch = isPatch;
         }
 
         /**
@@ -145,13 +156,13 @@ public class ProfileManager {
          *
          * @param resolution Profile data to proceed with a previously failed patch. If null the SDK will cancel this patch request.
          */
-        public void resolve(ComapiProfile resolution) {
-            ProfileUpdater updater = updRef.get();
+        public void resolve(@Nullable ComapiProfile resolution) {
+            ProfileModifier updater = updRef.get();
             if (updater != null && resolution != null) {
                 VersionController vC = vCRef.get();
                 if (vC != null) {
                     vC.updateVersion(newETag);
-                    updater.patchProfile(resolution);
+                    updater.modify(resolution, isPatch);
                 }
             }
         }
@@ -175,23 +186,36 @@ public class ProfileManager {
         }
     }
 
+    class ObsFactory {
+
+        Observable<ComapiResult<ComapiProfile>> getModifyProfileObs(RxComapiClient client, @NonNull final ComapiProfile profileDetails, final String eTag, final boolean isPatch) {
+            if (isPatch) {
+                return client.service().profileWithDefaults().patchMyProfile(profileDetails, eTag);
+            } else {
+                return client.service().profileWithDefaults().updateProfile(profileDetails, eTag);
+            }
+        }
+    }
+
     /**
      * Manages profile patching and updating.
      */
-    private static class ProfileUpdater {
+    private static class ProfileModifier {
 
         private static final int MAX_CALL_COUNT = 3;
         private final WeakReference<RxComapiClient> ref;
         private VersionController versionController;
         private ObservableExecutor executor;
         private ProfileManagerSubscriber listener;
+        private ObsFactory obsFactory;
 
         private int callCount;
 
-        ProfileUpdater(WeakReference<RxComapiClient> ref, VersionController versionController, ObservableExecutor executor) {
+        ProfileModifier(WeakReference<RxComapiClient> ref, VersionController versionController, ObservableExecutor executor, ObsFactory obsFactory) {
             this.ref = ref;
             this.versionController = versionController;
             this.executor = executor;
+            this.obsFactory = obsFactory;
             callCount = 0;
         }
 
@@ -203,10 +227,10 @@ public class ProfileManager {
             listener = null;
         }
 
-        private Observable<ComapiResult<ComapiProfile>> doPatchProfile(final ComapiProfile requestedProfileChange) {
+        private Observable<ComapiResult<ComapiProfile>> doModify(final ComapiProfile requestedProfileChange, final boolean isPatch) {
             callCount += 1;
             final RxComapiClient client = ref.get();
-            return client.service().profileWithDefaults().patchMyProfile(requestedProfileChange, versionController.getVersion())
+            return obsFactory.getModifyProfileObs(client, requestedProfileChange, versionController.getVersion(), isPatch)
                     .flatMap((Func1<ComapiResult<ComapiProfile>, Observable<ComapiResult<ComapiProfile>>>) result -> {
                         if (result.getCode() == ETAG_NOT_VALID && callCount < MAX_CALL_COUNT) {
                             return client.service().profileWithDefaults().getProfile(client.getSession().getProfileId())
@@ -215,7 +239,7 @@ public class ProfileManager {
                                             .observeOn(AndroidSchedulers.mainThread())
                                             .doOnNext(comapiProfileComapiResult -> {
                                                 if (profileQueryResult.isSuccessful()) {
-                                                    final ConflictResolver resolver = new ConflictResolver(requestedProfileChange, profileQueryResult, ProfileUpdater.this, versionController);
+                                                    final ConflictResolver resolver = new ConflictResolver(requestedProfileChange, profileQueryResult, ProfileModifier.this, versionController, isPatch);
                                                     listener.onConflictPatchingData(resolver);
                                                 } else {
                                                     listener.profileCallFinishedWithError("Error when obtaining latest profile details.");
@@ -231,9 +255,9 @@ public class ProfileManager {
                     });
         }
 
-        void patchProfile(final ComapiProfile comapiProfile) {
+        void modify(final ComapiProfile comapiProfile, final boolean isPatch) {
             listener.profileCallStarted();
-            executor.execute(doPatchProfile(comapiProfile)
+            executor.execute(doModify(comapiProfile, isPatch)
                     .observeOn(AndroidSchedulers.mainThread())
                     .doOnCompleted(() -> callCount = 0)
                     .doOnNext(result -> {
