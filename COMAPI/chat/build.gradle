@@ -4,7 +4,7 @@ apply from: 'code_coverage.gradle'
 
 android {
     compileSdkVersion 28
-    buildToolsVersion '27.0.3'
+    buildToolsVersion '28.0.3'
 
     defaultConfig {
         minSdkVersion 16
@@ -39,7 +39,7 @@ android {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
-    implementation 'com.android.support:support-annotations:28.0.0-rc01'
+    implementation 'com.android.support:support-annotations:28.0.0'
 
     compileOnly 'com.google.auto.value:auto-value:1.5.2'
     annotationProcessor 'com.google.auto.value:auto-value:1.5.2'
@@ -192,9 +192,4 @@ generateRelease.dependsOn(zipRelease)
 artifacts {
     archives androidSourcesJar
     archives androidJavadocsJar
-}
-
-apply plugin: 'me.tatarka.retrolambda'
-retrolambda {
-    javaVersion JavaVersion.VERSION_1_7
 }
