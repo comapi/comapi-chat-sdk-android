@@ -332,7 +332,13 @@ public class ComapiChatClient {
         }
     }
 
-    public ProfileManager createProfileManager(Context context) {
+    /**
+     * Create ProfileManager to manage profile data.
+     *
+     * @param context Application context.
+     * @return ProfileManager to manage profile data.
+     */
+    public ProfileManager createProfileManager(@NonNull Context context) {
         return new ProfileManager(context, client, new ObservableExecutor() {
 
             @Override
