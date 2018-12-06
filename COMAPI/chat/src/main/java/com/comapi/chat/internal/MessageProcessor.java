@@ -152,7 +152,7 @@ public class MessageProcessor {
      * @return Message part.
      */
     private Part createPart(Attachment a) {
-        return Part.builder().setName(a.getId()).setSize(a.getSize()).setType(a.getType()).setUrl(a.getUrl()).build();
+        return Part.builder().setName(a.getName() != null ? a.getName() : a.getId()).setSize(a.getSize()).setType(a.getType()).setUrl(a.getUrl()).build();
     }
 
     /**
