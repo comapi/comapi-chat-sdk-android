@@ -39,7 +39,7 @@ public class Attachment {
 
     public static final String LOCAL_PART_TYPE_ERROR = "comapi/error";
 
-    public static final String LOCAL_PART_TYPE_UPLOADING = "comapi/uploading";
+    public static final String LOCAL_PART_TYPE_UPLOADING = "comapi/upl";
 
     public static final String LOCAL_AUTO_CONVERTED_FOLDER = "AutoConverted";
 
