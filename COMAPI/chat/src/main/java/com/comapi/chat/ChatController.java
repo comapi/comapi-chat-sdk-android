@@ -51,6 +51,7 @@ import com.comapi.internal.network.model.messaging.MessageSentResponse;
 import com.comapi.internal.network.model.messaging.MessageStatus;
 import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
+import com.comapi.internal.network.model.messaging.MessagesQueryResponse;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -307,7 +308,9 @@ class ChatController {
                     return checkState().flatMap(client -> client.service().messaging().queryMessages(conversationId, queryFrom, messagesPerQuery))
                             .flatMap(result -> persistenceController.processMessageQueryResponse(conversationId, result))
                             .flatMap(result -> persistenceController.processOrphanedEvents(result, orphanedEventsToRemoveListener))
-                            .map(result -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result)));
+                            .flatMap((Func1<ComapiResult<MessagesQueryResponse>, Observable<ChatResult>>) result -> (result.getResult().getMessages().isEmpty() && result.getResult().getEarliestEventId() > 0) ?
+                                    getPreviousMessages(conversationId) :
+                                    Observable.fromCallable(() -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result))));
                 });
     }
 

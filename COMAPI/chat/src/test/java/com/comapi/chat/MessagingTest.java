@@ -336,7 +336,7 @@ public class MessagingTest {
         }
 
         for (int i=0; i< 3; i++) {
-            assertEquals(Attachment.LOCAL_PART_TYPE_UPLOADING, attachmentParts.get(i).getType());
+            assertTrue(attachmentParts.get(i).getType().startsWith(Attachment.LOCAL_PART_TYPE_UPLOADING));
         }
     }
 

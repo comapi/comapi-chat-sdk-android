@@ -72,7 +72,7 @@ public abstract class StoreFactory<T extends ChatStore> {
      * @return Non generic store factory.
      */
     StoreFactory<ChatStore> asChatStoreFactory() {
-        return new ChatStoreFactory<>(this);
+        return new ChatStoreFactory<>(this, log);
     }
 
     /**
@@ -84,13 +84,22 @@ public abstract class StoreFactory<T extends ChatStore> {
 
         private final StoreFactory<T> factory;
 
-        ChatStoreFactory(StoreFactory<T> factory) {
+        private Logger log;
+
+        ChatStoreFactory(StoreFactory<T> factory, Logger log) {
             this.factory = factory;
+            this.log = log;
         }
 
         @Override
         protected void build(StoreCallback<ChatStore> callback) {
-            factory.build(callback::created);
+            try {
+                factory.build(callback::created);
+            } catch (Exception e) {
+                if (log != null) {
+                    log.f("Error executing external store transaction : " + e.getLocalizedMessage(), e);
+                }
+            }
         }
     }
 }

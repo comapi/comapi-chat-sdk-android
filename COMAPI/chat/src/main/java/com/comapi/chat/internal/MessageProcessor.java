@@ -143,7 +143,7 @@ public class MessageProcessor {
      * @return Message part.
      */
     private Part createTempPart(Attachment a) {
-        return Part.builder().setName(String.valueOf(a.hashCode())).setSize(0).setType(Attachment.LOCAL_PART_TYPE_UPLOADING).setUrl(null).setData("Uploading attachment.").build();
+        return Part.builder().setName(String.valueOf(a.hashCode())).setSize(0).setType(Attachment.LOCAL_PART_TYPE_UPLOADING).setUrl(null).setData(null).build();
     }
 
     /**
