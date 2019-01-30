@@ -308,7 +308,7 @@ class ChatController {
                     return checkState().flatMap(client -> client.service().messaging().queryMessages(conversationId, queryFrom, messagesPerQuery))
                             .flatMap(result -> persistenceController.processMessageQueryResponse(conversationId, result))
                             .flatMap(result -> persistenceController.processOrphanedEvents(result, orphanedEventsToRemoveListener))
-                            .flatMap((Func1<ComapiResult<MessagesQueryResponse>, Observable<ChatResult>>) result -> (result.getResult().getMessages().isEmpty() && result.getResult().getEarliestEventId() > 0) ?
+                            .flatMap((Func1<ComapiResult<MessagesQueryResponse>, Observable<ChatResult>>) result -> (result.isSuccessful() && result.getResult().getMessages().isEmpty() && result.getResult().getEarliestEventId() > 0) ?
                                     getPreviousMessages(conversationId) :
                                     Observable.fromCallable(() -> new ChatResult(result.isSuccessful(), result.isSuccessful() ? null : new ChatResult.Error(result))));
                 });

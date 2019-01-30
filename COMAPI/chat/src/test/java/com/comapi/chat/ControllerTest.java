@@ -246,7 +246,7 @@ public class ControllerTest {
             assertEquals("https://url", attachmentParts.get(i).getUrl());
             assertEquals(2662193, attachmentParts.get(i).getSize());
             assertEquals("image/jpeg", attachmentParts.get(i).getType());
-            assertEquals("152f860e6f5951a3afbcc42654daddd6a2863262", attachmentParts.get(i).getName());
+            assertNotNull(String.valueOf(attachmentParts.get(i).hashCode()), attachmentParts.get(i).getName());
         }
 
     }
