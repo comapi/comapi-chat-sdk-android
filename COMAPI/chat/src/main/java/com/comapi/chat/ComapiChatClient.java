@@ -36,6 +36,7 @@ import com.comapi.chat.listeners.ParticipantsListener;
 import com.comapi.chat.listeners.ProfileListener;
 import com.comapi.chat.listeners.TypingListener;
 import com.comapi.chat.model.ModelAdapter;
+import com.comapi.chat.profile.ProfileManager;
 import com.comapi.internal.CallbackAdapter;
 import com.comapi.internal.lifecycle.LifecycleListener;
 import com.comapi.internal.log.Logger;
@@ -52,6 +53,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import rx.Observable;
+import rx.Subscriber;
+import rx.schedulers.Schedulers;
 
 /**
  * Client implementation for chat layer SDK. Handles initialisation and stores all internal objects.
@@ -61,7 +64,7 @@ import rx.Observable;
  */
 public class ComapiChatClient {
 
-    private final static String VERSION = "1.0.1";
+    private final static String VERSION = "1.1.0";
 
     private final RxComapiClient client;
 
@@ -79,6 +82,8 @@ public class ComapiChatClient {
     private final Map<ProfileListener, com.comapi.ProfileListener> profileListeners;
     private final Map<TypingListener, MessagingListener> typingListeners;
 
+    private final Database db;
+
     /**
      * Recommended constructor.
      *
@@ -88,12 +93,12 @@ public class ComapiChatClient {
      * @param eventsHandler   Socket events handler.
      * @param callbackAdapter Adapts Observables to callback APIs.
      */
-    ComapiChatClient(Application app, final RxComapiClient client, final ChatConfig chatConfig, final EventsHandler eventsHandler, CallbackAdapter callbackAdapter) {
+    protected ComapiChatClient(Application app, final RxComapiClient client, final ChatConfig chatConfig, final EventsHandler eventsHandler, CallbackAdapter callbackAdapter) {
         this.client = client;
         this.eventsHandler = eventsHandler;
         final Logger log = ClientHelper.getLogger(client).clone("Chat_" + VERSION);
         ModelAdapter modelAdapter = new ModelAdapter();
-        Database db = Database.getInstance(app, false, log);
+        db = Database.getInstance(app, false, log);
         PersistenceController persistenceController = new PersistenceController(db, modelAdapter, chatConfig.getStoreFactory(), log);
         final InternalConfig internal = chatConfig.getInternalConfig();
         controller = new ChatController(client, persistenceController, new AttachmentController(log, internal.getMaxPartDataSize()), internal, chatConfig.getObservableExecutor(), modelAdapter, log);
@@ -198,13 +203,23 @@ public class ComapiChatClient {
      * Returns the content of internal log files in a single String. For large limits of internal files consider using {@link ComapiChatClient#copyLogs(File)} and loading the content line by line.
      *
      * @return Observable emitting internal log files content as a single string.
+     * @deprecated Use safer version - {@link this#copyLogs(File)} instead.
      */
+    @Deprecated
     public Observable<String> getLogs() {
         return client.getLogs();
     }
 
-    void clean(Application application) {
-        client.clean(application.getApplicationContext());
+    /**
+     * Method to close the client state, won't be usable anymore. Useful e.g. for unit testing.
+     *
+     * @param context Context.
+     */
+    public void close(Context context) {
+        client.clean(context.getApplicationContext());
+        if (db != null) {
+            db.closeDatabase();
+        }
     }
 
     /**
@@ -314,6 +329,48 @@ public class ComapiChatClient {
         if (messagingListener != null) {
             client.removeListener(messagingListener);
             typingListeners.remove(typingListener);
+        }
+    }
+
+    /**
+     * Create ProfileManager to manage profile data.
+     *
+     * @param context Application context.
+     * @return ProfileManager to manage profile data.
+     */
+    public ProfileManager createProfileManager(@NonNull Context context) {
+        return new ProfileManager(context, client, new ObservableExecutor() {
+
+            @Override
+            public <T> void execute(final Observable<T> obs) {
+                obs.subscribe(new Subscriber<T>() {
+                            @Override
+                            public void onCompleted() {
+                                // Completed, will unsubscribe automatically
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                // Report errors in doOnError
+                            }
+
+                            @Override
+                            public void onNext(T t) {
+                                // Ignore result
+                            }
+                        });
+            }
+        });
+    }
+
+    Logger getLogger(String tagSuffix) {
+        return ClientHelper.getLogger(client).clone(tagSuffix);
+    }
+
+    public static class ExtHelper {
+
+        public static Logger getLogger(@NonNull final ComapiChatClient client, final String tagSuffix) {
+            return client.getLogger(tagSuffix);
         }
     }
 }

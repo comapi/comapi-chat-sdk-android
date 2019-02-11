@@ -40,12 +40,12 @@ public abstract class StoreFactory<T extends ChatStore> {
      *
      * @param transaction Store transaction based on provided {@link ChatStore} implementation.
      */
-    synchronized public final void execute(@NonNull StoreTransaction<T> transaction) {
+    public final void execute(@NonNull StoreTransaction<T> transaction) {
         try {
             build(transaction::execute);
         } catch (Exception e) {
             if (log != null) {
-                log.w("Error executing external store transaction : " + e.getLocalizedMessage());
+                log.f("Error executing external store transaction : " + e.getLocalizedMessage(), e);
             }
         }
     }
@@ -64,5 +64,42 @@ public abstract class StoreFactory<T extends ChatStore> {
      */
     void injectLogger(final Logger log) {
         this.log = log;
+    }
+
+    /**
+     * Converts the generic store factory object to specific one needed by chat SDK.
+     *
+     * @return Non generic store factory.
+     */
+    StoreFactory<ChatStore> asChatStoreFactory() {
+        return new ChatStoreFactory<>(this, log);
+    }
+
+    /**
+     * Store factory class to build non generic persistance store objects.
+     *
+     * @param <T> Generic type of persistance store parent class.
+     */
+    public static class ChatStoreFactory<T extends ChatStore> extends StoreFactory<ChatStore> {
+
+        private final StoreFactory<T> factory;
+
+        private Logger log;
+
+        ChatStoreFactory(StoreFactory<T> factory, Logger log) {
+            this.factory = factory;
+            this.log = log;
+        }
+
+        @Override
+        protected void build(StoreCallback<ChatStore> callback) {
+            try {
+                factory.build(callback::created);
+            } catch (Exception e) {
+                if (log != null) {
+                    log.f("Error executing external store transaction : " + e.getLocalizedMessage(), e);
+                }
+            }
+        }
     }
 }

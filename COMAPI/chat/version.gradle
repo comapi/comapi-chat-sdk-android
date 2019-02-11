@@ -4,14 +4,12 @@
 
 */
 
-ext.chatVersion = '1.0.1'
+ext.chatVersion = '1.1.1'
+def foundationMaven = System.getenv("foundationmaven")
+ext.foundationFromMaven = foundationMaven != null ? foundationMaven : false
 
 def isComapiRelease = System.getenv("isparagonrelease")
 ext.isReleaseVersion = isComapiRelease != null ? isComapiRelease : false
-
-if (!isReleaseVersion) {
-    chatVersion = chatVersion + '-SNAPSHOT'
-}
 
 if (project.hasProperty("teamcity")) {
     ext.buildNumber = teamcity['build.number']

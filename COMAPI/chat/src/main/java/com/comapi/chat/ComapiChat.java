@@ -138,4 +138,11 @@ public class ComapiChat {
     static void reset() {
         instance = null;
     }
+
+    public static class ExtHelper {
+
+        public static void resetShared() {
+            ComapiChat.reset();
+        }
+    }
 }

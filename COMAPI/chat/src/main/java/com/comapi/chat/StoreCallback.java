@@ -33,5 +33,5 @@ public interface StoreCallback<T> {
      *
      * @param result External Store instance.
      */
-    void created(T result);
+    void created(final T result);
 }

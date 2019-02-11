@@ -22,6 +22,7 @@ package com.comapi.chat;
 
 import rx.Observable;
 import rx.Subscriber;
+import rx.schedulers.Schedulers;
 
 /**
  * Subscribes to an observable
@@ -29,7 +30,7 @@ import rx.Subscriber;
  * @author Marcin Swierczek
  * @since 1.0.0
  */
-abstract class ObservableExecutor {
+public abstract class ObservableExecutor {
 
     /**
      * Subscribe to observable.
@@ -37,7 +38,7 @@ abstract class ObservableExecutor {
      * @param obs Observable to execute.
      * @param <T> Type of result emited by the observable.
      */
-    abstract <T> void execute(final Observable<T> obs);
+    public abstract <T> void execute(final Observable<T> obs);
 
     /**
      * New instance.
@@ -49,24 +50,25 @@ abstract class ObservableExecutor {
         return new ObservableExecutor() {
 
             @Override
-            <T> void execute(final Observable<T> obs) {
+            public <T> void execute(final Observable<T> obs) {
+                obs.subscribeOn(Schedulers.io())
+                        .observeOn(Schedulers.io())
+                        .subscribe(new Subscriber<T>() {
+                            @Override
+                            public void onCompleted() {
+                                // Completed, will unsubscribe automatically
+                            }
 
-                obs.subscribe(new Subscriber<T>() {
-                    @Override
-                    public void onCompleted() {
-                        // Completed, will unsubscribe automatically
-                    }
+                            @Override
+                            public void onError(Throwable e) {
+                                // Report errors in doOnError
+                            }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        // Report errors in doOnError
-                    }
-
-                    @Override
-                    public void onNext(T t) {
-                        // Ignore result
-                    }
-                });
+                            @Override
+                            public void onNext(T t) {
+                                // Ignore result
+                            }
+                        });
             }
         };
     }

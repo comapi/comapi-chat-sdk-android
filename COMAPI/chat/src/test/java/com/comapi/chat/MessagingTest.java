@@ -123,7 +123,7 @@ public class MessagingTest {
                 .store(factory)
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.toBlocking().firstOrDefault(null);
                     }
                 })
@@ -336,7 +336,7 @@ public class MessagingTest {
         }
 
         for (int i=0; i< 3; i++) {
-            assertEquals(Attachment.LOCAL_PART_TYPE_UPLOADING, attachmentParts.get(i).getType());
+            assertTrue(attachmentParts.get(i).getType().startsWith(Attachment.LOCAL_PART_TYPE_UPLOADING));
         }
     }
 

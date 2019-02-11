@@ -27,6 +27,7 @@ import android.support.annotation.Nullable;
 import com.comapi.GlobalState;
 import com.comapi.MessagingListener;
 import com.comapi.ProfileListener;
+import com.comapi.QueryBuilder;
 import com.comapi.RxComapiClient;
 import com.comapi.RxServiceAccessor;
 import com.comapi.Session;
@@ -60,6 +61,7 @@ import com.comapi.internal.network.model.messaging.MessageStatusUpdate;
 import com.comapi.internal.network.model.messaging.MessageToSend;
 import com.comapi.internal.network.model.messaging.MessagesQueryResponse;
 import com.comapi.internal.network.model.messaging.UploadContentResponse;
+import com.comapi.internal.network.model.profile.ComapiProfile;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -414,6 +416,102 @@ public class MockComapiClient extends RxComapiClient {
             }
 
             /**
+             * Access COMAPI Service profile APIs.
+             *
+             * @return COMAPI Service profile APIs.
+             */
+            public ProfileServiceWithDefaults profileWithDefaults() {
+
+                return new ProfileServiceWithDefaults() {
+
+                    /**
+                     * Get profile details from the service.
+                     *
+                     * @param profileId Profile Id of the user.
+                     * @return Profile details from the service.
+                     */
+                    public Observable<ComapiResult<ComapiProfile>> getProfile(@NonNull final String profileId) {
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof ComapiProfile)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<ComapiProfile>) result;
+                            }
+                        });
+                    }
+
+                    /**
+                     * Query user profiles on the services.
+                     *
+                     * @param queryString Query string. See https://www.npmjs.com/package/mongo-querystring for query syntax. You can use {@link QueryBuilder} helper class to construct valid query string.
+                     * @return Profiles detail from the service.
+                     */
+                    public Observable<ComapiResult<List<ComapiProfile>>> queryProfiles(@NonNull final String queryString) {
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof List)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<List<ComapiProfile>>) result;
+                            }
+                        });
+                    }
+
+                    /**
+                     * Updates profile for an active session.
+                     *
+                     * @param profileDetails Profile details.
+                     * @return Observable with to perform update profile for current session.
+                     */
+                    public Observable<ComapiResult<ComapiProfile>> updateProfile(@NonNull final ComapiProfile profileDetails, final String eTag) {
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof ComapiProfile)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<ComapiProfile>) result;
+                            }
+                        });
+                    }
+
+                    /**
+                     * Applies given profile patch if required permission is granted.
+                     *
+                     * @param profileDetails Profile details.
+                     * @return Observable with to perform patch profile for current session.
+                     */
+                    public Observable<ComapiResult<ComapiProfile>> patchProfile(@NonNull String profileId, @NonNull final ComapiProfile profileDetails, final String eTag) {
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof ComapiProfile)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<ComapiProfile>) result;
+                            }
+                        });
+                    }
+
+                    /**
+                     * Applies profile patch for an active session.
+                     *
+                     * @param profileDetails Profile details.
+                     * @return Observable with to perform patch profile for current session.
+                     */
+                    public Observable<ComapiResult<ComapiProfile>> patchMyProfile(@NonNull final ComapiProfile profileDetails, final String eTag) {
+                        return Observable.fromCallable(() -> {
+                            ComapiResult<?> result = results.poll();
+                            if (result == null || !(result.getResult() == null || result.getResult() instanceof ComapiProfile)) {
+                                throw new Exception("Mocking response error in MockFoundationFactory class");
+                            } else {
+                                return (ComapiResult<ComapiProfile>) result;
+                            }
+                        });
+                    }
+                };
+            }
+
+            /**
              * Access COMAPI Service session management APIs.
              *
              * @return COMAPI Service session management APIs.
@@ -522,6 +620,8 @@ public class MockComapiClient extends RxComapiClient {
         } else if (event instanceof ProfileUpdateEvent) {
             if (testProfileListener != null) {
                 testProfileListener.onProfileUpdate((ProfileUpdateEvent) event);
+            }
+            if (configTestProfileListener != null) {
                 configTestProfileListener.onProfileUpdate((ProfileUpdateEvent) event);
             }
         } else if (event instanceof ParticipantTypingEvent) {

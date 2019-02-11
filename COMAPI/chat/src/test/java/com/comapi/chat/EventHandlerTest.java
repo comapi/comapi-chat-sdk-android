@@ -132,7 +132,7 @@ public class EventHandlerTest {
                 })
                 .observableExecutor(new ObservableExecutor() {
                     @Override
-                    <T> void execute(Observable<T> obs) {
+                    public <T> void execute(Observable<T> obs) {
                         obs.toBlocking().first();
                     }
                 })
@@ -185,7 +185,7 @@ public class EventHandlerTest {
 
         chatController = new ChatController(mockedComapiClient, persistenceController, attachmentController, internal, new ObservableExecutor() {
             @Override
-            <T> void execute(Observable<T> obs) {
+            public <T> void execute(Observable<T> obs) {
                 obs.toBlocking().first();
             }
         }, modelAdapter, logger);
@@ -444,8 +444,6 @@ public class EventHandlerTest {
         mockedComapiClient.dispatchTestEvent(event1);
 
         assertTrue(events.isEmpty());
-
-        assertTrue(this.events.size() == 1); // only one event type was dispatched.
     }
 
     @Test

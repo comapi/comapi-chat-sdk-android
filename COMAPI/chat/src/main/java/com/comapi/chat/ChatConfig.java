@@ -20,6 +20,8 @@
 
 package com.comapi.chat;
 
+import android.support.annotation.NonNull;
+
 import com.comapi.BaseConfig;
 import com.comapi.ComapiConfig;
 import com.comapi.chat.listeners.ParticipantsListener;
@@ -54,10 +56,11 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
      * Sets builder for {@link ChatStore} db interface that can handle single db transactions.
      *
      * @param builder Factory class to create {@link ChatStore}.
+     * @param <T> Generic type of persistance store parent class.
      * @return Builder instance with new value set.
      */
-    public ChatConfig store(StoreFactory<ChatStore> builder) {
-        this.storeFactory = builder;
+    public <T extends ChatStore> ChatConfig store(StoreFactory<T> builder) {
+        this.storeFactory = builder.asChatStoreFactory();
         return this;
     }
 
@@ -230,4 +233,22 @@ public class ChatConfig extends BaseConfig<ChatConfig> {
         return this;
     }
 
+    public static class ExtHelper {
+
+        public static void setFoundationFactory(@NonNull final ChatConfig config, FoundationFactory factory) {
+            config.setFoundationFactory(factory);
+        }
+
+        public static void setObservableExecutor(@NonNull final ChatConfig config, ObservableExecutor obsExec) {
+            config.observableExecutor(obsExec);
+        }
+
+        public static void overrideCallbackAdapter(@NonNull final ChatConfig config, CallbackAdapter adapter) {
+            config.overrideCallbackAdapter(adapter);
+        }
+
+        public static ComapiConfig buildComapiConfig(@NonNull final ChatConfig config) {
+            return config.buildComapiConfig();
+        }
+    }
 }
