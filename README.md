@@ -21,4 +21,4 @@ or Gradle
 compile 'com.comapi:chat:1.1.1'
 ```
 
-For more information about the integration please visit [the website](http://docs.comapi.com/reference#one-sdk-android-overview).
+For more information about the integration please visit [the website](http://docs.cpaas.dotdigital.com/reference#one-sdk-android-overview).
